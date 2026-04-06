@@ -5,7 +5,8 @@ import {
   UseMutationOptions,
   QueryKey,
 } from "@tanstack/react-query";
-import { apiRequest, apiPublicRequest, FetchRequestConfig } from "./client";
+import { serverRequest, serverPublicRequest } from "./server";
+import type { ServerFetchConfig } from "./types";
 
 /**
  * Generic hook for API queries WITH auth
@@ -13,12 +14,12 @@ import { apiRequest, apiPublicRequest, FetchRequestConfig } from "./client";
 export function useApiQuery<TData>(
   queryKey: QueryKey,
   url: string,
-  config?: FetchRequestConfig,
-  options?: Omit<UseQueryOptions<TData, Error>, "queryKey" | "queryFn">
+  config?: ServerFetchConfig,
+  options?: Omit<UseQueryOptions<TData, Error>, "queryKey" | "queryFn">,
 ) {
   return useQuery<TData, Error>({
     queryKey,
-    queryFn: () => apiRequest<TData>(url, { ...config, method: "GET" }),
+    queryFn: () => serverRequest<TData>(url, { ...config, method: "GET" }),
     ...options,
   });
 }
@@ -29,12 +30,13 @@ export function useApiQuery<TData>(
 export function useApiPublicQuery<TData>(
   queryKey: QueryKey,
   url: string,
-  config?: FetchRequestConfig,
-  options?: Omit<UseQueryOptions<TData, Error>, "queryKey" | "queryFn">
+  config?: ServerFetchConfig,
+  options?: Omit<UseQueryOptions<TData, Error>, "queryKey" | "queryFn">,
 ) {
   return useQuery<TData, Error>({
     queryKey,
-    queryFn: () => apiPublicRequest<TData>(url, { ...config, method: "GET" }),
+    queryFn: () =>
+      serverPublicRequest<TData>(url, { ...config, method: "GET" }),
     ...options,
   });
 }
@@ -47,18 +49,18 @@ export function useApiMutation<TData, TVariables = unknown>(
     UseMutationOptions<
       TData,
       Error,
-      { url: string; data?: TVariables; config?: FetchRequestConfig }
+      { url: string; data?: TVariables; config?: ServerFetchConfig }
     >,
     "mutationFn"
-  >
+  >,
 ) {
   return useMutation<
     TData,
     Error,
-    { url: string; data?: TVariables; config?: FetchRequestConfig }
+    { url: string; data?: TVariables; config?: ServerFetchConfig }
   >({
     mutationFn: ({ url, data, config }) =>
-      apiRequest<TData>(url, { ...config, method: "POST", body: data }),
+      serverRequest<TData>(url, { ...config, method: "POST", body: data }),
     ...options,
   });
 }
@@ -68,10 +70,11 @@ export function useApiMutation<TData, TVariables = unknown>(
  */
 export function usePost<TData, TVariables = unknown>(
   url: string,
-  options?: Omit<UseMutationOptions<TData, Error, TVariables>, "mutationFn">
+  options?: Omit<UseMutationOptions<TData, Error, TVariables>, "mutationFn">,
 ) {
   return useMutation<TData, Error, TVariables>({
-    mutationFn: (data) => apiRequest<TData>(url, { method: "POST", body: data }),
+    mutationFn: (data) =>
+      serverRequest<TData>(url, { method: "POST", body: data }),
     ...options,
   });
 }
@@ -81,10 +84,11 @@ export function usePost<TData, TVariables = unknown>(
  */
 export function usePut<TData, TVariables = unknown>(
   url: string,
-  options?: Omit<UseMutationOptions<TData, Error, TVariables>, "mutationFn">
+  options?: Omit<UseMutationOptions<TData, Error, TVariables>, "mutationFn">,
 ) {
   return useMutation<TData, Error, TVariables>({
-    mutationFn: (data) => apiRequest<TData>(url, { method: "PUT", body: data }),
+    mutationFn: (data) =>
+      serverRequest<TData>(url, { method: "PUT", body: data }),
     ...options,
   });
 }
@@ -94,11 +98,11 @@ export function usePut<TData, TVariables = unknown>(
  */
 export function usePatch<TData, TVariables = unknown>(
   url: string,
-  options?: Omit<UseMutationOptions<TData, Error, TVariables>, "mutationFn">
+  options?: Omit<UseMutationOptions<TData, Error, TVariables>, "mutationFn">,
 ) {
   return useMutation<TData, Error, TVariables>({
     mutationFn: (data) =>
-      apiRequest<TData>(url, { method: "PATCH", body: data }),
+      serverRequest<TData>(url, { method: "PATCH", body: data }),
     ...options,
   });
 }
@@ -108,10 +112,10 @@ export function usePatch<TData, TVariables = unknown>(
  */
 export function useDelete<TData>(
   url: string,
-  options?: Omit<UseMutationOptions<TData, Error, void>, "mutationFn">
+  options?: Omit<UseMutationOptions<TData, Error, void>, "mutationFn">,
 ) {
   return useMutation<TData, Error, void>({
-    mutationFn: () => apiRequest<TData>(url, { method: "DELETE" }),
+    mutationFn: () => serverRequest<TData>(url, { method: "DELETE" }),
     ...options,
   });
 }
@@ -124,18 +128,22 @@ export function useApiPublicMutation<TData, TVariables = unknown>(
     UseMutationOptions<
       TData,
       Error,
-      { url: string; data?: TVariables; config?: FetchRequestConfig }
+      { url: string; data?: TVariables; config?: ServerFetchConfig }
     >,
     "mutationFn"
-  >
+  >,
 ) {
   return useMutation<
     TData,
     Error,
-    { url: string; data?: TVariables; config?: FetchRequestConfig }
+    { url: string; data?: TVariables; config?: ServerFetchConfig }
   >({
     mutationFn: ({ url, data, config }) =>
-      apiPublicRequest<TData>(url, { ...config, method: "POST", body: data }),
+      serverPublicRequest<TData>(url, {
+        ...config,
+        method: "POST",
+        body: data,
+      }),
     ...options,
   });
 }
@@ -145,11 +153,11 @@ export function useApiPublicMutation<TData, TVariables = unknown>(
  */
 export function usePublicPost<TData, TVariables = unknown>(
   url: string,
-  options?: Omit<UseMutationOptions<TData, Error, TVariables>, "mutationFn">
+  options?: Omit<UseMutationOptions<TData, Error, TVariables>, "mutationFn">,
 ) {
   return useMutation<TData, Error, TVariables>({
     mutationFn: (data) =>
-      apiPublicRequest<TData>(url, { method: "POST", body: data }),
+      serverPublicRequest<TData>(url, { method: "POST", body: data }),
     ...options,
   });
 }
