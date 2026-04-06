@@ -1,0 +1,114 @@
+@import url("https://fonts.googleapis.com/css2?family=Parkinsans:wght@300..800&display=swap");
+@import "tailwindcss";
+@theme inline {
+  --font-parkinsans: "Parkinsans", sans-serif;
+
+  /* Base Colors - Updated Color Palette */
+  --color-neutral-01: #ffffff;
+  --color-neutral-02: #1a1a1a;
+  --color-success: #9cc8a8;
+  --color-warning: #f4d58d;
+  --color-error: #e89b8f;
+
+  /* Primary Palette from DMC Colors */
+  --color-topaz: #f4d58d;
+  --color-topaz-light: #fcf0cf;
+  --color-topaz-dark: #d4b56d;
+  --color-off-white: #fef9eb;
+  --color-jade: #9cc8a8;
+  --color-jade-light: #c8e4d1;
+  --color-jade-dark: #7aa888;
+
+  /* Grey Scale - Clean neutral greys */
+  --color-grey: #6b7280;
+  --color-grey-stroke: #e5e7eb;
+  --color-grey-light: #f3f4f6;
+  --color-grey-lightest: #f9fafb;
+
+  /* Green Tones - Updated to match jade */
+  --color-green-primary: #9cc8a8;
+  --color-charcoal-green: #5a6d5e;
+  --color-charcoal-green-dark: #2a3a2e;
+  --color-charcoal-green-light: #7a8d7e;
+  --color-charcoal-green-lighter: #9aa89d;
+
+  /* Supporting Colors */
+  --color-white-mineral: #e5e7eb;
+  --color-moss-stone: #9cc8a8;
+  --color-alert-warning: #d4b56d;
+  --color-earth-craft: #c8e4d1;
+
+  --spacing-sidebar-width: 260px;
+  --spacing-topbar-height: 80px;
+
+  /* Responsive sidebar width - for mobile overlay */
+  --spacing-sidebar-width-mobile: 280px;
+  --spacing-topbar-height-mobile: 64px;
+
+  --animate-ripple: ripple var(--duration, 2s) ease calc(var(--i, 0) * 0.2s)
+    infinite;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.thinnest-scrollbar::-webkit-scrollbar {
+  width: 2.6px;
+  height: 2.6px;
+}
+
+.thinnest-scrollbar::-webkit-scrollbar-track {
+  background: rgba(160, 172, 103, 0.4);
+  border-radius: 10px;
+  width: 2.6px;
+  height: 2.6px;
+}
+
+.thinnest-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(160, 172, 103, 1);
+  width: 2.6px;
+  height: 2.6px;
+  border-radius: 10px;
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: rgba(160, 172, 103, 0.4);
+  border-radius: 10px;
+  width: 4px;
+  height: 4px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(160, 172, 103, 1);
+  width: 4px;
+  height: 4px;
+  border-radius: 10px;
+}
+
+button {
+  cursor: pointer;
+}
+
+@keyframes ripple {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+}
