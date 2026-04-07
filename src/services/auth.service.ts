@@ -25,6 +25,12 @@ import {
   ICounselorLoginInput,
   ICounselorLoginResponse,
   ICounselorRegisterInput,
+  IStudentLoginInput,
+  IStudentLoginResponse,
+  IStudentRegisterInput,
+  ITeacherLoginInput,
+  ITeacherLoginResponse,
+  ITeacherRegisterInput,
   IParentLoginInput,
   IParentLoginResponse,
   IParentRegisterInput,
@@ -70,6 +76,70 @@ async function registerCounselor(
   );
 
   // Simpan token ke cookies setelah register
+  tokenStorage.setAccessToken(response.token);
+
+  return response;
+}
+
+/**
+ * Login sebagai Teacher
+ */
+async function loginTeacher(
+  input: ITeacherLoginInput,
+): Promise<ITeacherLoginResponse> {
+  const response = await serverPublicPost<ITeacherLoginResponse>(
+    "/auth/login/teacher",
+    input,
+  );
+
+  tokenStorage.setAccessToken(response.token);
+
+  return response;
+}
+
+/**
+ * Register Teacher baru
+ */
+async function registerTeacher(
+  input: ITeacherRegisterInput,
+): Promise<ITeacherLoginResponse> {
+  const response = await serverPublicPost<ITeacherLoginResponse>(
+    "/auth/register/teacher",
+    input,
+  );
+
+  tokenStorage.setAccessToken(response.token);
+
+  return response;
+}
+
+/**
+ * Login sebagai Student
+ */
+async function loginStudent(
+  input: IStudentLoginInput,
+): Promise<IStudentLoginResponse> {
+  const response = await serverPublicPost<IStudentLoginResponse>(
+    "/auth/login/student",
+    input,
+  );
+
+  tokenStorage.setAccessToken(response.token);
+
+  return response;
+}
+
+/**
+ * Register Student baru
+ */
+async function registerStudent(
+  input: IStudentRegisterInput,
+): Promise<IStudentLoginResponse> {
+  const response = await serverPublicPost<IStudentLoginResponse>(
+    "/auth/register/student",
+    input,
+  );
+
   tokenStorage.setAccessToken(response.token);
 
   return response;
@@ -183,6 +253,10 @@ function isAuthenticated(): boolean {
 export const authService = {
   loginCounselor,
   registerCounselor,
+  loginTeacher,
+  registerTeacher,
+  loginStudent,
+  registerStudent,
   loginParent,
   registerParent,
   getCurrentUser,

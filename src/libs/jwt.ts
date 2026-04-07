@@ -3,15 +3,25 @@
  * Decode JWT token untuk mendapatkan payload (role, id, email)
  */
 
+import { UserRole } from "@/types/auth";
 import { tokenStorage } from "./token";
 
 export interface IJWTPayload {
   id: string;
   email: string;
-  role: "counselor" | "parent";
+  role: UserRole;
   iat: number;
   exp: number;
 }
+
+const dashboardPathByRole: Partial<Record<UserRole, string>> = {
+  admin: "/admin/dashboard",
+  teacher: "/teacher/dashboard",
+  student: "/student/dashboard",
+  parent: "/parent/dashboard",
+  // Backward compatibility untuk role lama
+  counselor: "/teacher/dashboard",
+};
 
 /**
  * Decode JWT token tanpa verify (client-side)
@@ -25,7 +35,15 @@ export function decodeJWT(token: string): IJWTPayload | null {
 
     // Decode base64 payload (browser-compatible)
     const payload = parts[1];
-    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    const decodeBase64 = globalThis.atob;
+    if (typeof decodeBase64 !== "function") return null;
+
+    const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+      "=",
+    );
+    const decoded = decodeBase64(paddedPayload);
     return JSON.parse(decoded);
   } catch (error) {
     console.error("Failed to decode JWT:", error);
@@ -33,10 +51,15 @@ export function decodeJWT(token: string): IJWTPayload | null {
   }
 }
 
+export function getDashboardPathByRole(role: UserRole | null): string {
+  if (!role) return "/";
+  return dashboardPathByRole[role] ?? "/";
+}
+
 /**
  * Get current user role dari JWT token
  */
-export function getUserRole(): "counselor" | "parent" | null {
+export function getUserRole(): UserRole | null {
   const token = tokenStorage.getAccessToken();
   if (!token) return null;
 

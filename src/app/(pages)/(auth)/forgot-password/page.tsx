@@ -9,9 +9,11 @@ import EmailInput from "@/components/atoms/inputs/EmailInput";
 import { SubmitButton } from "@/components/atoms/buttons/SubmitButton";
 import { UserRole } from "@/types/auth";
 
+type ForgotPasswordRole = Extract<UserRole, "teacher" | "student" | "parent">;
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<UserRole>("counselor");
+  const [role, setRole] = useState<ForgotPasswordRole>("teacher");
   const [resetToken, setResetToken] = useState<string | null>(null);
 
   const forgotPassword = useForgotPassword();
@@ -102,17 +104,28 @@ export default function ForgotPasswordPage() {
             <label className="block mb-2">
               <BodySmallMedium>Tipe Akun</BodySmallMedium>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <button
                 type="button"
-                onClick={() => setRole("counselor")}
+                onClick={() => setRole("teacher")}
                 className={`py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                  role === "counselor"
+                  role === "teacher"
                     ? "bg-charcoal-green text-white-mineral"
                     : "bg-white/5 text-charcoal-green-dark border border-grey-stroke hover:bg-grey-light"
                 }`}
               >
-                Konselor
+                Guru
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("student")}
+                className={`py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+                  role === "student"
+                    ? "bg-charcoal-green text-white-mineral"
+                    : "bg-white/5 text-charcoal-green-dark border border-grey-stroke hover:bg-grey-light"
+                }`}
+              >
+                Siswa
               </button>
               <button
                 type="button"
@@ -123,7 +136,7 @@ export default function ForgotPasswordPage() {
                     : "bg-white/5 text-charcoal-green-dark border border-grey-stroke hover:bg-grey-light"
                 }`}
               >
-                Orangtua
+                Orang Tua
               </button>
             </div>
           </div>
@@ -146,7 +159,6 @@ export default function ForgotPasswordPage() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <SubmitButton
             type="submit"
             className="w-full flex justify-center items-center"

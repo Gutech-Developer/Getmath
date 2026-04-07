@@ -11,6 +11,10 @@ import { queryKeys } from "@/libs/api";
 import {
   ICounselorLoginInput,
   ICounselorRegisterInput,
+  IStudentLoginInput,
+  IStudentRegisterInput,
+  ITeacherLoginInput,
+  ITeacherRegisterInput,
   IParentLoginInput,
   IParentRegisterInput,
   IChangePasswordInput,
@@ -50,8 +54,8 @@ export function useLoginCounselor() {
     onSuccess: () => {
       // Invalidate current user query
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser() });
-      // Redirect ke counselor dashboard
-      router.push("/counselor/dashboard");
+      // Counselor lama diarahkan ke dashboard teacher agar route tetap valid
+      router.push("/teacher/dashboard");
     },
   });
 }
@@ -69,6 +73,68 @@ export function useRegisterCounselor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser() });
       router.push("/login");
+    },
+  });
+}
+
+/**
+ * Hook untuk login teacher
+ */
+export function useLoginTeacher() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ITeacherLoginInput) => authService.loginTeacher(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser() });
+      router.push("/teacher/dashboard");
+    },
+  });
+}
+
+/**
+ * Hook untuk register teacher
+ */
+export function useRegisterTeacher() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ITeacherRegisterInput) =>
+      authService.registerTeacher(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser() });
+    },
+  });
+}
+
+/**
+ * Hook untuk login student
+ */
+export function useLoginStudent() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: IStudentLoginInput) => authService.loginStudent(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser() });
+      router.push("/student/dashboard");
+    },
+  });
+}
+
+/**
+ * Hook untuk register student
+ */
+export function useRegisterStudent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: IStudentRegisterInput) =>
+      authService.registerStudent(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser() });
     },
   });
 }

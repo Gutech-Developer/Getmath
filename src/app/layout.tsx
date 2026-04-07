@@ -8,8 +8,8 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export const metadata: Metadata = {
-  title: "Gajah Puteh Art Therapy",
-  description: "Gajah Puteh Art Therapy Management System",
+  title: "GetMath",
+  description: "GetMath Adaptive Learning Platform",
 };
 
 export default function RootLayout({

@@ -18,53 +18,41 @@ export interface ISidebarMenu {
 }
 
 /**
- * Sidebar Menu untuk Counselor
+ * Sidebar Menu untuk Teacher (termasuk backward compatibility role counselor)
  */
-export const counselorSidebarMenu: ISidebarMenu[] = [
+export const teacherSidebarMenu: ISidebarMenu[] = [
   {
     name: "Dashboard",
-    url: "/counselor/dashboard",
+    url: "/teacher/dashboard",
     icon: DashboardIcon,
     subMenu: [],
-    roles: ["counselor"],
+    roles: ["teacher", "counselor"],
   },
+];
+
+/**
+ * Sidebar Menu untuk Student
+ */
+export const studentSidebarMenu: ISidebarMenu[] = [
   {
-    name: "Manajemen Anak",
-    url: "/counselor/children",
-    icon: ThreeUserGroupIcon,
+    name: "Dashboard",
+    url: "/student/dashboard",
+    icon: DashboardIcon,
     subMenu: [],
-    roles: ["counselor"],
+    roles: ["student"],
   },
+];
+
+/**
+ * Sidebar Menu untuk Admin
+ */
+export const adminSidebarMenu: ISidebarMenu[] = [
   {
-    name: "Sesi Terapi",
-    url: "/counselor/therapy",
-    icon: NotebookIcon,
+    name: "Dashboard",
+    url: "/admin/dashboard",
+    icon: DashboardIcon,
     subMenu: [],
-    roles: ["counselor"],
-  },
-  {
-    name: "Asesmen",
-    url: "/counselor/assessments",
-    icon: DocumentIcon,
-    subMenu: [
-      {
-        name: "Screening",
-        url: "/counselor/assessments/screening",
-      },
-      {
-        name: "Pretest",
-        url: "/counselor/assessments/pretest",
-      },
-      {
-        name: "Posttest",
-        url: "/counselor/assessments/posttest",
-      },
-      {
-        name: "Observasi",
-        url: "/counselor/assessments/observation",
-      },
-    ],
-    roles: ["counselor"],
+    roles: ["admin"],
   },
 ];
 
@@ -106,10 +94,21 @@ export const parentSidebarMenu: ISidebarMenu[] = [
  * Get sidebar menu based on user role
  */
 export function getSidebarMenuByRole(role: UserRole | null): ISidebarMenu[] {
-  if (role === "counselor") {
-    return counselorSidebarMenu;
-  } else if (role === "parent") {
+  if (role === "counselor" || role === "teacher") {
+    return teacherSidebarMenu;
+  }
+
+  if (role === "parent") {
     return parentSidebarMenu;
   }
+
+  if (role === "student") {
+    return studentSidebarMenu;
+  }
+
+  if (role === "admin") {
+    return adminSidebarMenu;
+  }
+
   return [];
 }
