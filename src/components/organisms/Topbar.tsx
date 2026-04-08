@@ -50,7 +50,7 @@ const Topbar = () => {
         >
           <Image
             src={"/img/logo/logo.webp"}
-            alt="Gajah Puteh Art Therapy"
+            alt="GetMath"
             width={70}
             height={30}
             className="w-12 lg:w-[70px] h-auto"
@@ -74,7 +74,7 @@ const Topbar = () => {
 
         <Image
           src={"/img/logo/logo.webp"}
-          alt="Gajah Puteh Art Therapy"
+          alt="GetMath"
           width={20}
           height={20}
           className="w-12 lg:w-[70px] h-auto md:hidden"
@@ -83,7 +83,7 @@ const Topbar = () => {
         {/* Mobile: Show hamburger menu indicator */}
         {/* <div className="sm:hidden flex-1">
           <span className="text-sm font-medium text-neutral-02 truncate">
-            Gajah Puteh Art Therapy
+            GetMath
           </span>
         </div> */}
 

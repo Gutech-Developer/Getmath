@@ -3,7 +3,16 @@
  * Sesuai dengan backend auth endpoints
  */
 
-export type UserRole = "counselor" | "parent";
+import type {
+  CreatePayload,
+  EmailPayload,
+  LoginPayload,
+  UpdatePayload,
+  UserTokenResponse,
+  WithPassword,
+} from "@/utils";
+
+export type UserRole = "admin" | "teacher" | "student" | "parent" | "counselor";
 
 export interface IEducation {
   university: string;
@@ -27,27 +36,91 @@ export interface ICounselor {
   updatedAt: string;
 }
 
-export interface ICounselorRegisterInput {
+type CounselorRegisterRequiredKeys =
+  | "email"
+  | "fullname"
+  | "address"
+  | "phone"
+  | "isStudent"
+  | "education";
+
+type CounselorRegisterOptionalKeys = "practiceLicenseNumber" | "work";
+
+export type ICounselorRegisterInput = WithPassword<
+  CreatePayload<
+    ICounselor,
+    CounselorRegisterRequiredKeys,
+    CounselorRegisterOptionalKeys
+  >
+>;
+
+export type ICounselorLoginInput = LoginPayload<ICounselor>;
+
+export type ICounselorLoginResponse = UserTokenResponse<ICounselor>;
+
+// ============ TEACHER ============
+export interface ITeacher {
+  _id: string;
   email: string;
   fullname: string;
-  address: string;
   phone: string;
-  isStudent: boolean;
-  education: IEducation;
-  password: string;
-  practiceLicenseNumber?: string | null;
-  work?: string | null;
+  nip: string;
+  province: string;
+  city: string;
+  school: string;
+  address?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface ICounselorLoginInput {
+type TeacherRegisterKeys =
+  | "email"
+  | "fullname"
+  | "phone"
+  | "nip"
+  | "province"
+  | "city"
+  | "school";
+
+export type ITeacherRegisterInput = WithPassword<
+  CreatePayload<ITeacher, TeacherRegisterKeys>
+>;
+
+export type ITeacherLoginInput = LoginPayload<ITeacher>;
+
+export type ITeacherLoginResponse = UserTokenResponse<ITeacher>;
+
+// ============ STUDENT ============
+export interface IStudent {
+  _id: string;
   email: string;
-  password: string;
+  fullname: string;
+  phone: string;
+  nis: string;
+  province: string;
+  city: string;
+  school: string;
+  address?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface ICounselorLoginResponse {
-  user: ICounselor;
-  token: string;
-}
+type StudentRegisterKeys =
+  | "email"
+  | "fullname"
+  | "phone"
+  | "nis"
+  | "province"
+  | "city"
+  | "school";
+
+export type IStudentRegisterInput = WithPassword<
+  CreatePayload<IStudent, StudentRegisterKeys>
+>;
+
+export type IStudentLoginInput = LoginPayload<IStudent>;
+
+export type IStudentLoginResponse = UserTokenResponse<IStudent>;
 
 // ============ PARENT ============
 export interface IParent {
@@ -62,25 +135,21 @@ export interface IParent {
   updatedAt: string;
 }
 
-export interface IParentRegisterInput {
-  email: string;
-  fullname: string;
-  address: string;
-  phone: string;
-  work: string;
-  age: number;
-  password: string;
-}
+type ParentRegisterKeys =
+  | "email"
+  | "fullname"
+  | "address"
+  | "phone"
+  | "work"
+  | "age";
 
-export interface IParentLoginInput {
-  email: string;
-  password: string;
-}
+export type IParentRegisterInput = WithPassword<
+  CreatePayload<IParent, ParentRegisterKeys>
+>;
 
-export interface IParentLoginResponse {
-  user: IParent;
-  token: string;
-}
+export type IParentLoginInput = LoginPayload<IParent>;
+
+export type IParentLoginResponse = UserTokenResponse<IParent>;
 
 // ============ COMMON ============
 export interface IChangePasswordInput {
@@ -88,10 +157,9 @@ export interface IChangePasswordInput {
   newPassword: string;
 }
 
-export interface IForgotPasswordInput {
-  email: string;
-  role: UserRole;
-}
+export type IForgotPasswordInput = EmailPayload<ICounselor> & {
+  role: Exclude<UserRole, "admin">;
+};
 
 export interface IForgotPasswordResponse {
   message: string;
@@ -104,27 +172,32 @@ export interface IResetPasswordInput {
 }
 
 // Update profile types
-export interface IUpdateCounselorInput {
-  fullname?: string;
-  email?: string;
-  address?: string;
-  phone?: string;
-  isStudent?: boolean;
-  education?: IEducation;
-  practiceLicenseNumber?: string | null;
-  work?: string | null;
-}
+type CounselorUpdateKeys =
+  | "fullname"
+  | "email"
+  | "address"
+  | "phone"
+  | "isStudent"
+  | "education"
+  | "practiceLicenseNumber"
+  | "work";
 
-export interface IUpdateParentInput {
-  fullname?: string;
-  email?: string;
-  address?: string;
-  phone?: string;
-  work?: string;
-  age?: number;
-}
+type ParentUpdateKeys =
+  | "fullname"
+  | "email"
+  | "address"
+  | "phone"
+  | "work"
+  | "age";
 
-// Backend mengembalikan langsung user data tanpa wrapper
+export type IUpdateCounselorInput = UpdatePayload<
+  ICounselor,
+  CounselorUpdateKeys
+>;
+
+export type IUpdateParentInput = UpdatePayload<IParent, ParentUpdateKeys>;
+
+// Backend current-user yang dipakai modul existing masih counselor/parent
 export type ICurrentUser = ICounselor | IParent;
 
 // Type guards untuk membedakan Counselor dan Parent

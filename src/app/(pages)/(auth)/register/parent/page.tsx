@@ -1,11 +1,5 @@
-import RegisterParent from "@/components/organisms/register/RegisterParent";
-import type { Metadata } from "next";
+import ParentRegisterPageTemplate from "@/components/templates/pages/register/ParentRegisterPageTemplate";
 
-export const metadata: Metadata = {
-  title: "Register as Parent | Gajah Puteh Art Therapy",
-  description: "Register as a parent on Gajah Puteh Art Therapy platform",
-};
-
-export default function RegisterParentPage() {
-  return <RegisterParent />;
+export default function RegisterParent() {
+  return <ParentRegisterPageTemplate />;
 }
