@@ -1,7 +1,5 @@
+import TeacherDashboardTemplate from "@/components/templates/pages/dashboard/TeacherDashboardTemplate";
+
 export default function DashboardGuru() {
-  return (
-    <main>
-      <div>init dashboard guru</div>
-    </main>
-  );
+  return <TeacherDashboardTemplate />;
 }
