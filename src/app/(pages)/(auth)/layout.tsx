@@ -9,6 +9,7 @@ const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
 
   if (token) {
     const payload = decodeJWT(token);
+    // console.log(payload);
     if (payload) {
       redirect(getDashboardPathByRole(payload.role));
     }
