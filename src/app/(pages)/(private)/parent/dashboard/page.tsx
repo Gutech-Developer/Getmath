@@ -1,7 +1,5 @@
+import ParentDashboardTemplate from "@/components/templates/pages/dashboard/ParentDashboardTemplate";
+
 export default function DashboardOrangTua() {
-  return (
-    <main>
-      <div>init dashboard orangTua</div>
-    </main>
-  );
+  return <ParentDashboardTemplate />;
 }
