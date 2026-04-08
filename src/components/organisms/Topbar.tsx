@@ -3,13 +3,26 @@
 import { SearchBar } from "../molecules/searchBar/SearchBar";
 import { useSidebar } from "@/providers/SidebarProvider";
 import ChevronSquareIcon from "../atoms/icons/ChevronSquareIcon";
-import CalendarIcon from "../atoms/icons/CalendarIcon";
+import NotificationIcon from "../atoms/icons/NotificationIcon";
+import { resolveTopbarTitle } from "@/constant/topbarTitle";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, usePathname } from "next/navigation";
 
 const Topbar = () => {
   const { isOpen, isMobile, toggle } = useSidebar();
+  const pathname = usePathname();
+  const params = useParams();
   const [currentDate, setCurrentDate] = useState("");
+
+  const topbarTitle = useMemo(
+    () =>
+      resolveTopbarTitle({
+        pathname,
+        slugParam: params?.slug,
+      }),
+    [params?.slug, pathname],
+  );
 
   useEffect(() => {
     // Update date immediately
@@ -24,11 +37,12 @@ const Topbar = () => {
   const updateDate = () => {
     const now = new Date();
     const options: Intl.DateTimeFormatOptions = {
+      weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
     };
-    const formattedDate = now.toLocaleDateString("en-US", options);
+    const formattedDate = now.toLocaleDateString("id-ID", options);
     setCurrentDate(formattedDate);
   };
 
@@ -38,7 +52,7 @@ const Topbar = () => {
       <div
         className={`border-r border-grey-stroke flex p-3 lg:p-5 items-center transition-[width] duration-300 ${
           isOpen && !isMobile
-            ? "w-[260px] justify-between"
+            ? "w-sidebar-width justify-between"
             : "w-14 lg:w-[4.2rem] justify-center lg:justify-end"
         }`}
       >
@@ -49,10 +63,10 @@ const Topbar = () => {
           }`}
         >
           <Image
-            src={"/img/logo/logo.webp"}
+            src={"/img/logo/logo.png"}
             alt="GetMath"
             width={70}
-            height={30}
+            height={70}
             className="w-12 lg:w-[70px] h-auto"
           />
         </div>
@@ -66,37 +80,36 @@ const Topbar = () => {
       </div>
 
       {/* Main Topbar Content */}
-      <div className="px-3 lg:px-5 flex flex-1 h-full items-center gap-2 lg:gap-4 justify-end md:justify-between min-w-0">
+      <div className="px-3 lg:px-5 flex flex-1 h-full items-center gap-2 lg:gap-4 justify-between min-w-0">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-neutral-02 lg:text-base">
+            {topbarTitle}
+          </p>
+          <p className="truncate text-[11px] text-grey lg:text-xs capitalize">
+            {currentDate || "Memuat tanggal..."}
+          </p>
+        </div>
         {/* Search Bar - Hidden on small mobile, visible on sm+ */}
         <div className="hidden sm:block flex-1 max-w-md">
           <SearchBar />
         </div>
 
+        <button
+          type="button"
+          className="relative inline-flex items-center justify-center rounded-full border border-grey-stroke bg-white p-2 text-neutral-02 transition hover:bg-grey-lightest"
+          aria-label="Notification"
+        >
+          <NotificationIcon className="w-5 h-5" />
+          <span className="absolute -right-1 -top-1 inline-flex h-2.5 w-2.5 rounded-full bg-error" />
+        </button>
+
         <Image
-          src={"/img/logo/logo.webp"}
-          alt="GetMath"
-          width={20}
-          height={20}
-          className="w-12 lg:w-[70px] h-auto md:hidden"
+          src="/avatars/1.png"
+          alt="User avatar"
+          width={210}
+          height={210}
+          className="w-12 h-12 lg:w-[50px] lg:h-[50px] rounded-full object-cover"
         />
-
-        {/* Mobile: Show hamburger menu indicator */}
-        {/* <div className="sm:hidden flex-1">
-          <span className="text-sm font-medium text-neutral-02 truncate">
-            GetMath
-          </span>
-        </div> */}
-
-        {/* Right side content */}
-        <div className="flex gap-2 shrink-0">
-          {/* Date - Hidden on mobile */}
-          <div className="hidden md:flex gap-2 items-center rounded-lg border border-grey-stroke p-1.5 lg:p-2 font-medium hover:bg-grey-lightest transition-colors">
-            <CalendarIcon className="text-neutral-02 w-4 h-4 lg:w-5 lg:h-5" />
-            <span className="text-xs whitespace-nowrap">
-              {currentDate || "Loading..."}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );

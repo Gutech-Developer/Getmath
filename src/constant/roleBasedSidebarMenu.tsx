@@ -2,6 +2,12 @@ import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
+import LinkIcon from "@/components/atoms/icons/LinkIcon";
+import {
+  getClassSidebarRoutes,
+  type ClassSidebarRouteKey,
+} from "@/constant/classSidebarRoutes";
+import type { SidebarVariant } from "@/constant/sidebarVariant";
 import { UserRole } from "@/types/auth";
 
 export interface ISidebarSubmenu {
@@ -15,6 +21,13 @@ export interface ISidebarMenu {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   subMenu: ISidebarSubmenu[];
   roles?: UserRole[]; // Roles yang bisa akses menu ini
+}
+
+export type StudentSidebarContentType = SidebarVariant;
+
+interface ISidebarMenuOptions {
+  studentContentType?: StudentSidebarContentType;
+  classSlug?: string;
 }
 
 /**
@@ -42,6 +55,27 @@ export const studentSidebarMenu: ISidebarMenu[] = [
     roles: ["student"],
   },
 ];
+
+const classStudentSidebarIconMap: Record<
+  ClassSidebarRouteKey,
+  ISidebarMenu["icon"]
+> = {
+  overview: DashboardIcon,
+  materi: NotebookIcon,
+  diagnosis: DocumentIcon,
+  form: LinkIcon,
+  "info-kelas": ThreeUserGroupIcon,
+};
+
+function getClassStudentSidebarMenu(slug: string): ISidebarMenu[] {
+  return getClassSidebarRoutes(slug).map((route) => ({
+    name: route.label,
+    url: route.href,
+    icon: classStudentSidebarIconMap[route.key],
+    subMenu: [],
+    roles: ["student"],
+  }));
+}
 
 /**
  * Sidebar Menu untuk Admin
@@ -93,7 +127,12 @@ export const parentSidebarMenu: ISidebarMenu[] = [
 /**
  * Get sidebar menu based on user role
  */
-export function getSidebarMenuByRole(role: UserRole | null): ISidebarMenu[] {
+export function getSidebarMenuByRole(
+  role: UserRole | null,
+  options: ISidebarMenuOptions = {},
+): ISidebarMenu[] {
+  const { studentContentType = "dashboardStudent", classSlug } = options;
+
   if (role === "counselor" || role === "teacher") {
     return teacherSidebarMenu;
   }
@@ -103,6 +142,10 @@ export function getSidebarMenuByRole(role: UserRole | null): ISidebarMenu[] {
   }
 
   if (role === "student") {
+    if (studentContentType === "class" && classSlug) {
+      return getClassStudentSidebarMenu(classSlug);
+    }
+
     return studentSidebarMenu;
   }
 

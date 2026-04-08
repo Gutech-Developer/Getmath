@@ -8,9 +8,10 @@ const PrivateLayout = async ({ children }: { children: React.ReactNode }) => {
   const cookieStore = await cookies();
   const token = cookieStore.get("access_token")?.value;
 
-  if (!token || !decodeJWT(token)) {
-    redirect("/login");
-  }
+  //nantik balekin
+  // if (!token || !decodeJWT(token)) {
+  //   redirect("/login");
+  // }
 
   return (
     <SidebarProvider>
