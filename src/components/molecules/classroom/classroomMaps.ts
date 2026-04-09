@@ -17,7 +17,7 @@ export const classRouteIconMap: ClassRouteIconMap = {
   materi: NotebookIcon,
   diagnosis: DocumentIcon,
   form: LinkIcon,
-  "info-kelas": ThreeUserGroupIcon,
+  "info-class": ThreeUserGroupIcon,
 };
 
 export const classRouteToneMap: Record<
@@ -48,7 +48,7 @@ export const classRouteToneMap: Record<
     iconClassName: "text-[#64748B]",
     activeClassName: "bg-[#E9EEFF] text-[#1D4ED8] border-[#C7D2FE]",
   },
-  "info-kelas": {
+  "info-class": {
     iconBackgroundClassName: "bg-[#F1F5F9]",
     iconClassName: "text-[#64748B]",
     activeClassName: "bg-[#E9EEFF] text-[#1D4ED8] border-[#C7D2FE]",

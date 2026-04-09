@@ -12,7 +12,7 @@ const classSidebarSegmentToRouteKey = {
   materi: "materi",
   diagnosis: "diagnosis",
   form: "form",
-  "info-kelas": "info-kelas",
+  "info-class": "info-class",
 } as const satisfies Record<string, Exclude<ClassSidebarRouteKey, "overview">>;
 
 export type ClassSidebarSegment = keyof typeof classSidebarSegmentToRouteKey;

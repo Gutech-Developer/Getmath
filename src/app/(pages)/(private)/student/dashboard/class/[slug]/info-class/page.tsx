@@ -12,7 +12,7 @@ export default async function ClassInfoKelasPage({
   return (
     <ClassFeatureInitPageTemplate
       slug={slug}
-      activeKey="info-kelas"
+      activeKey="info-class"
       title="Info Kelas"
       description="Screen init info kelas berisi ringkasan guru, daftar siswa, jadwal, dan metadata kelas sebelum masuk detail desain final."
     />

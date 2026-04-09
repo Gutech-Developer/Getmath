@@ -3,7 +3,7 @@ export type ClassSidebarRouteKey =
   | "materi"
   | "diagnosis"
   | "form"
-  | "info-kelas";
+  | "info-class";
 
 export interface IClassSidebarRouteBase {
   key: ClassSidebarRouteKey;
@@ -43,10 +43,10 @@ export const CLASS_SIDEBAR_ROUTE_BASE: IClassSidebarRouteBase[] = [
     segment: "form",
   },
   {
-    key: "info-kelas",
+    key: "info-class",
     label: "Info Kelas",
     description: "Data kelas dan siswa",
-    segment: "info-kelas",
+    segment: "info-class",
   },
 ];
 

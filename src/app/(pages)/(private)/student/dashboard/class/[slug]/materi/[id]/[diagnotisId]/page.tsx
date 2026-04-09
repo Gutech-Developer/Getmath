@@ -1,4 +1,4 @@
-import InitTemplate from "@/components/templates/init/InitTemplate";
+import ClassDiagnosisContentPageTemplate from "@/components/templates/pages/classroom/ClassDiagnosisContentPageTemplate";
 
 type PageParams = {
   slug: string;
@@ -8,16 +8,16 @@ type PageParams = {
 
 type PageProps = {
   params: Promise<PageParams>;
-  searchParams?: Promise<any>;
 };
 
 export default async function Page({ params }: PageProps) {
   const { slug, id, diagnotisId } = await params;
 
   return (
-    <InitTemplate
-      title="Inisialisasi Diagnotis"
-      description="Halaman ini sudah disiapkan sebagai baseline modular. Konten detail akan dilanjutkan setelah desain final tersedia."
+    <ClassDiagnosisContentPageTemplate
+      slug={slug}
+      contentId={id}
+      diagnotisId={diagnotisId}
     />
   );
 }

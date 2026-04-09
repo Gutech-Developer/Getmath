@@ -13,3 +13,5 @@ export {
   getActiveContentMode,
   getPaginationItems,
 } from "./classMaterial";
+
+export { formatDiagnosticTime } from "./classDiagnosis";

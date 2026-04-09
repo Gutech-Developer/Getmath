@@ -51,7 +51,7 @@ const metricItems: {
     value: "80",
     label: "Nilai Tertinggi",
     hint: "Skor terbaik kelas",
-    routeKey: "info-kelas",
+    routeKey: "info-class",
   },
 ];
 

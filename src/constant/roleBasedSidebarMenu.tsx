@@ -42,7 +42,7 @@ const classStudentSidebarIconMap: Record<
   materi: NotebookIcon,
   diagnosis: DocumentIcon,
   form: LinkIcon,
-  "info-kelas": ThreeUserGroupIcon,
+  "info-class": ThreeUserGroupIcon,
 };
 
 function getClassStudentSidebarMenu(slug: string): ISidebarMenu[] {
