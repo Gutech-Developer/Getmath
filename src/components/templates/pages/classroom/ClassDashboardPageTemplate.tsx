@@ -91,7 +91,7 @@ export default function ClassDashboardPageTemplate({
       activeKey="overview"
       classTitle={classTitle}
     >
-      <header className="rounded-3xl bg-linear-to-r from-[#273084] to-[#3347BE] p-5 text-white shadow-[0px_20px_40px_rgba(39,48,132,0.28)]">
+      <header className="rounded-3xl bg-[#1F2375] p-5 text-white shadow-[0px_20px_40px_rgba(39,48,132,0.28)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">{classTitle}</h1>
