@@ -29,13 +29,13 @@ export const CLASS_SIDEBAR_ROUTE_BASE: IClassSidebarRouteBase[] = [
     description: "6 materi tersedia",
     segment: "materi",
   },
-  {
-    key: "diagnosis",
-    label: "Tes Diagnostik",
-    description: "1 tes aktif",
-    segment: "diagnosis",
-    badge: "1 Aktif",
-  },
+  // {
+  //   key: "diagnosis",
+  //   label: "Tes Diagnostik",
+  //   description: "1 tes aktif",
+  //   segment: "diagnosis",
+  //   badge: "1 Aktif",
+  // },
   {
     key: "form",
     label: "Forum & AI",

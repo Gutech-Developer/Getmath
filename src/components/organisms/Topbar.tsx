@@ -80,7 +80,7 @@ const Topbar = () => {
       </div>
 
       {/* Main Topbar Content */}
-      <div className="px-3 lg:px-5 flex flex-1 h-full items-center gap-2 lg:gap-4 justify-between min-w-0">
+      <div className="px-3 lg:px-5 flex flex-1 h-full items-center gap-2 lg:gap-4 justify-between  min-w-0">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-neutral-02 lg:text-base">
             {topbarTitle}
@@ -90,7 +90,7 @@ const Topbar = () => {
           </p>
         </div>
         {/* Search Bar - Hidden on small mobile, visible on sm+ */}
-        <div className="hidden sm:block flex-1 max-w-md">
+        <div className="hidden sm:flex flex-1 justify-end max-w-md">
           <SearchBar />
         </div>
 

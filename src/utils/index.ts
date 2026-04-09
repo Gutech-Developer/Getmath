@@ -6,3 +6,10 @@ export type {
   UserTokenResponse,
   WithPassword,
 } from "./type-helpers";
+
+export {
+  formatBreadcrumbLabel,
+  formatContentTitle,
+  getActiveContentMode,
+  getPaginationItems,
+} from "./classMaterial";

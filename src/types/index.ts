@@ -13,3 +13,4 @@ export * from "./observation";
 export * from "./pretest";
 export * from "./posttest";
 export * from "./screening";
+export * from "./classMaterial";

@@ -22,7 +22,7 @@ const classSidebarSegmentPattern = Object.keys(
 ).join("|");
 
 const classSidebarRouteRegex = new RegExp(
-  `^/student(?:/dashboard)?/class/([^/]+)(?:/(${classSidebarSegmentPattern}))?/?$`,
+  `^/student(?:/dashboard)?/class/([^/]+)(?:/(${classSidebarSegmentPattern}))?(?:/.*)?$`,
 );
 
 export interface IResolvedSidebarVariant {
