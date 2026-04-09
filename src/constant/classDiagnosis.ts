@@ -21,7 +21,8 @@ export const DIAGNOSTIC_QUESTIONS: IDiagnosticQuestion[] = [
     id: "q-1",
     topic: "Fungsi Kuadrat",
     typeLabel: "Pilihan Ganda",
-    prompt: "Hasil dari x^2 + 5x + 6 = 0 adalah ...",
+    difficulty: "Sedang",
+    prompt: "Hasil dari x² + 5x + 6 = 0 adalah ...",
     correctOptionId: "q-1-a",
     discussion:
       "Faktorkan persamaan menjadi (x + 2)(x + 3) = 0. Berdasarkan sifat hasil kali nol, diperoleh x = -2 atau x = -3.",
@@ -36,10 +37,11 @@ export const DIAGNOSTIC_QUESTIONS: IDiagnosticQuestion[] = [
     id: "q-2",
     topic: "Fungsi Kuadrat",
     typeLabel: "Pilihan Ganda",
-    prompt: "Nilai diskriminan dari x^2 - 4x + 4 = 0 adalah ...",
+    difficulty: "Mudah",
+    prompt: "Nilai diskriminan dari x² - 4x + 4 = 0 adalah ...",
     correctOptionId: "q-2-b",
     discussion:
-      "Gunakan rumus diskriminan D = b^2 - 4ac. Dengan a = 1, b = -4, c = 4 maka D = (-4)^2 - 4(1)(4) = 16 - 16 = 0.",
+      "Gunakan rumus diskriminan D = b² - 4ac. Dengan a = 1, b = -4, c = 4 maka D = (-4)² - 4(1)(4) = 16 - 16 = 0.",
     options: [
       { id: "q-2-a", label: "A", text: "-4" },
       { id: "q-2-b", label: "B", text: "0" },
@@ -51,15 +53,49 @@ export const DIAGNOSTIC_QUESTIONS: IDiagnosticQuestion[] = [
     id: "q-3",
     topic: "Fungsi Kuadrat",
     typeLabel: "Pilihan Ganda",
-    prompt: "Grafik fungsi y = x^2 - 2x - 3 memotong sumbu x di titik ...",
-    correctOptionId: "q-3-c",
+    difficulty: "Sedang",
+    prompt: "Grafik fungsi y = x² - 2x - 3 memotong sumbu x di titik ...",
+    correctOptionId: "q-3-b",
     discussion:
-      "Titik potong sumbu x diperoleh saat y = 0, sehingga x^2 - 2x - 3 = 0. Faktorkan menjadi (x - 3)(x + 1) = 0, jadi x = 3 atau x = -1.",
+      "Titik potong sumbu x diperoleh saat y = 0, sehingga x² - 2x - 3 = 0. Faktorkan menjadi (x - 3)(x + 1) = 0, jadi x = 3 atau x = -1.",
     options: [
       { id: "q-3-a", label: "A", text: "(1, 0) dan (3, 0)" },
       { id: "q-3-b", label: "B", text: "(-1, 0) dan (3, 0)" },
       { id: "q-3-c", label: "C", text: "(-3, 0) dan (1, 0)" },
       { id: "q-3-d", label: "D", text: "(-2, 0) dan (2, 0)" },
+    ],
+  },
+  {
+    id: "q-4",
+    topic: "Aljabar",
+    typeLabel: "Pilihan Ganda",
+    difficulty: "Mudah",
+    prompt: "Bentuk sederhana dari (2x + 3)(x – 1) adalah ...",
+    correctOptionId: "q-4-b",
+    discussion:
+      "Gunakan sifat distribusi: (2x + 3)(x – 1) = 2x² – 2x + 3x – 3 = 2x² + x – 3.",
+    options: [
+      { id: "q-4-a", label: "A", text: "2x² – x – 3" },
+      { id: "q-4-b", label: "B", text: "2x² + x – 3" },
+      { id: "q-4-c", label: "C", text: "2x² + 5x – 3" },
+      { id: "q-4-d", label: "D", text: "2x² – 5x – 3" },
+    ],
+  },
+  {
+    id: "q-5",
+    topic: "Geometri",
+    typeLabel: "Pilihan Ganda",
+    difficulty: "Sulit",
+    prompt:
+      "Jumlah semua sudut dalam sebuah segi empat (quadrilateral) adalah ...",
+    correctOptionId: "q-5-c",
+    discussion:
+      "Jumlah sudut dalam suatu poligon n sisi = (n – 2) × 180°. Untuk segi empat (n = 4): (4 – 2) × 180° = 360°.",
+    options: [
+      { id: "q-5-a", label: "A", text: "180°" },
+      { id: "q-5-b", label: "B", text: "270°" },
+      { id: "q-5-c", label: "C", text: "360°" },
+      { id: "q-5-d", label: "D", text: "540°" },
     ],
   },
 ];
