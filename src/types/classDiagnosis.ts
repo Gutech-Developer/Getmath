@@ -14,6 +14,7 @@ export interface IDiagnosticQuestion {
   id: string;
   topic: string;
   typeLabel: string;
+  difficulty?: string;
   prompt: string;
   options: IDiagnosticOption[];
   correctOptionId: string;

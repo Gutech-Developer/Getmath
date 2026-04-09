@@ -8,6 +8,7 @@ import { cn } from "@/libs/utils";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import UsersIcon from "@/components/atoms/icons/UsersIcon";
 import ArrowIcon from "@/components/atoms/icons/ArrowIcon";
+import Link from "next/link";
 
 type ProgressVariant = "primary" | "success" | "warning" | "info";
 
@@ -43,8 +44,8 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
   className,
 }) => {
   return (
-    <div
-      onClick={onClick}
+    <Link
+      href={`/student/dashboard/class/${title}`}
       className={cn(
         "bg-white border border-grey-stroke rounded-2xl p-5 flex flex-col gap-4 cursor-pointer hover:shadow-md transition-shadow duration-200 group relative z-0",
         className,
@@ -99,6 +100,6 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
         </div>
         <ArrowIcon className="w-4 h-4 text-grey group-hover:text-neutral-02 transition-colors" />
       </div>
-    </div>
+    </Link>
   );
 };
