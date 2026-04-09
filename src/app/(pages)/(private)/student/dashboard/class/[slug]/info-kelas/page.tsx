@@ -1,5 +1,4 @@
-import { buildClassRoute } from "@/constant/classSidebarRoutes";
-import { redirect } from "next/navigation";
+import ClassFeatureInitPageTemplate from "@/components/templates/pages/classroom/ClassFeatureInitPageTemplate";
 
 interface IClassInfoKelasPageProps {
   params: Promise<{ slug: string }>;
@@ -9,5 +8,13 @@ export default async function ClassInfoKelasPage({
   params,
 }: IClassInfoKelasPageProps) {
   const { slug } = await params;
-  redirect(buildClassRoute(slug, "info-kelas"));
+
+  return (
+    <ClassFeatureInitPageTemplate
+      slug={slug}
+      activeKey="info-kelas"
+      title="Info Kelas"
+      description="Screen init info kelas berisi ringkasan guru, daftar siswa, jadwal, dan metadata kelas sebelum masuk detail desain final."
+    />
+  );
 }

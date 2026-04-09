@@ -67,14 +67,14 @@ const studentItems = [
 ];
 
 const studentToneClassNames = [
-  "bg-[#DC2626]",
-  "bg-[#CA8A04]",
-  "bg-[#65A30D]",
-  "bg-[#16A34A]",
-  "bg-[#0D9488]",
-  "bg-[#2563EB]",
-  "bg-[#7C3AED]",
-  "bg-[#DB2777]",
+  "bg-[#C84B4B]",
+  "bg-[#BE9A42]",
+  "bg-[#73A84A]",
+  "bg-[#3A9B67]",
+  "bg-[#3A8F8A]",
+  "bg-[#4C74D6]",
+  "bg-[#7A61C7]",
+  "bg-[#C2608A]",
 ];
 
 export default function ClassDashboardPageTemplate({
@@ -145,8 +145,8 @@ export default function ClassDashboardPageTemplate({
         ))}
       </section>
 
-      <section className="space-y-3 rounded-2xl  bg-[#F8FAFC] p-4">
-        <h2 className="text-base font-bold text-[#1E3A8A]">
+      <section className="space-y-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.12)]">
+        <h2 className="text-base font-bold text-[#0F172A]">
           Akses Modul Kelas
         </h2>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -158,7 +158,7 @@ export default function ClassDashboardPageTemplate({
 
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.14)]">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-bold text-[#1E3A8A]">
+          <h2 className="text-base font-bold text-[#0F172A]">
             Daftar Siswa Kelas
           </h2>
           <p className="text-xs text-[#94A3B8]">28 siswa terdaftar</p>

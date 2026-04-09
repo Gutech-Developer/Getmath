@@ -6,10 +6,18 @@ import { resolveSidebarVariant, sidebarVariant } from "./sidebarVariant";
 
 const explicitTopbarTitleMap: Record<string, string> = {
   "/admin/dashboard": "Dashboard Admin",
+  "/admin/dashboard/lad": "LAD Admin",
+  "/admin/dashboard/profil": "Profil Admin",
   "/parent/dashboard": "Dashboard Orang Tua",
+  "/parent/dashboard/lad": "LAD Orang Tua",
+  "/parent/dashboard/profil": "Profil Orang Tua",
   "/profile": "Profil",
   "/student/dashboard": "Dashboard Siswa",
+  "/student/dashboard/lad": "LAD Siswa",
+  "/student/dashboard/profil": "Profil Siswa",
   "/teacher/dashboard": "Dashboard Guru",
+  "/teacher/dashboard/lad": "LAD Guru",
+  "/teacher/dashboard/profil": "Profil Guru",
 };
 
 const ignoredPathSegments = new Set([

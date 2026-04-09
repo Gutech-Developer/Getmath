@@ -8,6 +8,7 @@ interface IDefaultSidebarContentProps {
   pathname: string;
   userName: string;
   roleLabel: string;
+  profileUrl: string;
   sidebarMenu: ISidebarMenu[];
   openMenus: string[];
   onToggleMenu: (menuName: string) => void;
@@ -19,6 +20,7 @@ export default function DefaultSidebarContent({
   pathname,
   userName,
   roleLabel,
+  profileUrl,
   sidebarMenu,
   openMenus,
   onToggleMenu,
@@ -28,10 +30,10 @@ export default function DefaultSidebarContent({
   return (
     <div className="w-full h-full flex flex-col gap-4 lg:gap-5">
       <Link
-        href="/profile"
+        href={profileUrl}
         onClick={onNavigate}
         className={`px-4 lg:px-5 cursor-pointer duration-200 ${
-          isActiveMenu("/profile", pathname)
+          isActiveMenu(profileUrl, pathname)
             ? "bg-charcoal-green-lighter text-neutral-01"
             : "hover:bg-moss-stone/10 text-neutral-02"
         }`}
@@ -48,7 +50,7 @@ export default function DefaultSidebarContent({
             </p>
             <p
               className={`${
-                isActiveMenu("/profile", pathname)
+                isActiveMenu(profileUrl, pathname)
                   ? "text-grey-light"
                   : "text-grey"
               } font-normal text-xs capitalize`}

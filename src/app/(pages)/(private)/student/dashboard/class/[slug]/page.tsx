@@ -1,5 +1,4 @@
-import { buildClassRoute } from "@/constant/classSidebarRoutes";
-import { redirect } from "next/navigation";
+import ClassDashboardPageTemplate from "@/components/templates/pages/classroom/ClassDashboardPageTemplate";
 
 interface IClassOverviewPageProps {
   params: Promise<{ slug: string }>;
@@ -9,5 +8,6 @@ export default async function ClassOverviewPage({
   params,
 }: IClassOverviewPageProps) {
   const { slug } = await params;
-  redirect(buildClassRoute(slug));
+
+  return <ClassDashboardPageTemplate slug={slug} />;
 }

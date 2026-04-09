@@ -1,5 +1,4 @@
-import { buildClassRoute } from "@/constant/classSidebarRoutes";
-import { redirect } from "next/navigation";
+import ClassFeatureInitPageTemplate from "@/components/templates/pages/classroom/ClassFeatureInitPageTemplate";
 
 interface IClassFormPageProps {
   params: Promise<{ slug: string }>;
@@ -7,5 +6,13 @@ interface IClassFormPageProps {
 
 export default async function ClassFormPage({ params }: IClassFormPageProps) {
   const { slug } = await params;
-  redirect(buildClassRoute(slug, "form"));
+
+  return (
+    <ClassFeatureInitPageTemplate
+      slug={slug}
+      activeKey="form"
+      title="Forum & AI"
+      description="Screen init forum dan AI assistant kelas. Nantinya ruang diskusi, thread, dan tanya AI bisa diaktifkan dari halaman ini."
+    />
+  );
 }

@@ -55,7 +55,7 @@ export function buildClassRoute(
   segment?: Exclude<ClassSidebarRouteKey, "overview">,
 ): string {
   const safeSlug = encodeURIComponent(slug);
-  const baseRoute = `/student/class/${safeSlug}`;
+  const baseRoute = `/student/dashboard/class/${safeSlug}`;
 
   if (!segment) {
     return baseRoute;

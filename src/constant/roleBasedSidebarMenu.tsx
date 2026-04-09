@@ -4,6 +4,10 @@ import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
 import LinkIcon from "@/components/atoms/icons/LinkIcon";
 import {
+  getDashboardSidebarInitRoutesByRole,
+  type IDashboardSidebarRouteItem,
+} from "@/constant/dashboardSidebarRoutes";
+import {
   getClassSidebarRoutes,
   type ClassSidebarRouteKey,
 } from "@/constant/classSidebarRoutes";
@@ -30,32 +34,6 @@ interface ISidebarMenuOptions {
   classSlug?: string;
 }
 
-/**
- * Sidebar Menu untuk Teacher (termasuk backward compatibility role counselor)
- */
-export const teacherSidebarMenu: ISidebarMenu[] = [
-  {
-    name: "Dashboard",
-    url: "/teacher/dashboard",
-    icon: DashboardIcon,
-    subMenu: [],
-    roles: ["teacher", "counselor"],
-  },
-];
-
-/**
- * Sidebar Menu untuk Student
- */
-export const studentSidebarMenu: ISidebarMenu[] = [
-  {
-    name: "Dashboard",
-    url: "/student/dashboard",
-    icon: DashboardIcon,
-    subMenu: [],
-    roles: ["student"],
-  },
-];
-
 const classStudentSidebarIconMap: Record<
   ClassSidebarRouteKey,
   ISidebarMenu["icon"]
@@ -77,52 +55,14 @@ function getClassStudentSidebarMenu(slug: string): ISidebarMenu[] {
   }));
 }
 
-/**
- * Sidebar Menu untuk Admin
- */
-export const adminSidebarMenu: ISidebarMenu[] = [
-  {
-    name: "Dashboard",
-    url: "/admin/dashboard",
-    icon: DashboardIcon,
+function toSidebarMenuItem(route: IDashboardSidebarRouteItem): ISidebarMenu {
+  return {
+    name: route.label,
+    url: route.href,
+    icon: route.icon,
     subMenu: [],
-    roles: ["admin"],
-  },
-];
-
-/**
- * Sidebar Menu untuk Parent
- */
-export const parentSidebarMenu: ISidebarMenu[] = [
-  {
-    name: "Dashboard",
-    url: "/parent/dashboard",
-    icon: DashboardIcon,
-    subMenu: [],
-    roles: ["parent"],
-  },
-  {
-    name: "Anak Saya",
-    url: "/parent/children",
-    icon: ThreeUserGroupIcon,
-    subMenu: [],
-    roles: ["parent"],
-  },
-  {
-    name: "Terapi",
-    url: "/parent/therapy",
-    icon: NotebookIcon,
-    subMenu: [],
-    roles: ["parent"],
-  },
-  {
-    name: "Laporan",
-    url: "/parent/reports",
-    icon: DocumentIcon,
-    subMenu: [],
-    roles: ["parent"],
-  },
-];
+  };
+}
 
 /**
  * Get sidebar menu based on user role
@@ -133,25 +73,11 @@ export function getSidebarMenuByRole(
 ): ISidebarMenu[] {
   const { studentContentType = "dashboardStudent", classSlug } = options;
 
-  if (role === "counselor" || role === "teacher") {
-    return teacherSidebarMenu;
-  }
-
-  if (role === "parent") {
-    return parentSidebarMenu;
-  }
-
   if (role === "student") {
     if (studentContentType === "class" && classSlug) {
       return getClassStudentSidebarMenu(classSlug);
     }
-
-    return studentSidebarMenu;
   }
 
-  if (role === "admin") {
-    return adminSidebarMenu;
-  }
-
-  return [];
+  return getDashboardSidebarInitRoutesByRole(role).map(toSidebarMenuItem);
 }

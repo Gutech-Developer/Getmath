@@ -8,6 +8,7 @@ interface IClassSidebarContentProps {
   activeClassRouteKey: ClassSidebarRouteKey;
   userName: string;
   roleLabel: string;
+  profileUrl: string;
   onNavigate: () => void;
   onLogout: () => void;
   teacherName?: string;
@@ -26,6 +27,7 @@ export default function ClassSidebarContent({
   activeClassRouteKey,
   userName,
   roleLabel,
+  profileUrl,
   onNavigate,
   onLogout,
   teacherName = "Guru Kelas",
@@ -58,7 +60,7 @@ export default function ClassSidebarContent({
         <SidebarUserProfileCard
           userName={userName}
           roleLabel={roleLabel}
-          href="/profile"
+          href={profileUrl}
           onNavigate={onNavigate}
         />
       </div>
