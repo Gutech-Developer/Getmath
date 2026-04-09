@@ -1,7 +1,5 @@
+import AdminDashboardTemplate from "@/components/templates/pages/dashboard/AdminDashboardTemplate";
+
 export default function DashboardAdmin() {
-  return (
-    <main>
-      <div>init dashboard admin</div>
-    </main>
-  );
+  return <AdminDashboardTemplate />;
 }

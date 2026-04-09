@@ -1,7 +1,5 @@
+import StudentDashboardTemplate from "@/components/templates/pages/dashboard/StudentDashboardTemplate";
+
 export default function DashboardStudent() {
-  return (
-    <main>
-      <div>init dashboard Student</div>
-    </main>
-  );
+  return <StudentDashboardTemplate />;
 }
