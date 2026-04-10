@@ -1,13 +1,13 @@
+import LogoutIcon from "@/components/atoms/icons/LogoutIcon";
 import DashboardSidebarNav from "@/components/molecules/sidebar/DashboardSidebarNav";
 import {
   getDashboardSidebarRoutesByRole,
   resolveDashboardSidebarRouteKey,
 } from "@/constant/dashboardSidebarRoutes";
-import LogoutIcon from "@/components/atoms/icons/LogoutIcon";
 import type { UserRole } from "@/types/auth";
 import SidebarUserProfileCard from "./SidebarUserProfileCard";
 
-interface IStudentDashboardSidebarContentProps {
+interface ITeacherDashboardSidebarContentProps {
   pathname: string;
   role: UserRole | null;
   userName: string;
@@ -17,30 +17,29 @@ interface IStudentDashboardSidebarContentProps {
   onLogout: () => void;
 }
 
-export default function StudentDashboardSidebarContent({
+export default function TeacherDashboardSidebarContent({
   pathname,
   role,
-  userName,
-  roleLabel,
-  profileUrl,
   onNavigate,
+  profileUrl,
+  roleLabel,
+  userName,
   onLogout,
-}: IStudentDashboardSidebarContentProps) {
+}: ITeacherDashboardSidebarContentProps) {
   const menuItems = getDashboardSidebarRoutesByRole(role);
   const activeRouteKey = resolveDashboardSidebarRouteKey(pathname);
-  const menuTitle = role === "admin" ? "Menu Admin" : "Menu Utama";
 
   return (
-    <div className="flex h-full w-full flex-col gap-4 p-4 lg:p-5">
+    <div className="flex h-full w-full flex-col px-4 py-5 lg:px-5 lg:py-6">
       <div className="thinnest-scrollbar flex-1 overflow-y-auto">
         <DashboardSidebarNav
-          menuTitle={menuTitle}
+          menuTitle=""
           items={menuItems}
           activeKey={activeRouteKey}
           onNavigate={onNavigate}
+          variant="teacher"
         />
       </div>
-
       <div className="w-full space-y-3 pb-1">
         <div className="h-px w-full bg-grey-stroke" />
 

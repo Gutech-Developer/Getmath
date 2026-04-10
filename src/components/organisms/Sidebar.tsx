@@ -3,6 +3,7 @@
 import ClassSidebarContent from "@/components/organisms/sidebar/ClassSidebarContent";
 import DefaultSidebarContent from "@/components/organisms/sidebar/DefaultSidebarContent";
 import StudentDashboardSidebarContent from "@/components/organisms/sidebar/StudentDashboardSidebarContent";
+import TeacherDashboardSidebarContent from "@/components/organisms/sidebar/TeacherDashboardSidebarContent";
 import {
   resolveSidebarContent,
   type SidebarContentType,
@@ -182,6 +183,12 @@ export const Sidebar = () => {
     />
   );
 
+  const useTeacherDashboardSidebar =
+    role === "teacher" ||
+    role === "counselor" ||
+    role === "admin" ||
+    role === "student";
+
   const sidebarContentRenderers: Record<SidebarContentType, ReactNode> = {
     default: defaultSidebarContent,
     classDashboard: classSlug ? (
@@ -198,15 +205,27 @@ export const Sidebar = () => {
       defaultSidebarContent
     ),
     dashboardInit: role ? (
-      <StudentDashboardSidebarContent
-        pathname={pathname}
-        role={role}
-        userName={userName}
-        roleLabel={roleLabel}
-        profileUrl={profileUrl}
-        onNavigate={handleLinkClick}
-        onLogout={handleLogout}
-      />
+      useTeacherDashboardSidebar ? (
+        <TeacherDashboardSidebarContent
+          pathname={pathname}
+          role={role}
+          onLogout={handleLogout}
+          profileUrl={profileUrl}
+          roleLabel={roleLabel}
+          userName={userName}
+          onNavigate={handleLinkClick}
+        />
+      ) : (
+        <StudentDashboardSidebarContent
+          pathname={pathname}
+          role={role}
+          userName={userName}
+          roleLabel={roleLabel}
+          profileUrl={profileUrl}
+          onNavigate={handleLinkClick}
+          onLogout={handleLogout}
+        />
+      )
     ) : (
       defaultSidebarContent
     ),
