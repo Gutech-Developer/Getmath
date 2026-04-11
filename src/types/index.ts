@@ -15,3 +15,4 @@ export * from "./posttest";
 export * from "./screening";
 export * from "./classMaterial";
 export * from "./classDiagnosis";
+export * from "./classForum";

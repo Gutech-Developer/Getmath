@@ -2,7 +2,7 @@ import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
-import LinkIcon from "@/components/atoms/icons/LinkIcon";
+import ChatIcon from "@/components/atoms/icons/ChatIcon";
 import {
   getDashboardSidebarInitRoutesByRole,
   type IDashboardSidebarRouteItem,
@@ -41,7 +41,7 @@ const classStudentSidebarIconMap: Record<
   overview: DashboardIcon,
   materi: NotebookIcon,
   diagnosis: DocumentIcon,
-  form: LinkIcon,
+  forum: ChatIcon,
   "info-class": ThreeUserGroupIcon,
 };
 

@@ -1,6 +1,6 @@
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
-import LinkIcon from "@/components/atoms/icons/LinkIcon";
+import ChatIcon from "@/components/atoms/icons/ChatIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
 import type { ClassSidebarRouteKey } from "@/constant/classSidebarRoutes";
@@ -16,7 +16,7 @@ export const classRouteIconMap: ClassRouteIconMap = {
   overview: DashboardIcon,
   materi: NotebookIcon,
   diagnosis: DocumentIcon,
-  form: LinkIcon,
+  forum: ChatIcon,
   "info-class": ThreeUserGroupIcon,
 };
 
@@ -43,7 +43,7 @@ export const classRouteToneMap: Record<
     iconClassName: "text-[#64748B]",
     activeClassName: "bg-[#E9EEFF] text-[#1D4ED8] border-[#C7D2FE]",
   },
-  form: {
+  forum: {
     iconBackgroundClassName: "bg-[#F1F5F9]",
     iconClassName: "text-[#64748B]",
     activeClassName: "bg-[#E9EEFF] text-[#1D4ED8] border-[#C7D2FE]",

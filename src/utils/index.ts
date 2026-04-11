@@ -15,3 +15,12 @@ export {
 } from "./classMaterial";
 
 export { formatDiagnosticTime } from "./classDiagnosis";
+
+export {
+  buildClassForumDiscussionRoute,
+  countActiveForumDiscussions,
+  filterForumDiscussions,
+  formatForumRelativeTime,
+  getForumDiscussionById,
+  getForumMaterialLabel,
+} from "./classForum";
