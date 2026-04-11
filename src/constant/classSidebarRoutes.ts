@@ -2,7 +2,7 @@ export type ClassSidebarRouteKey =
   | "overview"
   | "materi"
   | "diagnosis"
-  | "form"
+  | "forum"
   | "info-class";
 
 export interface IClassSidebarRouteBase {
@@ -37,10 +37,10 @@ export const CLASS_SIDEBAR_ROUTE_BASE: IClassSidebarRouteBase[] = [
   //   badge: "1 Aktif",
   // },
   {
-    key: "form",
-    label: "Forum & AI",
-    description: "Diskusi dan tanya AI",
-    segment: "form",
+    key: "forum",
+    label: "Forum Diskusi",
+    description: "Diskusi kelas aktif",
+    segment: "forum",
   },
   {
     key: "info-class",
