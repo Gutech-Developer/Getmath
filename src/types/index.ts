@@ -16,3 +16,4 @@ export * from "./screening";
 export * from "./classMaterial";
 export * from "./classDiagnosis";
 export * from "./classForum";
+export * from "./classInfo";
