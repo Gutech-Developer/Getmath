@@ -1,10 +1,5 @@
-import InitTemplate from "@/components/templates/init/InitTemplate";
+import AdminLearningAnalyticsTemplate from "@/components/templates/pages/dashboard/AdminLearningAnalyticsTemplate";
 
 export default function AdminDashboardLearningAnalyticsPage() {
-  return (
-    <InitTemplate
-      title="Learning Analytics"
-      description="Halaman Learning Analytics admin masih berupa init screen. Nantinya menampilkan insight performa pembelajaran lintas kelas dan tren akademik."
-    />
-  );
+  return <AdminLearningAnalyticsTemplate />;
 }

@@ -183,11 +183,12 @@ export const Sidebar = () => {
     />
   );
 
-  const useTeacherDashboardSidebar =
+  const isDashboardTeacherOrParentVariant =
     role === "teacher" ||
     role === "counselor" ||
     role === "admin" ||
-    role === "student";
+    role === "student" ||
+    role === "parent";
 
   const sidebarContentRenderers: Record<SidebarContentType, ReactNode> = {
     default: defaultSidebarContent,
@@ -205,7 +206,7 @@ export const Sidebar = () => {
       defaultSidebarContent
     ),
     dashboardInit: role ? (
-      useTeacherDashboardSidebar ? (
+      isDashboardTeacherOrParentVariant ? (
         <TeacherDashboardSidebarContent
           pathname={pathname}
           role={role}
