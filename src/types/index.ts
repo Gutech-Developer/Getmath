@@ -18,3 +18,4 @@ export * from "./classDiagnosis";
 export * from "./classForum";
 export * from "./classInfo";
 export * from "./adminClassList";
+export * from "./materialManagement";

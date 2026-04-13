@@ -214,7 +214,7 @@ export default function TeacherManageDiagnosticsTemplate() {
       <section className="w-full space-y-4">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-[2rem] font-semibold leading-tight text-[#111827]">
+            <h1 className="text-xl font-semibold leading-tight text-[#111827]">
               Kelola Tes Diagnostik
             </h1>
             <p className="mt-1 text-sm text-[#9CA3AF]">
@@ -226,7 +226,7 @@ export default function TeacherManageDiagnosticsTemplate() {
           <button
             type="button"
             onClick={openModal}
-            className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-lg font-semibold text-white transition hover:bg-[#1D4ED8]"
+            className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-base font-semibold text-white transition hover:bg-[#1D4ED8]"
           >
             <PlusIcon className="h-5 w-5" />
             <span>Tambah Tes Diagnostik</span>
@@ -240,7 +240,7 @@ export default function TeacherManageDiagnosticsTemplate() {
               className="flex items-start gap-4 rounded-3xl border border-[#E5E7EB] bg-white px-5 py-5"
             >
               <div className="min-w-0 flex-1">
-                <h2 className="truncate text-[2rem] font-semibold leading-tight text-[#111827]">
+                <h2 className="truncate text-xl font-semibold leading-tight text-[#111827]">
                   {diagnostic.title}
                 </h2>
 
@@ -249,7 +249,7 @@ export default function TeacherManageDiagnosticsTemplate() {
                 </p>
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-lg text-[#9CA3AF]">
-                  <span className="inline-flex rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-xl font-semibold leading-none text-[#2563EB]">
+                  <span className="inline-flex rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-base font-semibold leading-none text-[#2563EB]">
                     {diagnostic.typeLabel}
                   </span>
 
