@@ -87,7 +87,7 @@ function ClassFormModal({
 
       <div className="relative w-full max-w-[560px] overflow-hidden rounded-[28px] border border-[#E5E7EB] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)]">
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-5">
-          <h2 className="text-[2rem] font-semibold leading-tight text-[#111827]">
+          <h2 className="text-2xl font-semibold leading-tight text-[#111827]">
             {title}
           </h2>
 
@@ -278,7 +278,7 @@ export default function AdminClassListContent({
     <>
       <section className="w-full space-y-4">
         <header className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="text-[2rem] font-semibold leading-tight text-[#111827]">
+          <h1 className="text-2xl font-semibold leading-tight text-[#111827]">
             Daftar Kelas ({filteredClasses.length})
           </h1>
 
@@ -323,7 +323,7 @@ export default function AdminClassListContent({
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <h2 className="text-[1.35rem] font-semibold leading-tight text-[#111827]">
+                        <h2 className="text-lg font-semibold leading-tight text-[#111827]">
                           {classItem.name}
                         </h2>
                         <span
@@ -338,11 +338,11 @@ export default function AdminClassListContent({
                         </span>
                       </div>
 
-                      <p className="mt-1 text-lg text-[#6B7280]">
+                      <p className="mt-1 text-sm text-[#6B7280]">
                         Guru: {classItem.teacherName}
                       </p>
 
-                      <p className="mt-1 text-base text-[#9CA3AF]">
+                      <p className="mt-1  text-sm text-[#9CA3AF]">
                         Dibuat: {classItem.createdAt}
                       </p>
                     </div>

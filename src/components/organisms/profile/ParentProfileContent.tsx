@@ -65,7 +65,7 @@ export default function ParentProfileContent({
 }: IParentProfileContentProps) {
   return (
     <section className="mx-auto w-full max-w-[760px] space-y-5">
-      <h1 className="text-3xl font-bold text-[#1F2937]">Profil Saya</h1>
+      <h1 className="text-2xl font-bold text-[#1F2937]">Profil Saya</h1>
 
       <article className="rounded-[20px] border border-[rgba(0,0,0,0.08)] bg-[rgba(255,255,255,0.95)] p-6 shadow-[0px_4px_24px_rgba(0,0,0,0.07)]">
         {isLoading ? (
@@ -95,7 +95,7 @@ export default function ParentProfileContent({
             </div>
 
             <div>
-              <h2 className="text-[2rem] font-extrabold leading-tight text-[#1F2937]">
+              <h2 className="text-xl sm:text-2xl font-semibold leading-tight text-[#1F2937]">
                 {fullName}
               </h2>
               <p className="mt-1 text-sm text-[#6B7280]">{email}</p>
