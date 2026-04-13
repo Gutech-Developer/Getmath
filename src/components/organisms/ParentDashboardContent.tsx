@@ -132,7 +132,7 @@ export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
       <section className="flex flex-col gap-4">
         <SectionHeader title={`Kelas yang Diikuti ${childName}`} />
         {classes.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4">
             {classes.map((cls) => (
               <ParentClassCard
                 key={cls.id}

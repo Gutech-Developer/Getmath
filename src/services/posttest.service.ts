@@ -4,9 +4,12 @@
  * Service untuk operasi CRUD Posttest (SDQ)
  */
 
-"use server";
-
-import { serverGet as get, serverPost as post, serverPut as put, serverDel as del } from "@/libs/api/server";
+import {
+  serverGet as get,
+  serverPost as post,
+  serverPut as put,
+  serverDel as del,
+} from "@/libs/api/server";
 import {
   IPosttest,
   ICreatePosttestInput,
@@ -41,7 +44,7 @@ async function getPosttestById(id: string): Promise<IPosttest> {
  */
 async function updatePosttest(
   id: string,
-  data: IUpdatePosttestInput
+  data: IUpdatePosttestInput,
 ): Promise<IPosttest> {
   return await put<IPosttest>(`/posttest/${id}`, data);
 }
