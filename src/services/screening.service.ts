@@ -4,9 +4,12 @@
  * Service untuk operasi CRUD Screening (CSTQ - Child Screening Trauma Questionnaire)
  */
 
-"use server";
-
-import { serverGet as get, serverPost as post, serverPut as put, serverDel as del } from "@/libs/api/server";
+import {
+  serverGet as get,
+  serverPost as post,
+  serverPut as put,
+  serverDel as del,
+} from "@/libs/api/server";
 import {
   IScreening,
   ICreateScreeningInput,

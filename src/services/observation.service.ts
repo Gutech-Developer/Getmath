@@ -4,9 +4,12 @@
  * Service untuk operasi CRUD Observation
  */
 
-"use server";
-
-import { serverGet as get, serverPost as post, serverPut as put, serverDel as del } from "@/libs/api/server";
+import {
+  serverGet as get,
+  serverPost as post,
+  serverPut as put,
+  serverDel as del,
+} from "@/libs/api/server";
 import {
   IObservation,
   ICreateObservationInput,
@@ -19,7 +22,7 @@ import {
  * Create observation (Counselor only)
  */
 async function createObservation(
-  data: ICreateObservationInput
+  data: ICreateObservationInput,
 ): Promise<IObservation> {
   return await post<IObservation>("/observation", data);
 }
@@ -28,7 +31,7 @@ async function createObservation(
  * Get observation by therapy ID
  */
 async function getObservationByTherapyId(
-  therapyId: string
+  therapyId: string,
 ): Promise<IObservation> {
   return await get<IObservation>(`/observation/therapy/${therapyId}`);
 }
@@ -45,7 +48,7 @@ async function getObservationById(id: string): Promise<IObservation> {
  */
 async function updateObservation(
   id: string,
-  data: IUpdateObservationInput
+  data: IUpdateObservationInput,
 ): Promise<IObservation> {
   return await put<IObservation>(`/observation/${id}`, data);
 }

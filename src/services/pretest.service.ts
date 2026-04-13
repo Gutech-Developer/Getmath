@@ -4,9 +4,12 @@
  * Service untuk operasi CRUD Pretest (SDQ)
  */
 
-"use server";
-
-import { serverGet as get, serverPost as post, serverPut as put, serverDel as del } from "@/libs/api/server";
+import {
+  serverGet as get,
+  serverPost as post,
+  serverPut as put,
+  serverDel as del,
+} from "@/libs/api/server";
 import {
   IPretest,
   ICreatePretestInput,
@@ -41,7 +44,7 @@ async function getPretestById(id: string): Promise<IPretest> {
  */
 async function updatePretest(
   id: string,
-  data: IUpdatePretestInput
+  data: IUpdatePretestInput,
 ): Promise<IPretest> {
   return await put<IPretest>(`/pretest/${id}`, data);
 }
