@@ -1,10 +1,5 @@
-import InitTemplate from "@/components/templates/init/InitTemplate";
+import AdminClassListTemplate from "@/components/templates/pages/dashboard/AdminClassListTemplate";
 
 export default function AdminDashboardClassListPage() {
-  return (
-    <InitTemplate
-      title="Daftar Kelas"
-      description="Halaman Daftar Kelas admin masih berupa init screen. Nantinya dapat dipakai untuk memantau kelas aktif, wali kelas, dan distribusi peserta didik."
-    />
-  );
+  return <AdminClassListTemplate />;
 }
