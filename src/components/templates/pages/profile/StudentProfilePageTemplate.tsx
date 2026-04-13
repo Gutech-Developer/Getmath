@@ -1,20 +1,19 @@
 "use client";
 
-import ParentProfileContent from "@/components/organisms/profile/ParentProfileContent";
-import { useCurrentUser } from "@/services";
+import StudentProfileContent from "@/components/organisms/profile/StudentProfileContent";
 import { showErrorToast, showToast } from "@/libs/toast";
-import { useLogout } from "@/services";
+import { useCurrentUser, useLogout } from "@/services";
 import {
   extractProfileLocation,
   normalizeProfileValue,
   resolveProfileInitial,
 } from "@/utils/profile";
 
-export default function ParentProfilePageTemplate() {
+export default function StudentProfilePageTemplate() {
   const { data: currentUser, isLoading } = useCurrentUser();
   const logout = useLogout();
 
-  const parentExtraFields = (currentUser ?? {}) as Partial<{
+  const studentFields = (currentUser ?? {}) as Partial<{
     nis: string;
     province: string;
     city: string;
@@ -26,14 +25,12 @@ export default function ParentProfilePageTemplate() {
   const fullName = normalizeProfileValue(currentUser?.fullname);
   const email = normalizeProfileValue(currentUser?.email);
   const phone = normalizeProfileValue(currentUser?.phone);
-  const nis = normalizeProfileValue(parentExtraFields.nis);
+  const nis = normalizeProfileValue(studentFields.nis);
   const province = normalizeProfileValue(
-    parentExtraFields.province ?? locationFromAddress.province,
+    studentFields.province ?? locationFromAddress.province,
   );
-  const city = normalizeProfileValue(
-    parentExtraFields.city ?? locationFromAddress.city,
-  );
-  const school = normalizeProfileValue(parentExtraFields.school);
+  const city = normalizeProfileValue(studentFields.city ?? locationFromAddress.city);
+  const school = normalizeProfileValue(studentFields.school);
   const avatarInitial = resolveProfileInitial(currentUser?.fullname);
 
   const handleLogout = async () => {
@@ -45,7 +42,7 @@ export default function ParentProfilePageTemplate() {
   };
 
   return (
-    <ParentProfileContent
+    <StudentProfileContent
       isLoading={isLoading}
       fullName={fullName}
       email={email}
@@ -56,13 +53,13 @@ export default function ParentProfilePageTemplate() {
       school={school}
       avatarInitial={avatarInitial}
       onChangePhoto={() =>
-        showToast.info("Fitur ubah foto profil akan segera tersedia")
+        showToast.info("Fitur ubah foto profil siswa akan segera tersedia")
       }
       onEditProfile={() =>
-        showToast.info("Fitur edit profil akan segera tersedia")
+        showToast.info("Fitur edit profil siswa akan segera tersedia")
       }
       onChangePassword={() =>
-        showToast.info("Fitur ubah password akan segera tersedia")
+        showToast.info("Fitur ubah password siswa akan segera tersedia")
       }
       onLogout={handleLogout}
       isLogoutLoading={logout.isPending}

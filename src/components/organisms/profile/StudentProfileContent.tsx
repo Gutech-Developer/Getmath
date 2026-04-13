@@ -2,7 +2,7 @@
 
 import UserProfileContent from "@/components/organisms/profile/UserProfileContent";
 
-interface IParentProfileContentProps {
+interface IStudentProfileContentProps {
   isLoading: boolean;
   fullName: string;
   email: string;
@@ -19,7 +19,7 @@ interface IParentProfileContentProps {
   isLogoutLoading?: boolean;
 }
 
-export default function ParentProfileContent({
+export default function StudentProfileContent({
   isLoading,
   fullName,
   email,
@@ -34,14 +34,14 @@ export default function ParentProfileContent({
   onChangePassword,
   onLogout,
   isLogoutLoading = false,
-}: IParentProfileContentProps) {
+}: IStudentProfileContentProps) {
   return (
     <UserProfileContent
       isLoading={isLoading}
       fullName={fullName}
       email={email}
       avatarInitial={avatarInitial}
-      roleDescription="Orang Tua · GetMath Platform"
+      roleDescription="Siswa · GetMath Platform"
       fields={[
         { label: "Nama Lengkap", value: fullName },
         { label: "NIS (Nomor Induk Siswa)", value: nis },
