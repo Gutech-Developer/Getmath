@@ -1,10 +1,5 @@
-import InitTemplate from "@/components/templates/init/InitTemplate";
+import AdminManageDiagnosticsTemplate from "@/components/templates/pages/dashboard/AdminManageDiagnosticsTemplate";
 
 export default function AdminDashboardTestManagementPage() {
-  return (
-    <InitTemplate
-      title="Manajemen Tes"
-      description="Halaman Manajemen Tes admin masih berupa init screen. Nantinya digunakan untuk mengatur bank soal, jadwal asesmen, dan pelaporan hasil tes."
-    />
-  );
+  return <AdminManageDiagnosticsTemplate />;
 }
