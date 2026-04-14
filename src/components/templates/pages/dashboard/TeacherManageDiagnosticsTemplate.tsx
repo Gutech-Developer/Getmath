@@ -10,7 +10,7 @@ import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import { cn } from "@/libs/utils";
 import { useEffect, useState } from "react";
 
-type DiagnosticType = "type-a" | "type-b" | "type-c";
+type DiagnosticType = string;
 type ChoiceKey = "A" | "B" | "C" | "D";
 
 interface IDiagnosticItem {
@@ -53,7 +53,7 @@ const DIAGNOSTIC_ITEMS: IDiagnosticItem[] = [
   },
 ];
 
-const typeOptions: Array<{
+const initialTypeOptions: Array<{
   value: DiagnosticType;
   label: string;
   description: string;
@@ -62,16 +62,6 @@ const typeOptions: Array<{
     value: "type-a",
     label: "Tipe A",
     description: "Satu jawaban benar dari empat pilihan (A, B, C, D)",
-  },
-  {
-    value: "type-b",
-    label: "Tipe B",
-    description: "Evaluasi cepat dengan pola benar/salah dan analisis konsep",
-  },
-  {
-    value: "type-c",
-    label: "Tipe C",
-    description: "Soal campuran untuk penguasaan konsep secara komprehensif",
   },
 ];
 
@@ -93,8 +83,17 @@ function createEmptyQuestion(index: number): IQuestionDraft {
 }
 
 export default function TeacherManageDiagnosticsTemplate() {
+  const [diagnostics, setDiagnostics] =
+    useState<IDiagnosticItem[]>(DIAGNOSTIC_ITEMS);
+  const [typeOptions, setTypeOptions] =
+    useState<typeof initialTypeOptions>(initialTypeOptions);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<DiagnosticType>("type-a");
+  const [editingDiagnosticId, setEditingDiagnosticId] = useState<string | null>(
+    null,
+  );
+  const [selectedType, setSelectedType] = useState<DiagnosticType>(
+    initialTypeOptions[0].value,
+  );
   const [testTitle, setTestTitle] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("60");
   const [description, setDescription] = useState("");
@@ -103,6 +102,8 @@ export default function TeacherManageDiagnosticsTemplate() {
     return [firstQuestion];
   });
   const [openQuestionIds, setOpenQuestionIds] = useState<string[]>(() => []);
+
+  const isEditing = editingDiagnosticId !== null;
 
   useEffect(() => {
     if (!isAddModalOpen) {
@@ -129,8 +130,58 @@ export default function TeacherManageDiagnosticsTemplate() {
     (option) => option.value === selectedType,
   );
 
-  const resetForm = () => {
+  const addTypeOption = () => {
+    const nextOption = createNextTypeOption();
+    setTypeOptions((previous) => [...previous, nextOption]);
+    setSelectedType(nextOption.value);
+  };
+
+  const createNextTypeOption = () => {
+    const nextIndex = typeOptions.length + 1;
+    const nextLetter = String.fromCharCode(64 + nextIndex);
+    const nextValue = `type-${nextLetter.toLowerCase()}`;
+
+    return {
+      value: nextValue,
+      label: `Tipe ${nextLetter}`,
+      description:
+        nextIndex === 1
+          ? "Satu jawaban benar dari empat pilihan (A, B, C, D)"
+          : `Pilihan tipe ${nextLetter} untuk variasi penilaian`,
+    };
+  };
+
+  const formatDateLabel = (date: Date) =>
+    date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
+  const resetForm = (diagnostic?: IDiagnosticItem) => {
     const firstQuestion = createEmptyQuestion(1);
+
+    if (diagnostic) {
+      setSelectedType(
+        typeOptions.find((option) => option.label === diagnostic.typeLabel)
+          ?.value ?? "type-a",
+      );
+      setTestTitle(diagnostic.title);
+      setDurationMinutes(String(diagnostic.durationMinutes));
+      setDescription(diagnostic.description);
+      const nextQuestions = Array.from(
+        { length: diagnostic.totalQuestions },
+        (_, index) => {
+          const question = createEmptyQuestion(index + 1);
+          return question;
+        },
+      );
+
+      setQuestions(nextQuestions);
+      setOpenQuestionIds(nextQuestions.map((question) => question.id));
+      return;
+    }
+
     setSelectedType("type-a");
     setTestTitle("");
     setDurationMinutes("60");
@@ -139,13 +190,15 @@ export default function TeacherManageDiagnosticsTemplate() {
     setOpenQuestionIds([firstQuestion.id]);
   };
 
-  const openModal = () => {
-    resetForm();
+  const openModal = (diagnostic?: IDiagnosticItem) => {
+    resetForm(diagnostic);
+    setEditingDiagnosticId(diagnostic?.id ?? null);
     setIsAddModalOpen(true);
   };
 
   const closeModal = () => {
     setIsAddModalOpen(false);
+    setEditingDiagnosticId(null);
   };
 
   const handleCancel = () => {
@@ -153,7 +206,40 @@ export default function TeacherManageDiagnosticsTemplate() {
   };
 
   const handleSave = () => {
+    const nextItem: IDiagnosticItem = {
+      id: editingDiagnosticId ?? `diagnostic-${Date.now()}`,
+      title: testTitle || "Tes Diagnostik Baru",
+      description,
+      typeLabel: selectedTypeMeta?.label ?? "Tipe A",
+      totalQuestions: questions.length,
+      durationMinutes: Number(durationMinutes) || 0,
+      dateLabel: editingDiagnosticId
+        ? (diagnostics.find((item) => item.id === editingDiagnosticId)
+            ?.dateLabel ?? formatDateLabel(new Date()))
+        : formatDateLabel(new Date()),
+    };
+
+    setDiagnostics((previous) => {
+      if (editingDiagnosticId) {
+        return previous.map((item) =>
+          item.id === editingDiagnosticId ? nextItem : item,
+        );
+      }
+
+      return [nextItem, ...previous];
+    });
+
     closeModal();
+  };
+
+  const handleEditDiagnostic = (diagnostic: IDiagnosticItem) => {
+    openModal(diagnostic);
+  };
+
+  const handleDeleteDiagnostic = (diagnosticId: string) => {
+    setDiagnostics((previous) =>
+      previous.filter((diagnostic) => diagnostic.id !== diagnosticId),
+    );
   };
 
   const addQuestion = () => {
@@ -218,14 +304,14 @@ export default function TeacherManageDiagnosticsTemplate() {
               Kelola Tes Diagnostik
             </h1>
             <p className="mt-1 text-sm text-[#9CA3AF]">
-              {DIAGNOSTIC_ITEMS.length} tes tersedia . Tes ini dapat dipilih ke
-              dalam tiap kelas
+              {diagnostics.length} tes tersedia . Tes ini dapat dipilih ke dalam
+              tiap kelas
             </p>
           </div>
 
           <button
             type="button"
-            onClick={openModal}
+            onClick={() => openModal()}
             className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-base font-semibold text-white transition hover:bg-[#1D4ED8]"
           >
             <PlusIcon className="h-5 w-5" />
@@ -234,7 +320,7 @@ export default function TeacherManageDiagnosticsTemplate() {
         </header>
 
         <ul className="space-y-3">
-          {DIAGNOSTIC_ITEMS.map((diagnostic) => (
+          {diagnostics.map((diagnostic) => (
             <li
               key={diagnostic.id}
               className="flex items-start gap-4 rounded-3xl border border-[#E5E7EB] bg-white px-5 py-5"
@@ -273,6 +359,7 @@ export default function TeacherManageDiagnosticsTemplate() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  onClick={() => handleEditDiagnostic(diagnostic)}
                   className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
                   aria-label={`Edit ${diagnostic.title}`}
                 >
@@ -280,6 +367,7 @@ export default function TeacherManageDiagnosticsTemplate() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => handleDeleteDiagnostic(diagnostic.id)}
                   className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2]"
                   aria-label={`Delete ${diagnostic.title}`}
                 >
@@ -301,8 +389,10 @@ export default function TeacherManageDiagnosticsTemplate() {
 
           <div className="relative z-90 w-full max-w-[900px] overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
             <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-5">
-              <h3 className="text-[2rem] font-semibold text-[#111827]">
-                Tambah Tes Diagnostik Baru
+              <h3 className="text-xl font-semibold text-[#111827]">
+                {isEditing
+                  ? "Edit Tes Diagnostik"
+                  : "Tambah Tes Diagnostik Baru"}
               </h3>
 
               <button
@@ -329,40 +419,51 @@ export default function TeacherManageDiagnosticsTemplate() {
 
             <div className="max-h-[72vh] space-y-6 overflow-y-auto px-6 py-5 thinnest-scrollbar">
               <div>
-                <p className="text-xl font-semibold text-[#374151]">
+                <p className="text-lg font-semibold text-[#374151]">
                   Tipe Soal
                 </p>
 
-                <div className="mt-3 flex flex-wrap gap-2.5">
-                  {typeOptions.map((option) => {
-                    const isActive = selectedType === option.value;
+                <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                  <div className="flex flex-wrap gap-2.5">
+                    {typeOptions.map((option) => {
+                      const isActive = selectedType === option.value;
 
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setSelectedType(option.value)}
-                        className={cn(
-                          "rounded-2xl border px-5 py-2.5 text-2xl font-semibold transition",
-                          isActive
-                            ? "border-[#2563EB] bg-[#2563EB] text-white"
-                            : "border-[#D1D5DB] bg-[#F9FAFB] text-[#6B7280] hover:bg-[#F3F4F6]",
-                        )}
-                      >
-                        {option.label}
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setSelectedType(option.value)}
+                          className={cn(
+                            "rounded-2xl border px-5 py-2.5 text-lg font-semibold transition",
+                            isActive
+                              ? "border-[#2563EB] bg-[#2563EB] text-white"
+                              : "border-[#D1D5DB] bg-[#F9FAFB] text-[#6B7280] hover:bg-[#F3F4F6]",
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addTypeOption}
+                    className="inline-flex h-12 items-center gap-2 rounded-2xl border border-[#D1D5DB] bg-white px-4 py-2.5 text-base font-semibold text-[#374151] transition hover:border-[#2563EB] hover:text-[#2563EB]"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    Tambah Tipe
+                  </button>
                 </div>
 
-                <p className="mt-2 text-lg text-[#9CA3AF]">
+                <p className="mt-2 text-base text-[#9CA3AF]">
                   {selectedTypeMeta?.description}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="block text-xl font-semibold text-[#374151]">
+                  <label className="block text-base font-semibold text-[#374151]">
                     Judul Tes
                   </label>
                   <input
@@ -370,12 +471,12 @@ export default function TeacherManageDiagnosticsTemplate() {
                     value={testTitle}
                     onChange={(event) => setTestTitle(event.target.value)}
                     placeholder="Judul tes diagnostik"
-                    className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-lg text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+                    className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-xl font-semibold text-[#374151]">
+                  <label className="block text-base font-semibold text-[#374151]">
                     Durasi (menit)
                   </label>
                   <input
@@ -389,7 +490,7 @@ export default function TeacherManageDiagnosticsTemplate() {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xl font-semibold text-[#374151]">
+                <label className="block text-base font-semibold text-[#374151]">
                   Deskripsi
                 </label>
                 <textarea
@@ -404,10 +505,10 @@ export default function TeacherManageDiagnosticsTemplate() {
               <div className="space-y-3 border-t border-[#E5E7EB] pt-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xl font-semibold text-[#374151]">
+                    <p className="text-lg font-semibold text-[#374151]">
                       Daftar Soal
                     </p>
-                    <p className="text-lg text-[#9CA3AF]">
+                    <p className="text-base text-[#9CA3AF]">
                       {questionCountLabel}
                     </p>
                   </div>
@@ -415,7 +516,7 @@ export default function TeacherManageDiagnosticsTemplate() {
                   <button
                     type="button"
                     onClick={addQuestion}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-[#2563EB] px-4 py-2 text-2xl font-semibold text-white transition hover:bg-[#1D4ED8]"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[#2563EB] px-4 py-2 text-lg font-semibold text-white transition hover:bg-[#1D4ED8]"
                   >
                     <PlusIcon className="h-4 w-4" />
                     <span>Tambah Soal</span>
@@ -446,7 +547,7 @@ export default function TeacherManageDiagnosticsTemplate() {
                             </p>
                           </div>
 
-                          <span className="rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-base font-semibold text-[#1D4ED8]">
+                          <span className="rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1  font-semibold text-[#1D4ED8]">
                             Jawaban Benar: {question.correctAnswer}
                           </span>
 
@@ -601,16 +702,16 @@ export default function TeacherManageDiagnosticsTemplate() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="rounded-2xl border border-[#D1D5DB] bg-[#F9FAFB] px-8 py-2.5 text-2xl font-semibold text-[#4B5563] transition hover:bg-[#F3F4F6]"
+                className="rounded-2xl border border-[#D1D5DB] bg-[#F9FAFB] px-8 py-2.5 text-xl font-semibold text-[#4B5563] transition hover:bg-[#F3F4F6]"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="rounded-2xl bg-[#2563EB] px-8 py-2.5 text-2xl font-semibold text-white transition hover:bg-[#1D4ED8]"
+                className="rounded-2xl bg-[#2563EB] px-8 py-2.5 text-xl font-semibold text-white transition hover:bg-[#1D4ED8]"
               >
-                Simpan Tes Diagnostik
+                {isEditing ? "Simpan Perubahan" : "Simpan Tes Diagnostik"}
               </button>
             </div>
           </div>
