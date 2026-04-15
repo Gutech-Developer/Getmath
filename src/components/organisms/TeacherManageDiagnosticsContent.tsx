@@ -1,14 +1,14 @@
 "use client";
 
-import CalendarIcon from "@/components/atoms/icons/CalendarIcon";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
-import ClipboardIcon from "@/components/atoms/icons/ClipboardIcon";
-import ClockIcon from "@/components/atoms/icons/ClockIcon";
 import EditIcon from "@/components/atoms/icons/EditIcon";
 import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import { cn } from "@/libs/utils";
+import { showToast } from "@/libs/toast";
+import { MaterialStatus } from "@/types";
 import { useEffect, useState } from "react";
+import EyeIcon from "../atoms/icons/EyeIcon";
 
 type DiagnosticType = string;
 type ChoiceKey = "A" | "B" | "C" | "D";
@@ -17,10 +17,15 @@ interface IDiagnosticItem {
   id: string;
   title: string;
   description: string;
+  typeTags: string[];
   typeLabel: string;
   totalQuestions: number;
+  bankQuestions: number;
+  randomQuestions: number;
   durationMinutes: number;
+  kkm: number;
   dateLabel: string;
+  status: MaterialStatus;
 }
 
 interface IQuestionDraft {
@@ -36,20 +41,29 @@ const DIAGNOSTIC_ITEMS: IDiagnosticItem[] = [
     id: "diagnostic-1",
     title: "Tes Diagnostik 1 - Persamaan Kuadrat",
     description: "Tes untuk mengukur pemahaman siswa tentang persamaan kuadrat",
-    typeLabel: "Tipe A - Pilihan Ganda Biasa",
-    totalQuestions: 2,
+    typeTags: ["Tipe A", "Tipe B"],
+    typeLabel: "Pilihan Ganda (A, B, C, D)",
+    totalQuestions: 10,
+    bankQuestions: 10,
+    randomQuestions: 5,
     durationMinutes: 60,
+    kkm: 75,
     dateLabel: "18 Mar 2026",
+    status: "Aktif",
   },
   {
     id: "diagnostic-2",
-    title: "Tes Diagnostik 2 - Fungsi Kuadrat",
-    description:
-      "Evaluasi pemahaman tentang grafik dan titik puncak fungsi kuadrat",
-    typeLabel: "Tipe B - Benar / Salah",
-    totalQuestions: 1,
+    title: "Tes Diagnostik 2 - Fungsi dan Grafik",
+    description: "Evaluasi pemahaman fungsi linear dan kuadrat",
+    typeTags: ["Tipe A"],
+    typeLabel: "Pilihan Ganda (A, B, C, D)",
+    totalQuestions: 5,
+    bankQuestions: 5,
+    randomQuestions: 10,
     durationMinutes: 45,
+    kkm: 80,
     dateLabel: "25 Mar 2026",
+    status: "Nonaktif",
   },
 ];
 
@@ -96,6 +110,7 @@ export default function TeacherManageDiagnosticsContent() {
   );
   const [testTitle, setTestTitle] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("60");
+  const [kkm, setKkm] = useState<number>(75);
   const [description, setDescription] = useState("");
   const [questions, setQuestions] = useState<IQuestionDraft[]>(() => {
     const firstQuestion = createEmptyQuestion(1);
@@ -130,6 +145,24 @@ export default function TeacherManageDiagnosticsContent() {
     (option) => option.value === selectedType,
   );
 
+  const toggleMaterialStatus = (material: IDiagnosticItem) => {
+    const nextStatus: MaterialStatus =
+      material.status === "Aktif" ? "Nonaktif" : "Aktif";
+
+    setDiagnostics((previous) =>
+      previous.map((item) =>
+        item.id === material.id
+          ? {
+              ...item,
+              status: nextStatus,
+            }
+          : item,
+      ),
+    );
+
+    showToast.success(`Materi berhasil diubah menjadi ${nextStatus}`);
+  };
+
   const addTypeOption = () => {
     const nextOption = createNextTypeOption();
     setTypeOptions((previous) => [...previous, nextOption]);
@@ -163,11 +196,12 @@ export default function TeacherManageDiagnosticsContent() {
 
     if (diagnostic) {
       setSelectedType(
-        typeOptions.find((option) => option.label === diagnostic.typeLabel)
+        typeOptions.find((option) => option.label === diagnostic.typeTags[0])
           ?.value ?? "type-a",
       );
       setTestTitle(diagnostic.title);
       setDurationMinutes(String(diagnostic.durationMinutes));
+      setKkm(diagnostic.kkm);
       setDescription(diagnostic.description);
       const nextQuestions = Array.from(
         { length: diagnostic.totalQuestions },
@@ -206,17 +240,26 @@ export default function TeacherManageDiagnosticsContent() {
   };
 
   const handleSave = () => {
+    const existingStatus =
+      diagnostics.find((item) => item.id === editingDiagnosticId)?.status ??
+      "Aktif";
+
     const nextItem: IDiagnosticItem = {
       id: editingDiagnosticId ?? `diagnostic-${Date.now()}`,
       title: testTitle || "Tes Diagnostik Baru",
       description,
-      typeLabel: selectedTypeMeta?.label ?? "Tipe A",
+      typeTags: [selectedTypeMeta?.label ?? "Tipe A"],
+      typeLabel: selectedTypeMeta?.description ?? "Pilihan Ganda (A, B, C, D)",
       totalQuestions: questions.length,
+      bankQuestions: questions.length,
+      randomQuestions: Math.max(1, Math.floor(questions.length / 2)),
       durationMinutes: Number(durationMinutes) || 0,
+      kkm,
       dateLabel: editingDiagnosticId
         ? (diagnostics.find((item) => item.id === editingDiagnosticId)
             ?.dateLabel ?? formatDateLabel(new Date()))
         : formatDateLabel(new Date()),
+      status: existingStatus,
     };
 
     setDiagnostics((previous) => {
@@ -334,45 +377,85 @@ export default function TeacherManageDiagnosticsContent() {
                   {diagnostic.description}
                 </p>
 
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-lg text-[#9CA3AF]">
-                  <span className="inline-flex rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-base font-semibold leading-none text-[#2563EB]">
-                    {diagnostic.typeLabel}
-                  </span>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {diagnostic.typeTags.map((typeTag) => (
+                    <span
+                      key={typeTag}
+                      className="inline-flex rounded-full bg-[#EFF6FF] px-3 py-1 text-sm font-semibold text-[#2563EB]"
+                    >
+                      {typeTag}
+                    </span>
+                  ))}
 
-                  <span className="inline-flex items-center gap-1.5">
-                    <ClipboardIcon className="h-4 w-4" />
-                    {diagnostic.totalQuestions} soal
-                  </span>
-
-                  <span className="inline-flex items-center gap-1.5">
-                    <ClockIcon className="h-4 w-4" />
-                    {diagnostic.durationMinutes} menit
-                  </span>
-
-                  <span className="inline-flex items-center gap-1.5">
-                    <CalendarIcon className="h-4 w-4" />
-                    {diagnostic.dateLabel}
+                  <span className="text-sm text-[#6B7280]">
+                    — {diagnostic.typeLabel}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleEditDiagnostic(diagnostic)}
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
-                  aria-label={`Edit ${diagnostic.title}`}
-                >
-                  <EditIcon className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteDiagnostic(diagnostic.id)}
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2]"
-                  aria-label={`Delete ${diagnostic.title}`}
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
+              <div className="flex  w-full  gap-4 sm:w-[420px] lg:w-[520px]">
+                <div className="grid grid-cols-2 gap-3 text-sm text-[#6B7280] sm:grid-cols-4">
+                  <div className="rounded-3xl  px-4 py-3">
+                    <p className="text-sm  uppercase  text-[#64748B]">Soal</p>
+                    <p className="mt-1 text-lg font-semibold text-[#111827]">
+                      {diagnostic.bankQuestions}
+                    </p>
+                  </div>
+                  <div className="rounded-3xl  px-4 py-3">
+                    <p className="text-sm uppercase  text-[#64748B]">Acak</p>
+                    <p className="mt-1 text-lg font-semibold text-[#111827]">
+                      {diagnostic.randomQuestions}
+                    </p>
+                  </div>
+                  <div className="rounded-3xl  px-4 py-3">
+                    <p className="text-sm uppercase  text-[#64748B]">KKM</p>
+                    <p className="mt-1 text-lg font-semibold text-[#F97316]">
+                      {diagnostic.kkm}
+                    </p>
+                  </div>
+                  <div className="rounded-3xl  px-4 py-3">
+                    <p className="text-[11px] uppercase  text-[#64748B]">
+                      Durasi
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-[#111827]">
+                      {diagnostic.durationMinutes}&apos;
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                    aria-label={`Lihat ${diagnostic.title}`}
+                  >
+                    <EyeIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleMaterialStatus(diagnostic)}
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                    aria-label={`Lihat ${diagnostic.title}`}
+                  >
+                    <EyeIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleEditDiagnostic(diagnostic)}
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                    aria-label={`Edit ${diagnostic.title}`}
+                  >
+                    <EditIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDiagnostic(diagnostic.id)}
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2]"
+                    aria-label={`Delete ${diagnostic.title}`}
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             </li>
           ))}
@@ -461,20 +544,20 @@ export default function TeacherManageDiagnosticsContent() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="block text-base font-semibold text-[#374151]">
-                    Judul Tes
-                  </label>
-                  <input
-                    type="text"
-                    value={testTitle}
-                    onChange={(event) => setTestTitle(event.target.value)}
-                    placeholder="Judul tes diagnostik"
-                    className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="block text-base font-semibold text-[#374151]">
+                  Judul Tes
+                </label>
+                <input
+                  type="text"
+                  value={testTitle}
+                  onChange={(event) => setTestTitle(event.target.value)}
+                  placeholder="Judul tes diagnostik"
+                  className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+                />
+              </div>
 
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="block text-base font-semibold text-[#374151]">
                     Durasi (menit)
@@ -484,6 +567,18 @@ export default function TeacherManageDiagnosticsContent() {
                     min={1}
                     value={durationMinutes}
                     onChange={(event) => setDurationMinutes(event.target.value)}
+                    className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-lg text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-base font-semibold text-[#374151]">
+                    Nilai KKM
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={kkm}
+                    onChange={(event) => setKkm(Number(event.target.value))}
                     className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-lg text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
                   />
                 </div>

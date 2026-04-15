@@ -16,6 +16,7 @@ import type {
   ITeacherOption,
 } from "@/types/adminClassList";
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 
 interface IAdminClassListContentProps {
   classes: IAdminClassListItem[];
@@ -47,7 +48,8 @@ function ClassFormModal({
   onClose,
   onValuesChange,
   onSubmit,
-}: IClassFormModalProps) {
+  isTeacherPage,
+}: IClassFormModalProps & { isTeacherPage: boolean }) {
   const isSubmitDisabled =
     values.className.trim().length < 3 || !values.teacherId;
 
@@ -148,7 +150,13 @@ function ClassFormModal({
                   teacherId: event.target.value,
                 })
               }
-              className="h-12 w-full rounded-2xl border border-[#D1D5DB] bg-white px-4 text-base text-[#111827] outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              disabled={isTeacherPage}
+              className={cn(
+                "h-12 w-full rounded-2xl border px-4 text-base outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]",
+                isTeacherPage
+                  ? "border-[#D1D5DB] bg-[#F3F4F6] text-[#6B7280] cursor-not-allowed"
+                  : "border-[#D1D5DB] bg-white text-[#111827]",
+              )}
             >
               <option value="">Pilih guru pengampu</option>
               {teacherOptions.map((teacher) => (
@@ -157,6 +165,11 @@ function ClassFormModal({
                 </option>
               ))}
             </select>
+            {isTeacherPage && (
+              <p className="text-sm text-[#6B7280]">
+                Pilih guru tidak dapat diubah di halaman guru.
+              </p>
+            )}
           </div>
 
           <button
@@ -197,6 +210,9 @@ export default function AdminClassListContent({
     className: "",
     teacherId: "",
   });
+  const pathname = usePathname();
+  const isTeacherPage = pathname?.includes("/teacher") ?? false;
+
   const [statusFilter, setStatusFilter] = useState<AdminClassStatus | "all">(
     "all",
   );
@@ -219,7 +235,10 @@ export default function AdminClassListContent({
   );
 
   const handleOpenAddModal = () => {
-    setCreateFormValues({ className: "", teacherId: "" });
+    setCreateFormValues({
+      className: "",
+      teacherId: isTeacherPage ? (teacherOptions[0]?.id ?? "") : "",
+    });
     setIsAddModalOpen(true);
   };
 
@@ -231,7 +250,9 @@ export default function AdminClassListContent({
     setEditingClassId(classItem.id);
     setEditFormValues({
       className: classItem.name,
-      teacherId: teacherIdByLabel[classItem.teacherName] ?? "",
+      teacherId:
+        teacherIdByLabel[classItem.teacherName] ??
+        (isTeacherPage ? (teacherOptions[0]?.id ?? "") : ""),
     });
   };
 
@@ -458,6 +479,7 @@ export default function AdminClassListContent({
         onClose={handleCloseAddModal}
         onValuesChange={setCreateFormValues}
         onSubmit={handleCreateClass}
+        isTeacherPage={isTeacherPage}
       />
 
       <ClassFormModal
@@ -469,6 +491,7 @@ export default function AdminClassListContent({
         onClose={handleCloseEditModal}
         onValuesChange={setEditFormValues}
         onSubmit={handleUpdateClass}
+        isTeacherPage={isTeacherPage}
       />
     </>
   );
