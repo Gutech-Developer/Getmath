@@ -13,6 +13,7 @@ const classSidebarSegmentToRouteKey = {
   diagnosis: "diagnosis",
   form: "forum",
   forum: "forum",
+  lad: "lad",
   "info-class": "info-class",
 } as const satisfies Record<string, Exclude<ClassSidebarRouteKey, "overview">>;
 

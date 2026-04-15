@@ -3,6 +3,7 @@ export type ClassSidebarRouteKey =
   | "materi"
   | "diagnosis"
   | "forum"
+  | "lad"
   | "info-class";
 
 export interface IClassSidebarRouteBase {
@@ -41,6 +42,12 @@ export const CLASS_SIDEBAR_ROUTE_BASE: IClassSidebarRouteBase[] = [
     label: "Forum Diskusi",
     description: "Diskusi kelas aktif",
     segment: "forum",
+  },
+  {
+    key: "lad",
+    label: "LAD",
+    description: "Laporan Analitik Diagnostik",
+    segment: "lad",
   },
   {
     key: "info-class",

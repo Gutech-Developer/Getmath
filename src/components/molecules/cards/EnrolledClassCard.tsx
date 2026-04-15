@@ -13,6 +13,7 @@ import Link from "next/link";
 type ProgressVariant = "primary" | "success" | "warning" | "info";
 
 interface ClassCardProps {
+  slug: string;
   title: string;
   teacher: string;
   institution: string;
@@ -29,6 +30,7 @@ interface ClassCardProps {
 }
 
 export const EnrolledClassCard: React.FC<ClassCardProps> = ({
+  slug,
   title,
   teacher,
   institution,
@@ -45,7 +47,7 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
 }) => {
   return (
     <Link
-      href={`/student/dashboard/class/${title}`}
+      href={`/student/dashboard/class/${slug}`}
       className={cn(
         "bg-white border border-grey-stroke rounded-2xl p-5 flex flex-col gap-4 cursor-pointer hover:shadow-md transition-shadow duration-200 group relative z-0",
         className,

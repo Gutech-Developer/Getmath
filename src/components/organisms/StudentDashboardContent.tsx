@@ -13,6 +13,7 @@ import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 
 export interface EnrolledClass {
   id: string;
+  slug: string;
   title: string;
   teacher: string;
   institution: string;
@@ -125,6 +126,7 @@ export const StudentDashboardContent: React.FC<
             {enrolledClasses.map((cls) => (
               <EnrolledClassCard
                 key={cls.id}
+                slug={cls.slug}
                 title={cls.title}
                 teacher={cls.teacher}
                 institution={cls.institution}
