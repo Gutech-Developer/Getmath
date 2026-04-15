@@ -7,6 +7,7 @@ import {
   classRouteToneMap,
 } from "@/components/molecules/classroom";
 import {
+  buildClassRoute,
   getClassSidebarRoutes,
   type ClassSidebarRouteKey,
 } from "@/constant/classSidebarRoutes";
@@ -41,17 +42,17 @@ const metricItems: {
   },
   {
     key: "metric-progress",
-    value: "50%",
-    label: "Progres Materi",
-    hint: "Update minggu ini",
-    routeKey: "overview",
+    value: "76",
+    label: "Rata-rata Nilai",
+    hint: "Lihat LAD lengkapmu",
+    routeKey: "lad",
   },
   {
     key: "metric-score",
-    value: "80",
-    label: "Nilai Tertinggi",
-    hint: "Skor terbaik kelas",
-    routeKey: "info-class",
+    value: "#2",
+    label: "Peringkat Kelas",
+    hint: "Dari 28 siswa",
+    routeKey: "lad",
   },
 ];
 

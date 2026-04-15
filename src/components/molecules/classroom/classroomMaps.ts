@@ -3,6 +3,7 @@ import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
 import ChatIcon from "@/components/atoms/icons/ChatIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
+import TrendUpIcon from "@/components/atoms/icons/TrendUpIcon";
 import type { ClassSidebarRouteKey } from "@/constant/classSidebarRoutes";
 import type { IconProps } from "@/types/iconProps";
 import type { ComponentType } from "react";
@@ -17,6 +18,7 @@ export const classRouteIconMap: ClassRouteIconMap = {
   materi: NotebookIcon,
   diagnosis: DocumentIcon,
   forum: ChatIcon,
+  lad: TrendUpIcon,
   "info-class": ThreeUserGroupIcon,
 };
 
@@ -44,6 +46,11 @@ export const classRouteToneMap: Record<
     activeClassName: "bg-[#E9EEFF] text-[#1D4ED8] border-[#C7D2FE]",
   },
   forum: {
+    iconBackgroundClassName: "bg-[#F1F5F9]",
+    iconClassName: "text-[#64748B]",
+    activeClassName: "bg-[#E9EEFF] text-[#1D4ED8] border-[#C7D2FE]",
+  },
+  lad: {
     iconBackgroundClassName: "bg-[#F1F5F9]",
     iconClassName: "text-[#64748B]",
     activeClassName: "bg-[#E9EEFF] text-[#1D4ED8] border-[#C7D2FE]",

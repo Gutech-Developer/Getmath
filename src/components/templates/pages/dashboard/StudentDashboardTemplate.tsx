@@ -13,6 +13,7 @@ import {
 const ENROLLED_CLASSES: EnrolledClass[] = [
   {
     id: "1",
+    slug: "matematika-wajib-kelas-x",
     title: "Matematika Wajib Kelas X",
     teacher: "Bpk. Budi Santoso",
     institution: "Umum",
@@ -27,6 +28,7 @@ const ENROLLED_CLASSES: EnrolledClass[] = [
   },
   {
     id: "2",
+    slug: "matematika-peminatan-xi-ipa",
     title: "Matematika Peminatan XI IPA",
     teacher: "Ibu Sari Dewi",
     institution: "IPA",
@@ -41,6 +43,7 @@ const ENROLLED_CLASSES: EnrolledClass[] = [
   },
   {
     id: "3",
+    slug: "statistika-probabilitas",
     title: "Statistika & Probabilitas",
     teacher: "Bpk. Dari Wiraswiri",
     institution: "IPA/IPS",
