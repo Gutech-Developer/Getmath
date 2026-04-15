@@ -1,4 +1,20 @@
-import Link from "next/link";
+"use client";
+
+import {
+  BaseInitSection,
+  BaseLaporanSection,
+  ClassAnalyticsViewType,
+  IClassAnalyticsReportSummaryCard,
+  ILearningAnalyticsELKPDItem,
+  ILearningAnalyticsEmotionSegment,
+  ILearningAnalyticsHeaderCardData,
+  ILearningAnalyticsMaterialItem,
+  ILearningAnalyticsScoreBucket,
+  LearningAnalyticsClassHeaderCard,
+  LearningAnalyticsViewSwitcher,
+} from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
+import type { ReactNode } from "react";
+import { useMemo, useState } from "react";
 
 export interface IStudentAnalyticsItem {
   id: string;
@@ -17,182 +33,258 @@ export interface IClassLearningAnalyticsDetail {
   passedCount: number;
   remedialCount: number;
   progress: number;
+  classCode?: string;
+  gradeLabel?: string;
+  semesterLabel?: string;
+  subjectLabel?: string;
+  defaultViewType?: ClassAnalyticsViewType;
   students: IStudentAnalyticsItem[];
+  materials?: ILearningAnalyticsMaterialItem[];
+  elkpdItems?: ILearningAnalyticsELKPDItem[];
+  reportSummaryCards?: IClassAnalyticsReportSummaryCard[];
+  scoreBuckets?: ILearningAnalyticsScoreBucket[];
+  emotionSegments?: ILearningAnalyticsEmotionSegment[];
 }
 
 interface AdminLearningAnalyticsClassContentProps {
   classDetail: IClassLearningAnalyticsDetail;
-  backHref?: string;
+  initialViewType?: ClassAnalyticsViewType;
+  buildStudentDetailHref?: (studentId: string) => string;
 }
 
-function EyeIcon() {
-  return (
-    <svg
-      className="h-4 w-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M2 12C2 12 5.63636 5.45454 12 5.45454C18.3636 5.45454 22 12 22 12C22 12 18.3636 18.5455 12 18.5455C5.63636 18.5455 2 12 2 12Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  );
+function buildDefaultScoreBuckets(
+  students: IStudentAnalyticsItem[],
+): ILearningAnalyticsScoreBucket[] {
+  const bucketConfig = [
+    { label: "< 50", min: Number.NEGATIVE_INFINITY, max: 49, color: "#94A3B8" },
+    { label: "50-64", min: 50, max: 64, color: "#F59E0B" },
+    { label: "65-74", min: 65, max: 74, color: "#EAB308" },
+    { label: "75-84", min: 75, max: 84, color: "#22C55E" },
+    {
+      label: "85-100",
+      min: 85,
+      max: Number.POSITIVE_INFINITY,
+      color: "#3B82F6",
+    },
+  ];
+
+  return bucketConfig.map((bucket) => ({
+    label: bucket.label,
+    color: bucket.color,
+    value: students.filter(
+      (student) => student.score >= bucket.min && student.score <= bucket.max,
+    ).length,
+  }));
 }
 
-function StudentAnalyticsRow({
-  student,
-  classSlug,
-}: {
-  student: IStudentAnalyticsItem;
-  classSlug: string;
-}) {
-  const isPassed = student.status === "Lulus";
-  const scoreColor = isPassed ? "text-[#059669]" : "text-[#DC2626]";
-  const badgeClass = isPassed
-    ? "bg-[#E8F8F1] text-[#059669]"
-    : "bg-[#FDECEC] text-[#DC2626]";
+function buildDefaultEmotionSegments(
+  students: IStudentAnalyticsItem[],
+): ILearningAnalyticsEmotionSegment[] {
+  const totalStudents = students.length;
+  const passedCount = students.filter(
+    (student) => student.status === "Lulus",
+  ).length;
+  const remedialCount = totalStudents - passedCount;
 
-  return (
-    <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5 md:px-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2F63DA] text-base font-bold text-white">
-            {student.fullname.charAt(0).toUpperCase()}
-          </div>
+  return [
+    {
+      label: "Fokus",
+      value: Math.max(1, passedCount),
+      color: "#3B82F6",
+    },
+    {
+      label: "Senang",
+      value: Math.max(1, Math.round(passedCount * 0.6)),
+      color: "#22C55E",
+    },
+    {
+      label: "Bingung",
+      value: Math.max(1, Math.round(remedialCount * 0.8)),
+      color: "#F59E0B",
+    },
+    {
+      label: "Tegang",
+      value: Math.max(1, remedialCount),
+      color: "#EF4444",
+    },
+  ];
+}
 
-          <div className="min-w-0">
-            <h3 className="truncate text-[1.55rem] font-bold leading-tight text-[#111827] md:text-[1.35rem]">
-              {student.fullname}
-            </h3>
-            <p className="text-[1.2rem] text-[#9CA3AF] md:text-sm">
-              NIS: {student.nis}
-            </p>
-          </div>
-        </div>
+function createDefaultMaterials(
+  className: string,
+): ILearningAnalyticsMaterialItem[] {
+  return [
+    {
+      id: "material-1",
+      title: `Pengantar ${className}`,
+      updatedAt: "12 Apr 2026",
+      type: "Materi",
+      status: "Aktif",
+    },
+    {
+      id: "material-2",
+      title: "Latihan Soal Terstruktur",
+      updatedAt: "09 Apr 2026",
+      type: "Tes",
+      status: "Aktif",
+    },
+    {
+      id: "material-3",
+      title: "Video Pembahasan Konsep",
+      updatedAt: "07 Apr 2026",
+      type: "Video",
+      status: "Draft",
+    },
+  ];
+}
 
-        <div className="flex items-center gap-4 md:gap-5">
-          <div className="text-right">
-            <p
-              className={`text-[2rem] font-extrabold leading-none md:text-3xl ${scoreColor}`}
-            >
-              {student.score}
-            </p>
-            <p className="mt-1 text-[1.05rem] text-[#9CA3AF] md:text-xs">
-              Nilai
-            </p>
-          </div>
-
-          <span
-            className={`inline-flex min-w-[120px] items-center justify-center rounded-full px-4 py-1.5 text-[1.2rem] font-semibold md:min-w-[84px] md:px-3 md:py-1 md:text-sm ${badgeClass}`}
-          >
-            {student.status}
-          </span>
-
-          <Link
-            href={`/admin/dashboard/learning-analytics/${classSlug}/${student.id}`}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#9CA3AF] transition hover:bg-[#F3F4F6]"
-            aria-label={`Lihat analitik ${student.fullname}`}
-          >
-            <EyeIcon />
-          </Link>
-        </div>
-      </div>
-    </article>
-  );
+function createDefaultELKPDItems(): ILearningAnalyticsELKPDItem[] {
+  return [
+    {
+      id: "elkpd-1",
+      title: "E-LKPD 1 - Pemahaman Konsep",
+      dueLabel: "18 Apr 2026",
+      submittedCount: 18,
+      status: "Aktif",
+    },
+    {
+      id: "elkpd-2",
+      title: "E-LKPD 2 - Soal Aplikasi",
+      dueLabel: "24 Apr 2026",
+      submittedCount: 9,
+      status: "Aktif",
+    },
+    {
+      id: "elkpd-3",
+      title: "E-LKPD 3 - Refleksi Akhir",
+      dueLabel: "31 Mar 2026",
+      submittedCount: 28,
+      status: "Ditutup",
+    },
+  ];
 }
 
 export default function AdminLearningAnalyticsClassContent({
   classDetail,
-  backHref = "/admin/dashboard/learning-analytics",
+  initialViewType,
+  buildStudentDetailHref,
 }: AdminLearningAnalyticsClassContentProps) {
+  const [activeViewType, setActiveViewType] = useState<ClassAnalyticsViewType>(
+    initialViewType ?? classDetail.defaultViewType ?? "Laporan",
+  );
+
+  const defaultSummaryCards: IClassAnalyticsReportSummaryCard[] =
+    useMemo(() => {
+      const finishedTests = classDetail.students.length;
+      const passRate = Math.round(
+        (classDetail.passedCount / Math.max(classDetail.studentCount, 1)) * 100,
+      );
+
+      return [
+        {
+          label: "Total Siswa",
+          value: String(classDetail.studentCount),
+        },
+        {
+          label: "Sudah Masuk Kelas",
+          value: String(classDetail.studentCount),
+          hint: `dari ${classDetail.studentCount}`,
+        },
+        {
+          label: "Selesai Tes",
+          value: String(finishedTests),
+          hint: `dari ${classDetail.studentCount}`,
+        },
+        {
+          label: "Tingkat Kelulusan",
+          value: `${passRate}%`,
+          valueClassName: "text-[#F97316]",
+        },
+      ];
+    }, [
+      classDetail.passedCount,
+      classDetail.studentCount,
+      classDetail.students.length,
+    ]);
+
+  const reportSummaryCards =
+    classDetail.reportSummaryCards ?? defaultSummaryCards;
+  const materials =
+    classDetail.materials ?? createDefaultMaterials(classDetail.className);
+  const elkpdItems = classDetail.elkpdItems ?? createDefaultELKPDItems();
+  const scoreBuckets =
+    classDetail.scoreBuckets ?? buildDefaultScoreBuckets(classDetail.students);
+  const emotionSegments =
+    classDetail.emotionSegments ??
+    buildDefaultEmotionSegments(classDetail.students);
+
+  const headerData: ILearningAnalyticsHeaderCardData = {
+    className: classDetail.className,
+    classCode: classDetail.classCode ?? "MATH-X-001",
+    subjectLabel: classDetail.subjectLabel ?? "Matematika",
+    metadata: [
+      classDetail.gradeLabel ?? "Umum",
+      classDetail.semesterLabel ?? "Ganjil 2024/2025",
+      `${classDetail.studentCount} Siswa`,
+    ],
+  };
+
+  const studentDetailHrefBuilder =
+    buildStudentDetailHref ??
+    ((studentId: string) =>
+      `/admin/dashboard/learning-analytics/${classDetail.slug}/${studentId}`);
+
+  const renderedByType: Record<ClassAnalyticsViewType, ReactNode> = {
+    Beranda: (
+      <BaseInitSection
+        title="Beranda LAD"
+        description="Halaman Beranda sedang disiapkan. Laporan analitik kelas tersedia di tab Laporan."
+      />
+    ),
+    Siswa: (
+      <BaseInitSection
+        title="Siswa"
+        description="Daftar dan detail siswa akan muncul di sini setelah fitur selesai dibangun."
+      />
+    ),
+    Materi: (
+      <BaseInitSection
+        title="Materi"
+        description="Konten materi akan ditampilkan di halaman ini setelah desain final tersedia."
+      />
+    ),
+    "Kelola E-LKPD": (
+      <BaseInitSection
+        title="Kelola E-LKPD"
+        description="Fitur pengelolaan E-LKPD sedang disiapkan. Fokuskan analitik kelas di tab Laporan."
+      />
+    ),
+    Laporan: (
+      <BaseLaporanSection
+        reportSummaryCards={reportSummaryCards}
+        scoreBuckets={scoreBuckets}
+        emotionSegments={emotionSegments}
+        students={classDetail.students}
+        buildStudentDetailHref={studentDetailHrefBuilder}
+      />
+    ),
+  };
+
   return (
-    <div className="w-full space-y-5">
-      <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#111827]">
-            Learning Analytics Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-[#9CA3AF]">
-            Analitik per siswa dalam kelas
-          </p>
-        </div>
+    <div className="w-full space-y-4">
+      <LearningAnalyticsClassHeaderCard data={headerData} />
 
-        <Link
-          href={backHref}
-          className="inline-flex items-center justify-center rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-2 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
-        >
-          ← Semua Kelas
-        </Link>
-      </header>
+      <LearningAnalyticsViewSwitcher
+        activeType={activeViewType}
+        onChange={setActiveViewType}
+        badgeByType={{
+          Siswa: classDetail.studentCount,
+          Materi: materials.length,
+          "Kelola E-LKPD": elkpdItems.length,
+        }}
+      />
 
-      <section className="rounded-3xl bg-[linear-gradient(135deg,#2F63DA_0%,#2B5DCE_100%)] p-5 text-white shadow-[0px_10px_30px_rgba(47,99,218,0.25)] md:p-6">
-        <h2 className="text-[1.85rem] font-bold leading-tight md:text-3xl">
-          {classDetail.className}
-        </h2>
-        <p className="mt-1 text-[1.2rem] text-white/75 md:text-sm">
-          {classDetail.teacherName} · {classDetail.studentCount} siswa
-        </p>
-
-        <div className="mt-4 grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
-          <div className="rounded-2xl bg-white/12 px-3 py-3 text-center">
-            <p className="text-[1.8rem] font-extrabold leading-none md:text-3xl">
-              {classDetail.averageScore}
-            </p>
-            <p className="mt-1 text-[1.05rem] text-white/75 md:text-sm">
-              Rata-rata
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white/12 px-3 py-3 text-center">
-            <p className="text-[1.8rem] font-extrabold leading-none md:text-3xl">
-              {classDetail.passedCount}
-            </p>
-            <p className="mt-1 text-[1.05rem] text-white/75 md:text-sm">
-              Lulus
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white/12 px-3 py-3 text-center">
-            <p className="text-[1.8rem] font-extrabold leading-none md:text-3xl">
-              {classDetail.remedialCount}
-            </p>
-            <p className="mt-1 text-[1.05rem] text-white/75 md:text-sm">
-              Remedial
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white/12 px-3 py-3 text-center">
-            <p className="text-[1.8rem] font-extrabold leading-none md:text-3xl">
-              {classDetail.progress}%
-            </p>
-            <p className="mt-1 text-[1.05rem] text-white/75 md:text-sm">
-              Progress
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-2xl font-bold text-[#111827] md:text-[1.55rem]">
-          Analitik Per Siswa
-        </h2>
-
-        <div className="space-y-2.5 md:space-y-3">
-          {classDetail.students.map((student) => (
-            <StudentAnalyticsRow
-              key={student.id}
-              student={student}
-              classSlug={classDetail.slug}
-            />
-          ))}
-        </div>
-      </section>
+      {renderedByType[activeViewType]}
     </div>
   );
 }
