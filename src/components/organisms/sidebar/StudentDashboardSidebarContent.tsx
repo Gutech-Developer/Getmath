@@ -28,12 +28,13 @@ export default function StudentDashboardSidebarContent({
 }: IStudentDashboardSidebarContentProps) {
   const menuItems = getDashboardSidebarRoutesByRole(role);
   const activeRouteKey = resolveDashboardSidebarRouteKey(pathname);
+  const menuTitle = role === "admin" ? "Menu Admin" : "Menu Utama";
 
   return (
     <div className="flex h-full w-full flex-col gap-4 p-4 lg:p-5">
       <div className="thinnest-scrollbar flex-1 overflow-y-auto">
         <DashboardSidebarNav
-          menuTitle="Menu Utama"
+          menuTitle={menuTitle}
           items={menuItems}
           activeKey={activeRouteKey}
           onNavigate={onNavigate}

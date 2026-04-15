@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   ParentDashboardContent,
   ParentStat,
@@ -8,6 +9,9 @@ import {
   EmotionSegment,
   TestResult,
 } from "@/components/organisms/ParentDashboardContent";
+import ChildManagementModal, {
+  IManagedChild,
+} from "@/components/molecules/parent/ChildManagementModal";
 import ActivityIcon from "@/components/atoms/icons/ActivityIcon";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import TrophyIcon from "@/components/atoms/icons/TrophyIcon";
@@ -148,22 +152,47 @@ const TEST_RESULTS: TestResult[] = [
   },
 ];
 
+const MANAGED_CHILDREN: IManagedChild[] = [
+  {
+    id: "child-1",
+    fullname: "Ahmad Rizki",
+    nis: "10234",
+    classroom: "Kelas X-1",
+  },
+  {
+    id: "child-2",
+    fullname: "Siti Nurhaliza",
+    nis: "10235",
+    classroom: "Kelas IX-2",
+  },
+];
+
 export default function ParentDashboardTemplate() {
+  const [isChildManagementOpen, setIsChildManagementOpen] = useState(false);
+
   return (
-    <ParentDashboardContent
-      parentName="Musliadi"
-      childName="Ahmad Rizki"
-      stats={PARENT_STATS}
-      alertMessage="Ahmad Rizki belum lulus di 2 tes dan wajib menonton video remedial. Pastikan ia meluangkan waktu untuk mengulang materi terkait."
-      onAlertClick={() => console.log("Lihat detail alert")}
-      classes={PARENT_CLASSES}
-      onViewClass={(id) => console.log("View class", id)}
-      trendChartLabels={TREND_LABELS}
-      trendChartLines={TREND_LINES}
-      trendChartTitle="Tren Nilai Ahmad Rizki"
-      emotionSegments={EMOTION_SEGMENTS}
-      testResults={TEST_RESULTS}
-      onManageChild={() => console.log("Manajemen anak")}
-    />
+    <>
+      <ParentDashboardContent
+        parentName="Musliadi"
+        childName="Ahmad Rizki"
+        stats={PARENT_STATS}
+        alertMessage="Ahmad Rizki belum lulus di 2 tes dan wajib menonton video remedial. Pastikan ia meluangkan waktu untuk mengulang materi terkait."
+        onAlertClick={() => console.log("Lihat detail alert")}
+        classes={PARENT_CLASSES}
+        onViewClass={(id) => console.log("View class", id)}
+        trendChartLabels={TREND_LABELS}
+        trendChartLines={TREND_LINES}
+        trendChartTitle="Tren Nilai Ahmad Rizki"
+        emotionSegments={EMOTION_SEGMENTS}
+        testResults={TEST_RESULTS}
+        onManageChild={() => setIsChildManagementOpen(true)}
+      />
+
+      <ChildManagementModal
+        isOpen={isChildManagementOpen}
+        onClose={() => setIsChildManagementOpen(false)}
+        initialChildren={MANAGED_CHILDREN}
+      />
+    </>
   );
 }

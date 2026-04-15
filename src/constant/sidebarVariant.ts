@@ -11,7 +11,9 @@ export type SidebarVariant =
 const classSidebarSegmentToRouteKey = {
   materi: "materi",
   diagnosis: "diagnosis",
-  form: "form",
+  form: "forum",
+  forum: "forum",
+  lad: "lad",
   "info-class": "info-class",
 } as const satisfies Record<string, Exclude<ClassSidebarRouteKey, "overview">>;
 

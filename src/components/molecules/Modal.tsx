@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect } from "react";
-import { Heading4 } from "@/components/atoms/Typography";
+import { Heading4, Heading6 } from "@/components/atoms/Typography";
 
 interface ModalProps {
   isOpen: boolean;
@@ -59,7 +59,7 @@ export const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-grey-stroke shrink-0">
-          <Heading4 className="text-neutral-02">{title}</Heading4>
+          <Heading6 className="text-neutral-02">{title}</Heading6>
           <button
             onClick={onClose}
             className="text-grey hover:text-neutral-02 transition-colors"

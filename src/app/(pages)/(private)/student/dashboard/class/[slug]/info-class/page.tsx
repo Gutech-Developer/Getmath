@@ -1,4 +1,4 @@
-import ClassFeatureInitPageTemplate from "@/components/templates/pages/classroom/ClassFeatureInitPageTemplate";
+import ClassInfoPageTemplate from "@/components/templates/pages/classroom/ClassInfoPageTemplate";
 
 interface IClassInfoKelasPageProps {
   params: Promise<{ slug: string }>;
@@ -9,12 +9,5 @@ export default async function ClassInfoKelasPage({
 }: IClassInfoKelasPageProps) {
   const { slug } = await params;
 
-  return (
-    <ClassFeatureInitPageTemplate
-      slug={slug}
-      activeKey="info-class"
-      title="Info Kelas"
-      description="Screen init info kelas berisi ringkasan guru, daftar siswa, jadwal, dan metadata kelas sebelum masuk detail desain final."
-    />
-  );
+  return <ClassInfoPageTemplate slug={slug} />;
 }

@@ -4,9 +4,12 @@
  * Service untuk operasi CRUD Child
  */
 
-"use server";
-
-import { serverGet as get, serverPost as post, serverPut as put, serverDel as del } from "@/libs/api/server";
+import {
+  serverGet as get,
+  serverPost as post,
+  serverPut as put,
+  serverDel as del,
+} from "@/libs/api/server";
 import { IChild, ICreateChildInput, IUpdateChildInput } from "@/types/child";
 
 // ============ CHILD SERVICE ============
@@ -37,7 +40,7 @@ async function getChildById(id: string): Promise<IChild> {
  */
 async function updateChild(
   id: string,
-  data: IUpdateChildInput
+  data: IUpdateChildInput,
 ): Promise<IChild> {
   return await put<IChild>(`/child/${id}`, data);
 }
