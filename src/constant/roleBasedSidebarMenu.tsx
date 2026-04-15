@@ -3,6 +3,7 @@ import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
 import ChatIcon from "@/components/atoms/icons/ChatIcon";
+import TrendUpIcon from "@/components/atoms/icons/TrendUpIcon";
 import {
   getDashboardSidebarInitRoutesByRole,
   type IDashboardSidebarRouteItem,
@@ -42,6 +43,7 @@ const classStudentSidebarIconMap: Record<
   materi: NotebookIcon,
   diagnosis: DocumentIcon,
   forum: ChatIcon,
+  lad: TrendUpIcon,
   "info-class": ThreeUserGroupIcon,
 };
 
