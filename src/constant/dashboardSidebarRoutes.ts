@@ -69,6 +69,12 @@ const teacherDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
     icon: DocumentIcon,
   },
   {
+    key: "class list",
+    label: "Kelola Kelas",
+    href: "/teacher/dashboard/class-list",
+    icon: DocumentIcon,
+  },
+  {
     key: "notifications",
     label: "Notifications",
     href: "/teacher/dashboard/notifikasi",
@@ -175,6 +181,10 @@ export function resolveDashboardSidebarRouteKey(
   if (isTeacherDashboard) {
     if (normalizedPathname.includes("/dashboard/manage-material")) {
       return "manage-material";
+    }
+
+    if (normalizedPathname.includes("/dashboard/class-list")) {
+      return "class list";
     }
 
     if (
