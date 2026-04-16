@@ -11,6 +11,7 @@ import type {
 } from "@/types/adminClassList";
 import { showToast } from "@/libs/toast";
 import { useCallback, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 function buildClassCode(className: string, serialNumber: number): string {
   const prefix = className
@@ -31,10 +32,21 @@ function getTodayDateLabel(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export default function AdminClassListTemplate() {
+  const pathname = usePathname();
+  const router = useRouter();
   const [classes, setClasses] = useState<IAdminClassListItem[]>(
     INITIAL_ADMIN_CLASS_LIST,
   );
+  const isTeacherDashboard = pathname?.includes("/teacher/dashboard") ?? false;
 
   const teacherNameById = useMemo(
     () =>
@@ -118,9 +130,24 @@ export default function AdminClassListTemplate() {
     );
   }, []);
 
-  const handleManageClass = useCallback(() => {
-    showToast.info("Halaman kelola kelas akan segera dihubungkan");
-  }, []);
+  const handleManageClass = useCallback(
+    (classId: string) => {
+      const classItem = classes.find((item) => item.id === classId);
+
+      if (!classItem) {
+        showToast.info("Kelas yang dipilih tidak ditemukan");
+        return;
+      }
+
+      const slug = toSlug(classItem.name);
+      const targetHref = isTeacherDashboard
+        ? `/teacher/dashboard/class-list/${slug}`
+        : `/admin/dashboard/learning-analytics/${slug}`;
+
+      router.push(targetHref);
+    },
+    [classes, isTeacherDashboard, router],
+  );
 
   return (
     <AdminClassListContent

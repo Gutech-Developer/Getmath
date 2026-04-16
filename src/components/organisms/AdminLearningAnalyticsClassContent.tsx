@@ -3,6 +3,8 @@
 import {
   BaseInitSection,
   BaseLaporanSection,
+  BaseMateriSection,
+  BaseSiswaSection,
   ClassAnalyticsViewType,
   IClassAnalyticsReportSummaryCard,
   ILearningAnalyticsELKPDItem,
@@ -242,17 +244,12 @@ export default function AdminLearningAnalyticsClassContent({
       />
     ),
     Siswa: (
-      <BaseInitSection
-        title="Siswa"
-        description="Daftar dan detail siswa akan muncul di sini setelah fitur selesai dibangun."
+      <BaseSiswaSection
+        students={classDetail.students}
+        buildStudentDetailHref={studentDetailHrefBuilder}
       />
     ),
-    Materi: (
-      <BaseInitSection
-        title="Materi"
-        description="Konten materi akan ditampilkan di halaman ini setelah desain final tersedia."
-      />
-    ),
+    Materi: <BaseMateriSection materials={materials} />,
     "Kelola E-LKPD": (
       <BaseInitSection
         title="Kelola E-LKPD"

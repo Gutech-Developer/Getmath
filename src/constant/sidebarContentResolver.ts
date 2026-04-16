@@ -7,6 +7,7 @@ import {
 export const sidebarContentType = {
   default: "default",
   classDashboard: "classDashboard",
+  teacherClassDashboard: "teacherClassDashboard",
   dashboardInit: "dashboardInit",
 } as const;
 
@@ -23,6 +24,13 @@ export function resolveSidebarContent(
 ): IResolvedSidebarContent {
   const sidebarVariantResult = resolveSidebarVariant(pathname);
   const normalizedPathname = pathname.replace(/\/+$/, "");
+
+  if (sidebarVariantResult.variant === sidebarVariant.teacherClass) {
+    return {
+      contentType: sidebarContentType.teacherClassDashboard,
+      sidebarVariant: sidebarVariantResult,
+    };
+  }
 
   if (sidebarVariantResult.variant === sidebarVariant.class) {
     return {

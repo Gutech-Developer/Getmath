@@ -4,6 +4,7 @@ import ClassSidebarContent from "@/components/organisms/sidebar/ClassSidebarCont
 import DefaultSidebarContent from "@/components/organisms/sidebar/DefaultSidebarContent";
 import StudentDashboardSidebarContent from "@/components/organisms/sidebar/StudentDashboardSidebarContent";
 import TeacherDashboardSidebarContent from "@/components/organisms/sidebar/TeacherDashboardSidebarContent";
+import TeacherClassSidebarContent from "@/components/organisms/sidebar/TeacherClassSidebarContent";
 import {
   resolveSidebarContent,
   type SidebarContentType,
@@ -197,6 +198,18 @@ export const Sidebar = () => {
         classSlug={classSlug}
         activeClassRouteKey={activeClassRouteKey}
         userName={userName}
+        roleLabel={roleLabel}
+        profileUrl={profileUrl}
+        onNavigate={handleLinkClick}
+        onLogout={handleLogout}
+      />
+    ) : (
+      defaultSidebarContent
+    ),
+    teacherClassDashboard: classSlug ? (
+      <TeacherClassSidebarContent
+        classSlug={classSlug}
+        teacherName={userName}
         roleLabel={roleLabel}
         profileUrl={profileUrl}
         onNavigate={handleLinkClick}

@@ -2,7 +2,7 @@ import AdminLearningAnalyticsClassContent, {
   IClassLearningAnalyticsDetail,
 } from "@/components/organisms/AdminLearningAnalyticsClassContent";
 
-const LEARNING_ANALYTICS_CLASS_DATA: IClassLearningAnalyticsDetail[] = [
+export const LEARNING_ANALYTICS_CLASS_DATA: IClassLearningAnalyticsDetail[] = [
   {
     slug: "matematika-wajib-kelas-x",
     className: "Matematika Wajib Kelas X",

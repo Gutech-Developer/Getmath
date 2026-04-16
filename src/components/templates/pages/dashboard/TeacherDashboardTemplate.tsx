@@ -11,6 +11,7 @@ import ClipboardIcon from "@/components/atoms/icons/ClipboardIcon";
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import UsersIcon from "@/components/atoms/icons/UsersIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
+import { useRouter } from "next/navigation";
 
 // ============ MOCK DATA ============
 // Replace with real API data from hooks
@@ -104,6 +105,7 @@ const RECENT_DIAGNOSTICS: RecentItem[] = [
 ];
 
 export default function TeacherDashboardTemplate() {
+  const router = useRouter();
   return (
     <TeacherDashboardContent
       teacherName="Ibu Rahma Johar"
@@ -113,7 +115,7 @@ export default function TeacherDashboardTemplate() {
       recentMaterials={RECENT_MATERIALS}
       recentDiagnostics={RECENT_DIAGNOSTICS}
       onCreateClass={() => console.log("Buat Kelas")}
-      onManageClass={(id) => console.log("Kelola kelas", id)}
+      onManageClass={(id) => router.push(`/teacher/dashboard/class-list/${id}`)}
     />
   );
 }
