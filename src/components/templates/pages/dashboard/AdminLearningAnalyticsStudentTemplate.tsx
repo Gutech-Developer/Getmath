@@ -1,6 +1,5 @@
-import AdminLearningAnalyticsStudentContent, {
-  IStudentLearningAnalyticsDetail,
-} from "@/components/organisms/AdminLearningAnalyticsStudentContent";
+import type { IStudentLearningAnalyticsDetail } from "@/components/organisms/AdminLearningAnalyticsStudentContent";
+import ClassLADPageTemplate from "@/components/templates/pages/classroom/ClassLADPageTemplate";
 
 interface IClassStudentAnalyticsCollection {
   slug: string;
@@ -162,24 +161,12 @@ export default function AdminLearningAnalyticsStudentTemplate({
     (item) => item.id === studentId,
   );
 
-  const fallbackStudent: IStudentLearningAnalyticsDetail = {
-    id: studentId,
-    fullname: "Siswa Dummy",
-    nis: "0000000",
-    score: 85,
-    status: "Lulus",
-    progress: 90,
-    dominantEmotion: "Fokus",
-    testHistory: [
-      { title: "Percobaan 1", note: "Nilai 70 - Remedial" },
-      { title: "Percobaan 2", note: "Nilai 85 - Lulus" },
-    ],
-  };
-
   return (
-    <AdminLearningAnalyticsStudentContent
+    <ClassLADPageTemplate
       slug={slug}
-      student={student ?? fallbackStudent}
+      studentName={student?.fullname ?? `Siswa ${studentId}`}
+      backHref={`/admin/dashboard/learning-analytics/${slug}`}
+      backLabel="← Kembali ke Daftar Siswa"
     />
   );
 }

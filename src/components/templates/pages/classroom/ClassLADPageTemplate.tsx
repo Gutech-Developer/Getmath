@@ -80,6 +80,9 @@ const AI_SUMMARY =
 /* ------------------------------------------------------------------ */
 interface IClassLADPageTemplateProps {
   slug: string;
+  studentName?: string;
+  backHref?: string;
+  backLabel?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -128,9 +131,14 @@ function SectionCard({
 /* ------------------------------------------------------------------ */
 export default function ClassLADPageTemplate({
   slug,
+  studentName,
+  backHref,
+  backLabel,
 }: IClassLADPageTemplateProps) {
   const classTitle = formatClassTitleFromSlug(slug);
-  const ladTitle = `LAD – ${classTitle}`;
+  const ladTitle = studentName ? `LAD – ${studentName}` : `LAD – ${classTitle}`;
+  const resolvedBackHref = backHref ?? buildClassRoute(slug);
+  const resolvedBackLabel = backLabel ?? "← Kembali ke Beranda Kelas";
 
   return (
     <ClassPageShellTemplate slug={slug} activeKey="lad" classTitle={classTitle}>
@@ -145,8 +153,9 @@ export default function ClassLADPageTemplate({
               {ladTitle}
             </h1>
             <p className="mt-1 text-sm text-white/75">
-              Lihat semua data: nilai, emosi, waktu belajar, dan rekomendasi AI
-              untukmu.
+              {studentName
+                ? "Lihat semua data: nilai, emosi, waktu belajar, dan rekomendasi AI untuk siswa ini."
+                : "Lihat semua data: nilai, emosi, waktu belajar, dan rekomendasi AI untukmu."}
             </p>
           </div>
           <div className="flex flex-col items-end gap-1 text-right">
@@ -329,10 +338,10 @@ export default function ClassLADPageTemplate({
       {/* ---- Back link ---- */}
       <div className="flex justify-start">
         <Link
-          href={buildClassRoute(slug)}
+          href={resolvedBackHref}
           className="inline-flex items-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#475569] transition hover:bg-[#F8FAFC]"
         >
-          ← Kembali ke Beranda Kelas
+          {resolvedBackLabel}
         </Link>
       </div>
     </ClassPageShellTemplate>
