@@ -40,7 +40,7 @@ jobs:
           script: |
             set -e
 
-            cd Getsmart/
+            cd Getmath/
 
             echo "Pull latest code..."
             git pull origin main
