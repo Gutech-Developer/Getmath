@@ -50,8 +50,7 @@ function ClassFormModal({
   onSubmit,
   isTeacherPage,
 }: IClassFormModalProps & { isTeacherPage: boolean }) {
-  const isSubmitDisabled =
-    values.className.trim().length < 3 || !values.teacherId;
+  const isSubmitDisabled = values.className.trim().length < 3;
 
   useEffect(() => {
     if (!isOpen) {
@@ -138,39 +137,30 @@ function ClassFormModal({
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-lg font-semibold text-[#374151]">
-              Pilih Guru
-            </label>
-            <select
-              value={values.teacherId}
-              onChange={(event) =>
-                onValuesChange({
-                  ...values,
-                  teacherId: event.target.value,
-                })
-              }
-              disabled={isTeacherPage}
-              className={cn(
-                "h-12 w-full rounded-2xl border px-4 text-base outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]",
-                isTeacherPage
-                  ? "border-[#D1D5DB] bg-[#F3F4F6] text-[#6B7280] cursor-not-allowed"
-                  : "border-[#D1D5DB] bg-white text-[#111827]",
-              )}
-            >
-              <option value="">Pilih guru pengampu</option>
-              {teacherOptions.map((teacher) => (
-                <option key={teacher.id} value={teacher.id}>
-                  {teacher.label}
-                </option>
-              ))}
-            </select>
-            {isTeacherPage && (
-              <p className="text-sm text-[#6B7280]">
-                Pilih guru tidak dapat diubah di halaman guru.
-              </p>
-            )}
-          </div>
+          {!isTeacherPage && (
+            <div className="space-y-2">
+              <label className="block text-lg font-semibold text-[#374151]">
+                Pilih Guru
+              </label>
+              <select
+                value={values.teacherId}
+                onChange={(event) =>
+                  onValuesChange({
+                    ...values,
+                    teacherId: event.target.value,
+                  })
+                }
+                className="h-12 w-full rounded-2xl border border-[#D1D5DB] bg-white px-4 text-base text-[#111827] outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              >
+                <option value="">Pilih guru pengampu</option>
+                {teacherOptions.map((teacher) => (
+                  <option key={teacher.id} value={teacher.id}>
+                    {teacher.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <button
             type="submit"

@@ -22,65 +22,34 @@ import { DonutChart } from "@/components/molecules/charts/DonutChart";
 import InitTemplate from "@/components/templates/init/InitTemplate";
 import { cn } from "@/libs/utils";
 import Link from "next/link";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import type {
+  ClassAnalyticsViewType,
+  IClassAnalyticsReportSummaryCard,
+  ILearningAnalyticsDiagnosticOption,
+  IMateriAssetItem,
+  IMateriSequenceItem,
+  ILearningAnalyticsELKPDItem,
+  ILearningAnalyticsEmotionSegment,
+  ILearningAnalyticsHeaderCardData,
+  ILearningAnalyticsMaterialItem,
+  ILearningAnalyticsScoreBucket,
+  ILearningAnalyticsStudentListItem,
+  MateriAssetKind,
+  ITeacherClassLearningAnalyticsDetail,
+} from "@/types/learningAnalytics";
+import { LADDonutChart } from "../classroom";
 
-export type ClassAnalyticsViewType =
-  | "Beranda"
-  | "Siswa"
-  | "Materi"
-  | "Kelola E-LKPD"
-  | "Laporan";
+interface ITeacherOverviewSectionProps {
+  classDetail: ITeacherClassLearningAnalyticsDetail;
+  materials: ILearningAnalyticsMaterialItem[];
+}
 
-export interface ILearningAnalyticsStudentListItem {
+interface IRecentActivityItem {
   id: string;
-  fullname: string;
-  nis: string;
-  score: number;
-  status: "Lulus" | "Remedial";
-}
-
-export interface ILearningAnalyticsMaterialItem {
-  id: string;
-  title: string;
-  updatedAt: string;
-  type: "Materi" | "Video" | "Tes";
-  status: "Aktif" | "Draft";
-}
-
-export interface ILearningAnalyticsELKPDItem {
-  id: string;
-  title: string;
-  dueLabel: string;
-  submittedCount: number;
-  status: "Aktif" | "Ditutup";
-}
-
-export interface IClassAnalyticsReportSummaryCard {
-  label: string;
-  value: string;
-  hint?: string;
-  valueClassName?: string;
-}
-
-export interface ILearningAnalyticsScoreBucket {
-  label: string;
-  value: number;
-  color: string;
-}
-
-export interface ILearningAnalyticsEmotionSegment {
-  label: string;
-  value: number;
-  color: string;
-}
-
-export interface ILearningAnalyticsHeaderCardData {
-  className: string;
-  classCode: string;
-  subjectLabel: string;
-  metadata: string[];
-  symbol?: string;
+  text: string;
+  timeLabel: string;
 }
 
 interface ILearningAnalyticsViewSwitcherProps {
@@ -110,6 +79,7 @@ interface IBaseMateriSectionProps {
 
 interface IBaseKelolaELKPDSectionProps {
   elkpdItems: ILearningAnalyticsELKPDItem[];
+  buildELKPDScoreHref?: (elkpdId: string) => string;
 }
 
 interface IBaseLaporanSectionProps {
@@ -376,33 +346,6 @@ function inferStudentOnlineState(
   return (student.fullname.length + index) % 3 !== 1;
 }
 
-type MateriSequenceType = "Modul" | "Tes Diagnostik";
-type MateriAssetKind = "PDF" | "Video" | "E-LKPD";
-
-interface IMateriAssetItem {
-  id: string;
-  kind: MateriAssetKind;
-  label: string;
-}
-
-interface IMateriSequenceItem {
-  id: string;
-  type: MateriSequenceType;
-  title: string;
-  description: string;
-  formatLabel?: MateriAssetKind;
-  assets: IMateriAssetItem[];
-  questionCount?: number;
-  durationMinutes?: number;
-}
-
-interface IDiagnosticOption {
-  id: string;
-  title: string;
-  questionCount: number;
-  durationMinutes: number;
-}
-
 const MODULE_ASSET_OPTIONS: IMateriAssetItem[] = [
   {
     id: "asset-pdf-pk",
@@ -431,7 +374,7 @@ const MODULE_ASSET_OPTIONS: IMateriAssetItem[] = [
   },
 ];
 
-const DIAGNOSTIC_TEST_OPTIONS: IDiagnosticOption[] = [
+const DIAGNOSTIC_TEST_OPTIONS: ILearningAnalyticsDiagnosticOption[] = [
   {
     id: "diagnostic-1",
     title: "Tes Diagnostik 1 - Persamaan Kuadrat",
@@ -1042,7 +985,7 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
     closeModuleModal();
   };
 
-  const selectDiagnosticTest = (option: IDiagnosticOption) => {
+  const selectDiagnosticTest = (option: ILearningAnalyticsDiagnosticOption) => {
     setSequenceItems((previousItems) => {
       const isAlreadyExist = previousItems.some(
         (item) => item.type === "Tes Diagnostik" && item.title === option.title,
@@ -1497,49 +1440,159 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
 
 export function BaseKelolaELKPDSection({
   elkpdItems,
+  buildELKPDScoreHref,
 }: IBaseKelolaELKPDSectionProps) {
+  const [activeActionItemId, setActiveActionItemId] = useState<string>("");
+
+  useEffect(() => {
+    if (elkpdItems.length === 0) {
+      setActiveActionItemId("");
+      return;
+    }
+
+    const hasActiveItem = elkpdItems.some(
+      (item) => item.id === activeActionItemId,
+    );
+
+    if (!hasActiveItem) {
+      setActiveActionItemId("");
+    }
+  }, [activeActionItemId, elkpdItems]);
+
   return (
-    <section className="space-y-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 md:p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#111827]">Kelola E-LKPD</h2>
-        <p className="text-xs text-[#94A3B8]">{elkpdItems.length} aktivitas</p>
-      </div>
+    <section className="space-y-2.5">
+      {elkpdItems.length === 0 ? (
+        <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-6 text-center text-sm text-[#94A3B8]">
+          Belum ada E-LKPD di kelas ini.
+        </article>
+      ) : (
+        elkpdItems.map((item) => {
+          const isActionMode = item.id === activeActionItemId;
 
-      <div className="space-y-2">
-        {elkpdItems.map((item) => (
-          <article
-            key={item.id}
-            className="rounded-xl border border-[#E5E7EB] bg-[#FCFCFD] px-3 py-3"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-[#111827]">
-                  {item.title}
-                </p>
-                <p className="text-xs text-[#94A3B8]">
-                  Batas waktu: {item.dueLabel}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#2563EB]">
-                  {item.submittedCount} terkumpul
-                </span>
-                <span
-                  className={cn(
-                    "rounded-full px-2.5 py-1 text-xs font-semibold",
-                    item.status === "Aktif"
-                      ? "bg-[#ECFDF5] text-[#16A34A]"
-                      : "bg-[#F3F4F6] text-[#64748B]",
-                  )}
+          return (
+            <article
+              key={item.id}
+              className={cn(
+                "rounded-2xl border px-4 py-3 transition",
+                isActionMode
+                  ? "border-[#CBD5E1] bg-[#F8FAFC]"
+                  : "border-[#E5E7EB] bg-white",
+              )}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveActionItemId(item.id)}
+                  className="min-w-0 text-left"
                 >
-                  {item.status}
-                </span>
+                  <p className="truncate text-sm font-semibold text-[#1F2937]">
+                    {item.title}
+                  </p>
+                </button>
+
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {isActionMode ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setActiveActionItemId("")}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-[#F1F5F9] text-[#94A3B8] transition hover:bg-[#E2E8F0] hover:text-[#64748B]"
+                        aria-label={`Tutup aksi ${item.title}`}
+                      >
+                        <svg
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          className="h-4 w-4"
+                        >
+                          <path
+                            d="M6 8L10 12L14 8"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                        aria-label={`Lihat ${item.title}`}
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-[#FEF2F2] text-[#DC2626] transition hover:bg-[#FEE2E2]"
+                        aria-label={`Hapus ${item.title}`}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {buildELKPDScoreHref ? (
+                        <Link
+                          href={buildELKPDScoreHref(item.id)}
+                          className="inline-flex h-8 items-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                        >
+                          Nilai
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          className="inline-flex h-8 items-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                        >
+                          Nilai
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })
+      )}
+    </section>
+  );
+}
+
+function SectionCard({
+  title,
+  subtitle,
+  icon,
+  children,
+  className,
+}: {
+  title: string;
+  subtitle?: string;
+  icon?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0px_4px_16px_rgba(148,163,184,0.08)]",
+        className,
+      )}
+    >
+      <div className="mb-4 flex items-start gap-2">
+        {icon && (
+          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F1F5F9] text-[#64748B]">
+            {icon}
+          </span>
+        )}
+
+        <div>
+          <h3 className="text-sm font-bold text-[#0F172A]">{title}</h3>
+          {subtitle && (
+            <p className="mt-0.5 text-xs text-[#94A3B8]">{subtitle}</p>
+          )}
+        </div>
       </div>
+
+      {children}
     </section>
   );
 }
@@ -1756,6 +1809,132 @@ function ReportWordCloudForum() {
   );
 }
 
+export function TeacherOverviewSection({
+  classDetail,
+  materials,
+}: ITeacherOverviewSectionProps) {
+  const activeStudents = Math.max(
+    Math.round(classDetail.studentCount * 0.4),
+    Math.min(classDetail.studentCount, classDetail.students.length),
+  );
+
+  const moduleCount = Math.max(materials.length + 1, 4);
+
+  const recentActivities = useMemo<IRecentActivityItem[]>(() => {
+    const firstStudent = classDetail.students[0];
+    const secondStudent = classDetail.students[1];
+    const thirdStudent = classDetail.students[2];
+    const fourthStudent = classDetail.students[3];
+
+    return [
+      {
+        id: "activity-1",
+        text: `${firstStudent?.fullname ?? "Siswa"} menyelesaikan Tes Diagnostik 2 dengan nilai ${firstStudent?.score ?? classDetail.averageScore}`,
+        timeLabel: "5 menit lalu",
+      },
+      {
+        id: "activity-2",
+        text: `${secondStudent?.fullname ?? "Siswa"} bertanya di Forum Diskusi ${classDetail.classCode ?? classDetail.className}`,
+        timeLabel: "12 menit lalu",
+      },
+      {
+        id: "activity-3",
+        text: `${thirdStudent?.fullname ?? "Siswa"} bergabung ke kelas ${classDetail.className}`,
+        timeLabel: "1 jam lalu",
+      },
+      {
+        id: "activity-4",
+        text: `${fourthStudent?.fullname ?? "Siswa"} memerlukan video remedial di soal no. 4`,
+        timeLabel: "3 jam lalu",
+      },
+    ];
+  }, [
+    classDetail.averageScore,
+    classDetail.classCode,
+    classDetail.className,
+    classDetail.students,
+  ]);
+
+  return (
+    <section className="space-y-4">
+      <article className="overflow-hidden rounded-2xl bg-linear-to-r from-[#2563EB] to-[#2563EB]/90 px-4 py-4 text-white shadow-[0_16px_35px_rgba(37,99,235,0.28)] md:px-5 md:py-5">
+        <p className="text-sm font-medium text-white/75">Dashboard Analitik</p>
+        <h2 className="mt-1 text-xl font-bold leading-tight md:text-2xl">
+          Mau lihat hasil analisis siswa kelas {classDetail.className}?
+        </h2>
+        <p className="mt-1.5 text-sm text-white/80">
+          Pantau perkembangan nilai, emosi belajar, dan progres seluruh siswa di
+          kelas ini sekarang.
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Link
+            href="?view=Laporan"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white px-3.5 py-2 text-xs font-semibold text-[#2563EB] transition hover:bg-[#EFF6FF]"
+          >
+            Analisis Keseluruhan Kelas
+          </Link>
+          <Link
+            href="?view=Siswa"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-[#1D4ED8] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#1E40AF]"
+          >
+            Analisis Per Siswa
+          </Link>
+        </div>
+      </article>
+
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-center">
+          <p className="text-3xl font-extrabold leading-none text-[#2563EB]">
+            {activeStudents}/{classDetail.studentCount}
+          </p>
+          <p className="mt-1 text-xs text-[#94A3B8]">Siswa Aktif</p>
+        </article>
+
+        <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-center">
+          <p className="text-3xl font-extrabold leading-none text-[#16A34A]">
+            {moduleCount}
+          </p>
+          <p className="mt-1 text-xs text-[#94A3B8]">Modul Tersusun</p>
+        </article>
+
+        <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-center">
+          <p className="text-3xl font-extrabold leading-none text-[#4F46E5]">
+            {Math.round(classDetail.averageScore)}
+          </p>
+          <p className="mt-1 text-xs text-[#94A3B8]">Rata-Rata Nilai</p>
+        </article>
+
+        <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-center">
+          <p className="text-3xl font-extrabold leading-none text-[#DC2626]">
+            {classDetail.remedialCount}
+          </p>
+          <p className="mt-1 text-xs text-[#94A3B8]">Butuh Remedial</p>
+        </article>
+      </div>
+
+      <article className="rounded-2xl border border-[#E5E7EB] bg-white p-4 md:p-5">
+        <h3 className="text-sm font-semibold text-[#111827]">
+          Aktivitas Terkini
+        </h3>
+        <div className="mt-3 space-y-2.5">
+          {recentActivities.map((activity) => (
+            <div key={activity.id} className="flex items-start gap-2.5">
+              <span className="mt-1 inline-flex h-4 w-4 shrink-0 rounded-full border border-[#D1D5DB] bg-[#F3F4F6]" />
+              <div>
+                <p className="text-sm text-[#334155]">{activity.text}</p>
+                <p className="mt-0.5 text-xs text-[#9CA3AF]">
+                  {activity.timeLabel}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </article>
+    </section>
+  );
+}
+
 export function BaseLaporanSection({
   reportSummaryCards,
   scoreBuckets,
@@ -1840,9 +2019,31 @@ export function BaseLaporanSection({
 
       {reportMode === "Analisis Nilai & Emosi" ? (
         <>
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-1">
             <ReportScoreChart scoreBuckets={scoreBuckets} />
-            <ReportEmotionChart emotionSegments={emotionSegments} />
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <ReportEmotionChart emotionSegments={emotionSegments} />
+
+              <SectionCard
+                title="Emosi saat Membaca Materi"
+                icon={
+                  <svg
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                }
+              >
+                <LADDonutChart segments={emotionSegments} />
+              </SectionCard>
+            </div>
           </div>
 
           <ReportStudentRows
