@@ -1,5 +1,7 @@
-import StudentProfilePageTemplate from "@/components/templates/pages/profile/StudentProfilePageTemplate";
-
 export default function StudentDashboardProfilPage() {
-  return <StudentProfilePageTemplate />;
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-400">
+      Halaman profil belum tersedia.
+    </div>
+  );
 }

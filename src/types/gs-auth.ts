@@ -26,6 +26,14 @@ export interface GsUser {
   isActive: boolean;
   role: GsUserRole;
   profile: Record<string, unknown> | null;
+  // Legacy optional fields — present on older API responses or profile endpoints
+  fullname?: string;
+  fullName?: string;
+  phone?: string;
+  phoneNumber?: string;
+  address?: string;
+  work?: string;
+  age?: number;
 }
 
 export interface GsAuthResponse {
