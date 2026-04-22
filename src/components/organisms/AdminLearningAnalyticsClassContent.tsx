@@ -1,52 +1,29 @@
 "use client";
 
 import {
-  BaseInitSection,
+  BaseKelolaELKPDSection,
   BaseLaporanSection,
   BaseMateriSection,
   BaseSiswaSection,
+  LearningAnalyticsClassHeaderCard,
+  LearningAnalyticsViewSwitcher,
+  TeacherOverviewSection,
+} from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
+import type {
   ClassAnalyticsViewType,
   IClassAnalyticsReportSummaryCard,
+  IClassLearningAnalyticsDetail,
   ILearningAnalyticsELKPDItem,
   ILearningAnalyticsEmotionSegment,
   ILearningAnalyticsHeaderCardData,
   ILearningAnalyticsMaterialItem,
   ILearningAnalyticsScoreBucket,
-  LearningAnalyticsClassHeaderCard,
-  LearningAnalyticsViewSwitcher,
-} from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
+  IStudentAnalyticsItem,
+} from "@/types/learningAnalytics";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 
-export interface IStudentAnalyticsItem {
-  id: string;
-  fullname: string;
-  nis: string;
-  score: number;
-  status: "Lulus" | "Remedial";
-}
-
-export interface IClassLearningAnalyticsDetail {
-  slug: string;
-  className: string;
-  teacherName: string;
-  studentCount: number;
-  averageScore: number;
-  passedCount: number;
-  remedialCount: number;
-  progress: number;
-  classCode?: string;
-  gradeLabel?: string;
-  semesterLabel?: string;
-  subjectLabel?: string;
-  defaultViewType?: ClassAnalyticsViewType;
-  students: IStudentAnalyticsItem[];
-  materials?: ILearningAnalyticsMaterialItem[];
-  elkpdItems?: ILearningAnalyticsELKPDItem[];
-  reportSummaryCards?: IClassAnalyticsReportSummaryCard[];
-  scoreBuckets?: ILearningAnalyticsScoreBucket[];
-  emotionSegments?: ILearningAnalyticsEmotionSegment[];
-}
+export type { IClassLearningAnalyticsDetail, IStudentAnalyticsItem };
 
 interface AdminLearningAnalyticsClassContentProps {
   classDetail: IClassLearningAnalyticsDetail;
@@ -235,13 +212,12 @@ export default function AdminLearningAnalyticsClassContent({
     buildStudentDetailHref ??
     ((studentId: string) =>
       `/admin/dashboard/learning-analytics/${classDetail.slug}/${studentId}`);
+  const elkpdScoreHrefBuilder = (elkpdId: string) =>
+    `/admin/dashboard/learning-analytics/${classDetail.slug}/elkpd/${elkpdId}`;
 
   const renderedByType: Record<ClassAnalyticsViewType, ReactNode> = {
     Beranda: (
-      <BaseInitSection
-        title="Beranda LAD"
-        description="Halaman Beranda sedang disiapkan. Laporan analitik kelas tersedia di tab Laporan."
-      />
+      <TeacherOverviewSection classDetail={classDetail} materials={materials} />
     ),
     Siswa: (
       <BaseSiswaSection
@@ -251,9 +227,9 @@ export default function AdminLearningAnalyticsClassContent({
     ),
     Materi: <BaseMateriSection materials={materials} />,
     "Kelola E-LKPD": (
-      <BaseInitSection
-        title="Kelola E-LKPD"
-        description="Fitur pengelolaan E-LKPD sedang disiapkan. Fokuskan analitik kelas di tab Laporan."
+      <BaseKelolaELKPDSection
+        elkpdItems={elkpdItems}
+        buildELKPDScoreHref={elkpdScoreHrefBuilder}
       />
     ),
     Laporan: (

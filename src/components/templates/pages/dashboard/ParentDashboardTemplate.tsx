@@ -50,6 +50,7 @@ const PARENT_STATS: ParentStat[] = [
 const PARENT_CLASSES: ParentClass[] = [
   {
     id: "1",
+    slug: "matematika-wajib-kelas-x",
     title: "Matematika Wajib Kelas X",
     teacherName: "Bpk. Rudi Santoso",
     symbol: <span className="text-xl">Σ</span>,
@@ -62,6 +63,7 @@ const PARENT_CLASSES: ParentClass[] = [
   },
   {
     id: "2",
+    slug: "matematika-peminatan-xi-ipa",
     title: "Matematika Peminatan XI IPA",
     teacherName: "Ibu Sari Dewi",
     symbol: <span className="text-xl">∫</span>,
@@ -74,6 +76,7 @@ const PARENT_CLASSES: ParentClass[] = [
   },
   {
     id: "3",
+    slug: "statistika-probabilitas",
     title: "Statistika & Probabilitas",
     teacherName: "Bpk. Dani Wirawan",
     symbol: <span className="text-xl">σ</span>,
