@@ -31,7 +31,7 @@ const SCORE_TREND_DATA = [
   { date: "10 Feb", nilai: 88 },
 ];
 
-const EMOTION_MATERI_DATA = [
+export const EMOTION_MATERI_DATA = [
   { label: "Fokus", value: 40, color: "#14B8A6" },
   { label: "Senang", value: 30, color: "#22C55E" },
   { label: "Bingung", value: 18, color: "#F59E0B" },

@@ -1,6 +1,8 @@
-import AdminLearningAnalyticsClassContent, {
+import AdminLearningAnalyticsClassContent from "@/components/organisms/AdminLearningAnalyticsClassContent";
+import type {
+  ClassAnalyticsViewType,
   IClassLearningAnalyticsDetail,
-} from "@/components/organisms/AdminLearningAnalyticsClassContent";
+} from "@/types/learningAnalytics";
 
 export const LEARNING_ANALYTICS_CLASS_DATA: IClassLearningAnalyticsDetail[] = [
   {
@@ -273,8 +275,10 @@ export const LEARNING_ANALYTICS_CLASS_DATA: IClassLearningAnalyticsDetail[] = [
 
 export default function AdminLearningAnalyticsClassTemplate({
   slug,
+  initialViewType,
 }: {
   slug: string;
+  initialViewType?: ClassAnalyticsViewType;
 }) {
   const classDetail = LEARNING_ANALYTICS_CLASS_DATA.find(
     (classItem) => classItem.slug === slug,
@@ -335,6 +339,7 @@ export default function AdminLearningAnalyticsClassTemplate({
   return (
     <AdminLearningAnalyticsClassContent
       classDetail={classDetail ?? fallbackDetail}
+      initialViewType={initialViewType}
     />
   );
 }
