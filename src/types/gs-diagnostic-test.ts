@@ -81,7 +81,7 @@ export interface GsCreateTestQuestionInput {
   textQuestion?: string;
   imageQuestionUrl?: string;
   pembahasan: string;
-  videoUrl: string;
+  videoUrl?: string;
   options: GsCreateTestOptionInput[];
   discussion?: GsCreateTestQuestionDiscussionInput;
 }
@@ -120,7 +120,7 @@ export interface GsUpsertTestQuestionInput {
   textQuestion?: string;
   imageQuestionUrl?: string;
   pembahasan: string;
-  videoUrl: string;
+  videoUrl?: string;
   options: GsUpsertTestOptionInput[];
   discussion?: GsUpsertTestQuestionDiscussionInput | null;
 }

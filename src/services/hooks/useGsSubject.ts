@@ -17,6 +17,7 @@ import { gsPut } from "@/libs/api/getsmart";
 import type {
   GsSubject,
   GsELKPD,
+  GsCreateSubjectResponse,
   GsCreateSubjectInput,
   GsUpdateSubjectInput,
   GsCreateELKPDInput,
@@ -94,8 +95,8 @@ export function useGsSubjectById(id: string) {
 export function useGsCreateSubject() {
   const queryClient = useQueryClient();
 
-  return useMutation<GsSubject, Error, GsCreateSubjectInput>({
-    mutationFn: (input) => gsPost<GsSubject>("/subjects", input),
+  return useMutation<GsCreateSubjectResponse, Error, GsCreateSubjectInput>({
+    mutationFn: (input) => gsPost<GsCreateSubjectResponse>("/subjects", input),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsSubjects.myList(),

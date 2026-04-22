@@ -55,10 +55,10 @@ export default function TeacherClassListTemplate() {
       (coursesData?.courses ?? []).map((c) => ({
         id: c.id,
         name: c.courseName,
-        teacherName: c.schoolName ?? "–",
+        teacherName: c.teacher?.fullName ?? "–",
         createdAt: formatDate(c.createdAt),
-        studentCount: 0,
-        testCount: 0,
+        studentCount: c.enrolledCount ?? 0,
+        testCount: c.diagnosticTestCount ?? 0,
         code: c.courseCode,
         status: c.isArchived ? "Nonaktif" : "Aktif",
       })),

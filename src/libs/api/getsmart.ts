@@ -136,32 +136,115 @@ function buildBaseHeaders(accessToken?: string): Record<string, string> {
 // ─── Token Refresh ────────────────────────────────────────────────────────────
 
 /**
- * Panggil endpoint refresh token dan simpan token baru ke cookie.
- * Mengembalikan access token baru, atau null jika refresh gagal.
+ * Deduplication guard — jika ada refresh yang sedang berjalan, caller berikutnya
+ * cukup menunggu promise yang sama, bukan membuat request baru.
+ *
+ * Next.js server adalah proses Node.js yang berjalan lama; module-level variable
+ * ini AMAN digunakan sebagai mutex antar concurrent Server Action invocations
+ * dalam satu server instance.
  */
-async function doRefreshToken(): Promise<string | null> {
+let _refreshInFlight: Promise<string | null> | null = null;
+
+/**
+ * Internal: satu kali refresh request ke backend.
+ * Selalu dipanggil melalui doRefreshToken() agar terdeduplikasi.
+ */
+async function _doRefreshOnce(): Promise<string | null> {
   const refreshToken = await getRefreshToken();
 
-  if (!refreshToken) return null;
+  if (!refreshToken) {
+    console.error(
+      "[GS Auth] doRefreshToken: tidak ada refresh token di cookie",
+    );
+    return null;
+  }
 
+  // ── 1. Kirim request refresh ─────────────────────────────────────────────
+  let res: Response;
   try {
-    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+    res = await fetch(`${BASE_URL}/auth/refresh`, {
       method: "POST",
-      headers: buildBaseHeaders(), // tanpa access token
+      headers: buildBaseHeaders(),
       body: JSON.stringify({ refreshToken }),
       cache: "no-store",
     });
-
-    if (!res.ok) return null;
-
-    const json: GsApiResponse<GsTokenPair> = await res.json();
-    const newTokens = json.data;
-
-    await saveTokens(newTokens);
-    return newTokens.accessToken;
-  } catch {
+  } catch (err) {
+    console.error("[GS Auth] doRefreshToken: network error:", err);
     return null;
   }
+
+  if (!res.ok) {
+    let body = "";
+    try {
+      body = await res.text();
+    } catch {
+      /* ignore */
+    }
+    console.error(
+      `[GS Auth] doRefreshToken: endpoint mengembalikan ${res.status}. Body:`,
+      body,
+    );
+    return null;
+  }
+
+  // ── 2. Parse response ────────────────────────────────────────────────────
+  let newTokens: GsTokenPair | undefined;
+  try {
+    const json: GsApiResponse<{ tokens: GsTokenPair }> = await res.json();
+    newTokens = json.data?.tokens;
+  } catch (err) {
+    console.error("[GS Auth] doRefreshToken: gagal parse response JSON:", err);
+    return null;
+  }
+
+  if (!newTokens?.accessToken || !newTokens?.refreshToken) {
+    console.error(
+      "[GS Auth] doRefreshToken: response tidak mengandung tokens yang valid:",
+      newTokens,
+    );
+    return null;
+  }
+
+  // ── 3. Simpan token ke cookie ────────────────────────────────────────────
+  // Dipisah agar kegagalan save tidak memblokir return (retry tetap bisa jalan)
+  try {
+    await saveTokens(newTokens);
+  } catch (err) {
+    console.error(
+      "[GS Auth] doRefreshToken: saveTokens gagal (token baru tidak disimpan ke cookie):",
+      err,
+    );
+    // Tetap return accessToken baru agar retry request ini bisa sukses.
+    // Request berikutnya akan trigger refresh lagi karena cookie tidak terupdate.
+  }
+
+  return newTokens.accessToken;
+}
+
+/**
+ * Panggil endpoint refresh token dan simpan token baru ke cookie.
+ * Mengembalikan access token baru, atau null jika refresh gagal.
+ *
+ * Concurrent 401 yang terjadi bersamaan akan berbagi satu promise refresh
+ * (deduplication), sehingga backend hanya menerima satu request refresh dan
+ * tidak ada race condition saat rotate refresh token.
+ */
+async function doRefreshToken(): Promise<string | null> {
+  // Jika sudah ada refresh yang sedang berjalan, tunggu hasilnya
+  if (_refreshInFlight) {
+    console.log(
+      "[GS Auth] doRefreshToken: menunggu refresh yang sudah berjalan...",
+    );
+    return _refreshInFlight;
+  }
+
+  // Mulai refresh baru
+  _refreshInFlight = _doRefreshOnce().finally(() => {
+    // Reset flag setelah selesai (berhasil maupun gagal)
+    _refreshInFlight = null;
+  });
+
+  return _refreshInFlight;
 }
 
 // ─── Core Fetch ───────────────────────────────────────────────────────────────
@@ -211,8 +294,34 @@ async function coreFetch<T>(
       redirect("/login");
     }
 
-    // Ulangi request dengan access token baru
-    return coreFetch<T>(path, config, true, true);
+    // Ulangi request dengan access token baru — inject langsung agar tidak
+    // bergantung pada cookie timing di edge / cache layer
+    const retryRes = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers: {
+        ...buildBaseHeaders(newAccessToken),
+        ...extraHeaders,
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache,
+      next,
+    });
+
+    if (!retryRes.ok) {
+      let message = `Request failed with status ${retryRes.status}`;
+      let errors: Record<string, string[]> | undefined;
+      try {
+        const errJson = await retryRes.json();
+        if (errJson?.message) message = errJson.message;
+        if (errJson?.errors) errors = errJson.errors;
+      } catch {
+        /* ignore */
+      }
+      throw new GsApiErrorClass(message, retryRes.status, errors);
+    }
+
+    const retryJson: GsApiResponse<T> = await retryRes.json();
+    return retryJson.data;
   }
 
   // ── Error Handling ────────────────────────────────────────────────────────

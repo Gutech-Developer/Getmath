@@ -179,4 +179,14 @@ export const queryKeys = {
         filters,
       ] as const,
   },
+
+  // Course Modules
+  gsCourseModules: {
+    all: ["gs", "courseModules"] as const,
+    byCourse: (courseId: string) =>
+      [...queryKeys.gsCourseModules.all, "byCourse", courseId] as const,
+    details: () => [...queryKeys.gsCourseModules.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.gsCourseModules.details(), id] as const,
+  },
 } as const;

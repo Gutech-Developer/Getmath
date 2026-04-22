@@ -138,7 +138,7 @@ export default function TeacherDashboardTemplate() {
     id: c.slug,
     title: c.courseName,
     classCode: c.courseCode,
-    totalStudents: 0,
+    totalStudents: c.enrolledCount ?? 0,
     progress: 0,
     progressVariant: "primary" as const,
     isActive: !c.isArchived,

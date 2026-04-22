@@ -11,7 +11,6 @@ import { showToast } from "@/libs/toast";
 import {
   useGsCurrentUser,
   useGsMyEnrollments,
-  useGsAllCourses,
   useGsEnrollCourse,
 } from "@/services";
 
@@ -52,7 +51,7 @@ function JoinCourseModal({
   const handleSubmit = () => {
     if (!courseId.trim()) return;
     enrollCourse.mutate(
-      { courseId: courseId.trim() },
+      { courseCode: courseId.trim() },
       {
         onSuccess: () => {
           showToast.success("Berhasil bergabung ke kelas");
@@ -124,14 +123,8 @@ const StudentDashboardTemplate = () => {
   // ── Data ────────────────────────────────────────────────────────────────────
   const { data: me } = useGsCurrentUser();
   const { data: enrollmentsData } = useGsMyEnrollments({ limit: 50 });
-  const { data: allCoursesData } = useGsAllCourses({ limit: 50 });
 
   // ── Enrolled courses from enrollment records ────────────────────────────────
-  const enrolledCourseIds = useMemo(
-    () => new Set((enrollmentsData?.enrollments ?? []).map((e) => e.courseId)),
-    [enrollmentsData],
-  );
-
   const enrolledClasses: EnrolledClass[] = useMemo(
     () =>
       (enrollmentsData?.enrollments ?? [])
@@ -143,7 +136,7 @@ const StudentDashboardTemplate = () => {
             id: course.id,
             slug: course.slug,
             title: course.courseName,
-            teacher: "–",
+            teacher: course.teacher?.fullName ?? "–",
             institution: course.schoolName ?? "–",
             academicYear: "–",
             progress: 0,
@@ -157,27 +150,10 @@ const StudentDashboardTemplate = () => {
     [enrollmentsData],
   );
 
-  // ── Available courses = all courses NOT yet enrolled ────────────────────────
-  const availableClasses: AvailableClass[] = useMemo(
-    () =>
-      (allCoursesData?.courses ?? [])
-        .filter((c) => !c.isArchived && !enrolledCourseIds.has(c.id))
-        .map((c) => {
-          const { symbol, color } = symbolForId(c.id);
-          return {
-            id: c.id,
-            title: c.courseName,
-            teacher: "–",
-            institution: c.schoolName ?? "–",
-            academicYear: "–",
-            totalMaterials: 0,
-            totalStudents: 0,
-            symbol: <span className="text-xl">{symbol}</span>,
-            symbolColor: color,
-          };
-        }),
-    [allCoursesData, enrolledCourseIds],
-  );
+  // ── Available courses: tidak ada endpoint publik untuk browse kelas ──────────
+  // GET /courses hanya untuk ADMIN — student tidak bisa browse semua kelas.
+  // Student bergabung via kode kelas menggunakan modal "Gabung Kelas".
+  const availableClasses: AvailableClass[] = [];
 
   // ── Filter ──────────────────────────────────────────────────────────────────
   const filteredEnrolled = enrolledClasses.filter((cls) => {
@@ -222,11 +198,7 @@ const StudentDashboardTemplate = () => {
         onTabChange={setActiveTab}
         onJoinClass={() => setIsJoinModalOpen(true)}
         onClassClick={() => {}}
-        onJoinWithCode={(courseId) => {
-          // langsung enroll berdasarkan courseId dari AvailableClassCard
-          void import("@/services").then(({ useGsEnrollCourse: _ }) => {});
-          setIsJoinModalOpen(true);
-        }}
+        onJoinWithCode={() => setIsJoinModalOpen(true)}
       />
     </>
   );

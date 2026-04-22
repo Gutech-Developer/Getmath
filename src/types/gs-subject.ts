@@ -25,9 +25,16 @@ export interface GsSubject {
   description: string | null;
   subjectFileUrl: string;
   videoUrl: string | null;
-  eLKPD?: GsELKPD | null;
+  /** Hanya tersedia pada GET /subjects/:id — tidak di-include pada list endpoint */
+  eLKPDs?: GsELKPD[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** Response dari POST /subjects */
+export interface GsCreateSubjectResponse {
+  subject: GsSubject;
+  eLKPD?: GsELKPD;
 }
 
 // ─── Paginated result ─────────────────────────────────────────────────────────
