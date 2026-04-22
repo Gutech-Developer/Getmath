@@ -1,17 +1,16 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { decodeJWT } from "@/libs/jwt";
+import { decodeGsJWTServer } from "@/libs/gs-jwt.server";
 import MainLayout from "@/components/templates/layouts/MainLayout";
 import { SidebarProvider } from "@/providers/SidebarProvider";
 
 const PrivateLayout = async ({ children }: { children: React.ReactNode }) => {
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("gs_access_token")?.value;
 
-  //nantik balekin
-  // if (!token || !decodeJWT(token)) {
-  //   redirect("/login");
-  // }
+  if (!token || !decodeGsJWTServer(token)) {
+    redirect("/login");
+  }
 
   return (
     <SidebarProvider>

@@ -1,5 +1,5 @@
-import AdminClassListTemplate from "@/components/templates/pages/dashboard/AdminClassListTemplate";
+import TeacherClassListTemplate from "@/components/templates/pages/dashboard/TeacherClassListTemplate";
 
 export default function TeacherDashboardClassListPage() {
-  return <AdminClassListTemplate />;
+  return <TeacherClassListTemplate />;
 }

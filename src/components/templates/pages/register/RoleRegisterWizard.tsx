@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { useRegisterStudent, useRegisterTeacher } from "@/services";
-import { IStudentRegisterInput, ITeacherRegisterInput } from "@/types/auth";
+import { useGsRegister } from "@/services";
+import type { GsRegisterInput } from "@/types/gs-auth";
 
 type RegisterRole = "student" | "teacher";
 type Step = 1 | 2 | 3;
@@ -184,10 +184,9 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
     confirmPassword: "",
   });
 
-  const registerStudent = useRegisterStudent();
-  const registerTeacher = useRegisterTeacher();
+  const register = useGsRegister();
 
-  const isSubmitting = registerStudent.isPending || registerTeacher.isPending;
+  const isSubmitting = register.isPending;
 
   const config = useMemo(() => {
     const isTeacher = role === "teacher";
@@ -254,31 +253,20 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
     if (!validateStepTwo()) return;
 
     try {
-      if (role === "student") {
-        const payload: IStudentRegisterInput = {
-          fullname: form.fullname,
-          email: form.email,
-          phone: form.phone,
-          nis: form.identityNumber,
-          province: form.province,
-          city: form.city,
-          school: form.school,
-          password: form.password,
-        };
-        await registerStudent.mutateAsync(payload);
-      } else {
-        const payload: ITeacherRegisterInput = {
-          fullname: form.fullname,
-          email: form.email,
-          phone: form.phone,
-          nip: form.identityNumber,
-          province: form.province,
-          city: form.city,
-          school: form.school,
-          password: form.password,
-        };
-        await registerTeacher.mutateAsync(payload);
-      }
+      const payload: GsRegisterInput = {
+        fullName: form.fullname,
+        email: form.email,
+        phoneNumber: form.phone,
+        password: form.password,
+        role: role === "student" ? "STUDENT" : "TEACHER",
+        ...(role === "student"
+          ? { NIS: form.identityNumber }
+          : { NIP: form.identityNumber }),
+        province: form.province,
+        city: form.city,
+        schoolName: form.school,
+      };
+      await register.mutateAsync(payload);
 
       toast.success("Registrasi berhasil. Silakan verifikasi email Anda.");
       setStep(3);

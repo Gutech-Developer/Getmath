@@ -1,158 +1,234 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   StudentDashboardContent,
-  EnrolledClass,
-  AvailableClass,
+  type EnrolledClass,
+  type AvailableClass,
 } from "@/components/organisms/StudentDashboardContent";
+import PlusIcon from "@/components/atoms/icons/PlusIcon";
+import { showToast } from "@/libs/toast";
+import {
+  useGsCurrentUser,
+  useGsMyEnrollments,
+  useGsAllCourses,
+  useGsEnrollCourse,
+} from "@/services";
 
-// ============ MOCK DATA ============
-// Replace with real API data from hooks
+// ─── Deterministic symbol helper ─────────────────────────────────────────────
 
-const ENROLLED_CLASSES: EnrolledClass[] = [
-  {
-    id: "1",
-    slug: "matematika-wajib-kelas-x",
-    title: "Matematika Wajib Kelas X",
-    teacher: "Bpk. Budi Santoso",
-    institution: "Umum",
-    academicYear: "Ganjil 2024/2025",
-    progress: 75,
-    totalMaterials: 6,
-    totalStudents: 35,
-    symbol: <span className="text-xl">Σ</span>,
-    symbolColor: "bg-indigo-100 text-indigo-600",
-    progressVariant: "primary",
-    activeTests: 1,
-  },
-  {
-    id: "2",
-    slug: "matematika-peminatan-xi-ipa",
-    title: "Matematika Peminatan XI IPA",
-    teacher: "Ibu Sari Dewi",
-    institution: "IPA",
-    academicYear: "Ganjil 2024/2025",
-    progress: 45,
-    totalMaterials: 8,
-    totalStudents: 53,
-    symbol: <span className="text-xl">∫</span>,
-    symbolColor: "bg-purple-100 text-purple-600",
-    progressVariant: "info",
-    activeTests: 2,
-  },
-  {
-    id: "3",
-    slug: "statistika-probabilitas",
-    title: "Statistika & Probabilitas",
-    teacher: "Bpk. Dari Wiraswiri",
-    institution: "IPA/IPS",
-    academicYear: "Ganjil 2024/2025",
-    progress: 90,
-    totalMaterials: 5,
-    totalStudents: 24,
-    symbol: <span className="text-xl">σ</span>,
-    symbolColor: "bg-emerald-100 text-emerald-600",
-    progressVariant: "success",
-  },
+const MATH_SYMBOLS = ["Σ", "∫", "σ", "π", "△", "∧", "∞", "∂", "√", "∮"];
+const SYMBOL_COLORS = [
+  "bg-indigo-100 text-indigo-600",
+  "bg-purple-100 text-purple-600",
+  "bg-emerald-100 text-emerald-600",
+  "bg-rose-100 text-rose-600",
+  "bg-amber-100 text-amber-600",
+  "bg-blue-100 text-blue-600",
+  "bg-teal-100 text-teal-600",
+  "bg-orange-100 text-orange-600",
 ];
 
-const AVAILABLE_CLASSES: AvailableClass[] = [
-  {
-    id: "4",
-    title: "Matematika Dasar XI IPS",
-    teacher: "Ibu Tina Putri",
-    institution: "IPS",
-    academicYear: "Ganjil 2024/2025",
-    totalMaterials: 7,
-    totalStudents: 20,
-    symbol: <span className="text-xl">π</span>,
-    symbolColor: "bg-rose-100 text-rose-600",
-  },
-  {
-    id: "5",
-    title: "Geometri & Trigonometri",
-    teacher: "Bpk. Arif Rahman",
-    institution: "IPA",
-    academicYear: "Genap 2024/2025",
-    totalMaterials: 9,
-    totalStudents: 22,
-    symbol: <span className="text-xl">△</span>,
-    symbolColor: "bg-amber-100 text-amber-600",
-  },
-  {
-    id: "6",
-    title: "Logika Matematika",
-    teacher: "Ibu Rina Sari",
-    institution: "Umum",
-    academicYear: "Genap 2024/2025",
-    totalMaterials: 4,
-    totalStudents: 35,
-    symbol: <span className="text-xl">∧</span>,
-    symbolColor: "bg-red-100 text-red-600",
-  },
-];
+function symbolForId(id: string) {
+  const hash = Array.from(id).reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return {
+    symbol: MATH_SYMBOLS[hash % MATH_SYMBOLS.length],
+    color: SYMBOL_COLORS[hash % SYMBOL_COLORS.length],
+  };
+}
+
+// ─── Modal Gabung Kelas ───────────────────────────────────────────────────────
+
+function JoinCourseModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const [courseId, setCourseId] = useState("");
+  const enrollCourse = useGsEnrollCourse();
+
+  const handleSubmit = () => {
+    if (!courseId.trim()) return;
+    enrollCourse.mutate(
+      { courseId: courseId.trim() },
+      {
+        onSuccess: () => {
+          showToast.success("Berhasil bergabung ke kelas");
+          setCourseId("");
+          onClose();
+        },
+        onError: (err) =>
+          showToast.error(err.message ?? "Gagal bergabung ke kelas"),
+      },
+    );
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 flex flex-col gap-5">
+        <h2 className="text-lg font-semibold text-neutral-02">
+          Gabung dengan Kode Kelas
+        </h2>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-neutral-02">
+            ID atau Kode Kelas <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Masukkan ID kelas"
+            value={courseId}
+            onChange={(e) => setCourseId(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            className="w-full border border-grey-stroke rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+          />
+          <p className="text-xs text-grey">
+            Minta ID kelas dari gurumu untuk bergabung.
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => {
+              setCourseId("");
+              onClose();
+            }}
+            className="px-4 py-2 rounded-xl text-sm font-medium text-grey hover:bg-grey-stroke/40 transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!courseId.trim() || enrollCourse.isPending}
+            className="px-5 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+          >
+            <PlusIcon className="w-4 h-4" />
+            {enrollCourse.isPending ? "Mendaftar..." : "Gabung"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Template ─────────────────────────────────────────────────────────────────
 
 const StudentDashboardTemplate = () => {
   const [searchValue, setSearchValue] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
 
-  // Filter enrolled classes based on search and tab
-  const filteredEnrolledClasses = ENROLLED_CLASSES.filter((cls) => {
-    const matchesSearch =
+  // ── Data ────────────────────────────────────────────────────────────────────
+  const { data: me } = useGsCurrentUser();
+  const { data: enrollmentsData } = useGsMyEnrollments({ limit: 50 });
+  const { data: allCoursesData } = useGsAllCourses({ limit: 50 });
+
+  // ── Enrolled courses from enrollment records ────────────────────────────────
+  const enrolledCourseIds = useMemo(
+    () => new Set((enrollmentsData?.enrollments ?? []).map((e) => e.courseId)),
+    [enrollmentsData],
+  );
+
+  const enrolledClasses: EnrolledClass[] = useMemo(
+    () =>
+      (enrollmentsData?.enrollments ?? [])
+        .filter((e) => e.course)
+        .map((e) => {
+          const course = e.course!;
+          const { symbol, color } = symbolForId(course.id);
+          return {
+            id: course.id,
+            slug: course.slug,
+            title: course.courseName,
+            teacher: "–",
+            institution: course.schoolName ?? "–",
+            academicYear: "–",
+            progress: 0,
+            totalMaterials: 0,
+            totalStudents: 0,
+            symbol: <span className="text-xl">{symbol}</span>,
+            symbolColor: color,
+            progressVariant: "primary" as const,
+          };
+        }),
+    [enrollmentsData],
+  );
+
+  // ── Available courses = all courses NOT yet enrolled ────────────────────────
+  const availableClasses: AvailableClass[] = useMemo(
+    () =>
+      (allCoursesData?.courses ?? [])
+        .filter((c) => !c.isArchived && !enrolledCourseIds.has(c.id))
+        .map((c) => {
+          const { symbol, color } = symbolForId(c.id);
+          return {
+            id: c.id,
+            title: c.courseName,
+            teacher: "–",
+            institution: c.schoolName ?? "–",
+            academicYear: "–",
+            totalMaterials: 0,
+            totalStudents: 0,
+            symbol: <span className="text-xl">{symbol}</span>,
+            symbolColor: color,
+          };
+        }),
+    [allCoursesData, enrolledCourseIds],
+  );
+
+  // ── Filter ──────────────────────────────────────────────────────────────────
+  const filteredEnrolled = enrolledClasses.filter((cls) => {
+    const matchSearch =
       !searchValue ||
-      cls.title.toLowerCase().includes(searchValue.toLowerCase()) ||
-      cls.teacher.toLowerCase().includes(searchValue.toLowerCase());
-
-    const matchesTab =
+      cls.title.toLowerCase().includes(searchValue.toLowerCase());
+    const matchTab =
       activeTab === "all" ||
       (activeTab === "in_progress" && cls.progress < 100) ||
       (activeTab === "completed" && cls.progress >= 100);
-
-    return matchesSearch && matchesTab;
+    return matchSearch && matchTab;
   });
 
-  // Filter available classes based on search
-  const filteredAvailableClasses = AVAILABLE_CLASSES.filter(
+  const filteredAvailable = availableClasses.filter(
     (cls) =>
       !searchValue ||
-      cls.title.toLowerCase().includes(searchValue.toLowerCase()) ||
-      cls.teacher.toLowerCase().includes(searchValue.toLowerCase()),
+      cls.title.toLowerCase().includes(searchValue.toLowerCase()),
   );
 
-  const handleJoinClass = () => {
-    // TODO: Open join class modal
-    console.log("Open join class modal");
-  };
-
-  const handleClassClick = (classId: string) => {
-    // TODO: Navigate to class detail
-    console.log("Navigate to class:", classId);
-  };
-
-  const handleJoinWithCode = (classId: string) => {
-    // TODO: Open join with code modal for specific class
-    console.log("Join with code:", classId);
-  };
+  // ── User info ───────────────────────────────────────────────────────────────
+  const studentName =
+    (me?.profile?.["fullName"] as string | undefined) ?? me?.email ?? "Siswa";
 
   return (
-    <StudentDashboardContent
-      studentName="Rafli Afriza Nugraha"
-      streakDays={5}
-      level={12}
-      xp={2840}
-      rank={2}
-      totalClassesFollowed={3}
-      enrolledClasses={filteredEnrolledClasses}
-      availableClasses={filteredAvailableClasses}
-      searchValue={searchValue}
-      onSearchChange={setSearchValue}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      onJoinClass={handleJoinClass}
-      onClassClick={handleClassClick}
-      onJoinWithCode={handleJoinWithCode}
-    />
+    <>
+      <JoinCourseModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+      />
+      <StudentDashboardContent
+        studentName={studentName}
+        streakDays={0}
+        level={1}
+        xp={0}
+        rank={0}
+        totalClassesFollowed={enrolledClasses.length}
+        enrolledClasses={filteredEnrolled}
+        availableClasses={filteredAvailable}
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onJoinClass={() => setIsJoinModalOpen(true)}
+        onClassClick={() => {}}
+        onJoinWithCode={(courseId) => {
+          // langsung enroll berdasarkan courseId dari AvailableClassCard
+          void import("@/services").then(({ useGsEnrollCourse: _ }) => {});
+          setIsJoinModalOpen(true);
+        }}
+      />
+    </>
   );
 };
 

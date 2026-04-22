@@ -5,28 +5,23 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
 import { toast } from "react-toastify";
-import { useRegisterParent } from "@/services";
-import { IParentRegisterInput } from "@/types/auth";
+import { useGsRegister } from "@/services";
+import { GsRegisterInput } from "@/types/gs-auth";
 
 export default function ParentRegisterPageTemplate() {
   const router = useRouter();
-  const registerParent = useRegisterParent();
+  const register = useGsRegister();
 
-  const [form, setForm] = useState<IParentRegisterInput>({
-    fullname: "",
+  const [form, setForm] = useState({
+    fullName: "",
     email: "",
-    phone: "",
+    phoneNumber: "",
     address: "",
-    age: 0,
-    work: "",
     password: "",
   });
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const updateField = (
-    key: keyof IParentRegisterInput,
-    value: string | number,
-  ) => {
+  const updateField = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -34,13 +29,11 @@ export default function ParentRegisterPageTemplate() {
     e.preventDefault();
 
     if (
-      !form.fullname ||
+      !form.fullName ||
       !form.email ||
-      !form.phone ||
+      !form.phoneNumber ||
       !form.address ||
-      !form.work ||
-      !form.password ||
-      !form.age
+      !form.password
     ) {
       toast.error("Lengkapi semua data pendaftaran.");
       return;
@@ -57,7 +50,15 @@ export default function ParentRegisterPageTemplate() {
     }
 
     try {
-      await registerParent.mutateAsync(form);
+      const payload: GsRegisterInput = {
+        fullName: form.fullName,
+        email: form.email,
+        phoneNumber: form.phoneNumber,
+        password: form.password,
+        role: "PARENT",
+        address: form.address,
+      };
+      await register.mutateAsync(payload);
       toast.success("Registrasi berhasil. Silakan login.");
     } catch (error: any) {
       toast.error(error?.message || "Registrasi gagal.");
@@ -101,8 +102,8 @@ export default function ParentRegisterPageTemplate() {
                 Nama Lengkap<span className="text-[#dc2626]">*</span>
               </label>
               <input
-                value={form.fullname}
-                onChange={(e) => updateField("fullname", e.target.value)}
+                value={form.fullName}
+                onChange={(e) => updateField("fullName", e.target.value)}
                 placeholder="Masukkan nama lengkap"
                 className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
               />
@@ -126,8 +127,8 @@ export default function ParentRegisterPageTemplate() {
                 Nomor HP/WhatsApp<span className="text-[#dc2626]">*</span>
               </label>
               <input
-                value={form.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
+                value={form.phoneNumber}
+                onChange={(e) => updateField("phoneNumber", e.target.value)}
                 placeholder="Contoh: 081234567890"
                 className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
               />
@@ -141,34 +142,6 @@ export default function ParentRegisterPageTemplate() {
                 value={form.address}
                 onChange={(e) => updateField("address", e.target.value)}
                 placeholder="Masukkan alamat lengkap"
-                className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#4b5563]">
-                Umur<span className="text-[#dc2626]">*</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={form.age || ""}
-                onChange={(e) =>
-                  updateField("age", Number(e.target.value) || 0)
-                }
-                placeholder="Contoh: 36"
-                className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-[#4b5563]">
-                Pekerjaan<span className="text-[#dc2626]">*</span>
-              </label>
-              <input
-                value={form.work}
-                onChange={(e) => updateField("work", e.target.value)}
-                placeholder="Contoh: Wiraswasta"
                 className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
               />
             </div>
@@ -202,9 +175,9 @@ export default function ParentRegisterPageTemplate() {
             <button
               type="submit"
               className="w-full rounded-[14px] bg-[linear-gradient(173deg,#1a237e_0%,#00acc1_100%)] px-4 py-3 text-sm font-bold text-white disabled:opacity-70"
-              disabled={registerParent.isPending}
+              disabled={register.isPending}
             >
-              {registerParent.isPending ? "Memproses..." : "Buat Akun"}
+              {register.isPending ? "Memproses..." : "Buat Akun"}
             </button>
           </form>
 

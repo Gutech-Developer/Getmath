@@ -6,16 +6,14 @@ import { BodySmallMedium } from "@/components/atoms/Typography";
 import { SubmitButton } from "@/components/atoms/buttons/SubmitButton";
 import EmailInput from "@/components/atoms/inputs/EmailInput";
 import PasswordInput from "@/components/atoms/inputs/PasswordInput";
-import { useLoginParent, useLoginStudent, useLoginTeacher } from "@/services";
+import { useGsLogin } from "@/services";
 import { toast } from "react-toastify";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
 
-type LoginRole = "teacher" | "student" | "parent";
-
 const registerOptions: Array<{
-  role: LoginRole;
+  role: "teacher" | "student" | "parent";
   label: string;
   href: string;
   className: string;
@@ -51,34 +49,10 @@ const LoginForm: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
 
-  const loginTeacher = useLoginTeacher();
-  const loginStudent = useLoginStudent();
-  const loginParent = useLoginParent();
+  const login = useGsLogin();
 
-  const isLoading =
-    loginTeacher.isPending || loginStudent.isPending || loginParent.isPending;
-  const error = loginTeacher.error || loginStudent.error || loginParent.error;
-
-  const loginQueue: Array<{
-    role: LoginRole;
-    login: (credentials: {
-      email: string;
-      password: string;
-    }) => Promise<unknown>;
-  }> = [
-    {
-      role: "teacher",
-      login: (credentials) => loginTeacher.mutateAsync(credentials),
-    },
-    {
-      role: "student",
-      login: (credentials) => loginStudent.mutateAsync(credentials),
-    },
-    {
-      role: "parent",
-      login: (credentials) => loginParent.mutateAsync(credentials),
-    },
-  ];
+  const isLoading = login.isPending;
+  const error = login.error;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,25 +62,15 @@ const LoginForm: React.FC = () => {
       return;
     }
 
-    let loginSuccess = false;
     try {
-      for (const attempt of loginQueue) {
-        try {
-          await attempt.login({ email, password });
-          loginSuccess = true;
-          break;
-        } catch {
-          // Try next role automatically
-        }
-      }
-
-      if (!loginSuccess) {
-        throw new Error("Email atau password tidak sesuai.");
-      }
-
+      await login.mutateAsync({ email, password });
       toast.success("Login berhasil. Selamat datang kembali.");
-    } catch (error: any) {
-      toast.error(error?.message || "Login gagal. Silakan coba lagi.");
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : "Login gagal. Silakan coba lagi.";
+      toast.error(msg);
     }
   };
 
