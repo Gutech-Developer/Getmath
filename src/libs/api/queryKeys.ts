@@ -105,4 +105,88 @@ export const queryKeys = {
     byTherapy: (therapyId: string) =>
       [...queryKeys.screenings.all, "byTherapy", therapyId] as const,
   },
+
+  // ── GetSmart API ────────────────────────────────────────────────────────────
+
+  // Auth (GetSmart)
+  gsAuth: {
+    all: ["gs", "auth"] as const,
+    me: () => [...queryKeys.gsAuth.all, "me"] as const,
+  },
+
+  // Diagnostic Tests
+  gsDiagnosticTests: {
+    all: ["gs", "diagnosticTests"] as const,
+    lists: () => [...queryKeys.gsDiagnosticTests.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsDiagnosticTests.lists(), filters] as const,
+    myList: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsDiagnosticTests.all, "my", filters] as const,
+    byTeacher: (teacherId: string, filters?: Record<string, unknown>) =>
+      [
+        ...queryKeys.gsDiagnosticTests.all,
+        "byTeacher",
+        teacherId,
+        filters,
+      ] as const,
+    details: () => [...queryKeys.gsDiagnosticTests.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.gsDiagnosticTests.details(), id] as const,
+  },
+
+  // Subjects
+  gsSubjects: {
+    all: ["gs", "subjects"] as const,
+    lists: () => [...queryKeys.gsSubjects.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsSubjects.lists(), filters] as const,
+    myList: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsSubjects.all, "my", filters] as const,
+    byTeacher: (teacherId: string, filters?: Record<string, unknown>) =>
+      [...queryKeys.gsSubjects.all, "byTeacher", teacherId, filters] as const,
+    details: () => [...queryKeys.gsSubjects.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.gsSubjects.details(), id] as const,
+    elkpd: (subjectId: string) =>
+      [...queryKeys.gsSubjects.all, "elkpd", subjectId] as const,
+  },
+
+  // Courses
+  gsCourses: {
+    all: ["gs", "courses"] as const,
+    lists: () => [...queryKeys.gsCourses.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsCourses.lists(), filters] as const,
+    myList: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsCourses.all, "my", filters] as const,
+    byTeacher: (teacherId: string, filters?: Record<string, unknown>) =>
+      [...queryKeys.gsCourses.all, "byTeacher", teacherId, filters] as const,
+    details: () => [...queryKeys.gsCourses.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.gsCourses.details(), id] as const,
+    bySlug: (slug: string) =>
+      [...queryKeys.gsCourses.all, "slug", slug] as const,
+  },
+
+  // Course Enrollments
+  gsCourseEnrollments: {
+    all: ["gs", "courseEnrollments"] as const,
+    myList: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsCourseEnrollments.all, "my", filters] as const,
+    byCourse: (courseId: string, filters?: Record<string, unknown>) =>
+      [
+        ...queryKeys.gsCourseEnrollments.all,
+        "byCourse",
+        courseId,
+        filters,
+      ] as const,
+  },
+
+  // Course Modules
+  gsCourseModules: {
+    all: ["gs", "courseModules"] as const,
+    byCourse: (courseId: string) =>
+      [...queryKeys.gsCourseModules.all, "byCourse", courseId] as const,
+    details: () => [...queryKeys.gsCourseModules.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.gsCourseModules.details(), id] as const,
+  },
 } as const;

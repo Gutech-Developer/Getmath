@@ -1,40 +1,41 @@
-// Shared types (safe to import from anywhere — no "use server" / "use client")
+// GetSmart API — Server Action client (api.getsmart.id)
+// Semua fetch berjalan di server; INTERNAL_API_KEY tidak pernah ke browser.
 export {
-  ApiRequestError,
-  type ApiResponse,
-  type ApiError,
-  type FetchRequestConfig,
-  type ServerFetchConfig,
-} from "./types";
+  // Core
+  gsRequest,
+  gsPublicRequest,
+  // Convenience helpers
+  gsGet,
+  gsPost,
+  gsPut,
+  gsPatch,
+  gsDel,
+  gsPublicGet,
+  gsPublicPost,
+  // Token management
+  saveTokens,
+  clearTokens,
+  // Types
+  type GsApiResponse,
+  type GsTokenPair,
+  type GsRequestConfig,
+} from "./getsmart";
 
-// API Client — client-side: TanStack Query base
-export { apiRequest, apiPublicRequest, API_BASE_URL } from "./client";
-
-// Server-side fetch utilities (Server Actions / Server Components)
-export {
-  serverRequest,
-  serverPublicRequest,
-  serverGet,
-  serverPost,
-  serverPut,
-  serverPatch,
-  serverDel,
-  serverPublicGet,
-  serverPublicPost,
-} from "./server";
+// Error class — exported from non-"use server" file
+export { GsApiError } from "./getsmart.types";
 
 // Query Keys
 export { queryKeys } from "./queryKeys";
 
-// Hooks
+// GetSmart API — TanStack Query Hooks
 export {
-  useApiQuery,
-  useApiPublicQuery,
-  useApiMutation,
-  useApiPublicMutation,
-  usePost,
-  usePut,
-  usePatch,
-  useDelete,
-  usePublicPost,
-} from "./hooks";
+  useGsQuery,
+  useGsPublicQuery,
+  useGsPost,
+  useGsDynamicPost,
+  useGsPut,
+  useGsPatch,
+  useGsDelete,
+  useGsPublicPost,
+  useGsInvalidate,
+} from "./hooks.getsmart";
