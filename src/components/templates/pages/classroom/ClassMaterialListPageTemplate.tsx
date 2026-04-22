@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
@@ -11,6 +11,8 @@ import PDFIcon from "@/components/atoms/icons/PDFIcon";
 import SearchIcon from "@/components/atoms/icons/SearchIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { cn } from "@/libs/utils";
+import { useGsCourseBySlug, useGsModulesByCourse } from "@/services";
+import type { GsCourseModule } from "@/types/gs-course";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -40,153 +42,61 @@ interface IClassMaterialListPageTemplateProps {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Static data (akan diganti API)                                     */
+/*  API mapper                                                         */
 /* ------------------------------------------------------------------ */
-const MATERIAL_MODULES: IMaterialModule[] = [
-  {
-    id: "module-1",
-    title: "Pengantar Aljabar Dasar",
-    description:
-      "Memahami konsep variabel, konstanta, dan operasi dasar aljabar.",
-    totalSteps: 4,
-    completedSteps: 4,
-    progressPercent: 100,
-    status: "completed",
-    steps: [
-      {
-        id: "m1-s1",
-        typeLabel: "Materi",
-        title: "Pengantar Variabel & Konstanta",
-        status: "completed",
-      },
-      {
-        id: "m1-s2",
-        typeLabel: "Video",
-        title: "Video Konsep Aljabar",
-        status: "completed",
-      },
-      {
-        id: "m1-s3",
-        typeLabel: "E-LKPD",
-        title: "Latihan Operasi Aljabar",
-        status: "completed",
-      },
-      {
-        id: "m1-s4",
-        typeLabel: "Test Diagnosis",
-        title: "Tes Pengantar Aljabar",
-        status: "completed",
-      },
-    ],
-  },
-  {
-    id: "module-2",
-    title: "Persamaan Kuadrat",
-    description:
-      "Mempelajari bentuk umum, pemfaktoran, dan penyelesaian persamaan kuadrat.",
-    totalSteps: 4,
-    completedSteps: 2,
-    progressPercent: 50,
+/**
+ * Map GsCourseModule (type=SUBJECT) → IMaterialModule.
+ * Module yang dikembalikan backend hanya berisi subset subject
+ * (subjectName, subjectFileUrl, videoUrl) — tanpa eLKPDs.
+ * eLKPDs dapat di-fetch terpisah via GET /subjects/:id jika diperlukan.
+ */
+function mapModuleToMaterial(
+  module: GsCourseModule,
+  index: number,
+): IMaterialModule {
+  const subject = module.subject;
+  const title = subject?.subjectName ?? `Modul ${module.order ?? index + 1}`;
+  const steps: IMaterialStep[] = [];
+
+  // Selalu ada materi PDF
+  steps.push({
+    id: `${module.id}-materi`,
+    typeLabel: "Materi",
+    title,
     status: "in-progress",
-    steps: [
-      {
-        id: "m2-s1",
-        typeLabel: "Materi",
-        title: "Pengantar Persamaan Kuadrat",
-        status: "completed",
-      },
-      {
-        id: "m2-s2",
-        typeLabel: "Video",
-        title: "Konsep Persamaan Kuadrat",
-        status: "completed",
-      },
-      {
-        id: "m2-s3",
-        typeLabel: "E-LKPD",
-        title: "Pemfaktoran",
-        status: "in-progress",
-      },
-      {
-        id: "m2-s4",
-        typeLabel: "Test Diagnosis",
-        title: "Tes Persamaan Kuadrat",
-        status: "locked",
-      },
-    ],
-  },
-  {
-    id: "module-3",
-    title: "Geometri Dasar",
-    description: "Mengenal bangun datar, bangun ruang, dan sifat-sifatnya.",
-    totalSteps: 4,
-    completedSteps: 0,
-    progressPercent: 0,
-    status: "locked",
-    steps: [
-      {
-        id: "m3-s1",
-        typeLabel: "Materi",
-        title: "Pengantar Geometri",
-        status: "locked",
-      },
-      {
-        id: "m3-s2",
-        typeLabel: "Video",
-        title: "Bangun Datar & Ruang",
-        status: "locked",
-      },
-      {
-        id: "m3-s3",
-        typeLabel: "E-LKPD",
-        title: "Latihan Geometri",
-        status: "locked",
-      },
-      {
-        id: "m3-s4",
-        typeLabel: "Test Diagnosis",
-        title: "Tes Geometri Dasar",
-        status: "locked",
-      },
-    ],
-  },
-  {
-    id: "module-4",
-    title: "Statistika & Peluang",
-    description:
-      "Dasar-dasar pengumpulan data, penyajian, dan konsep peluang sederhana.",
-    totalSteps: 4,
-    completedSteps: 0,
-    progressPercent: 0,
-    status: "locked",
-    steps: [
-      {
-        id: "m4-s1",
-        typeLabel: "Materi",
-        title: "Pengantar Statistika",
-        status: "locked",
-      },
-      {
-        id: "m4-s2",
-        typeLabel: "Video",
-        title: "Penyajian Data",
-        status: "locked",
-      },
-      {
-        id: "m4-s3",
-        typeLabel: "E-LKPD",
-        title: "Latihan Statistika",
-        status: "locked",
-      },
-      {
-        id: "m4-s4",
-        typeLabel: "Test Diagnosis",
-        title: "Tes Statistika & Peluang",
-        status: "locked",
-      },
-    ],
-  },
-];
+  });
+
+  if (subject?.videoUrl) {
+    steps.push({
+      id: `${module.id}-video`,
+      typeLabel: "Video",
+      title: `Video: ${title}`,
+      status: "locked",
+    });
+  }
+
+  // E-LKPD tidak tersedia di data modul (perlu fetch /subjects/:id terpisah)
+  // akan ditampilkan jika backend sudah menyertakan data tersebut
+
+  const completedSteps = index === 0 ? 1 : 0;
+
+  return {
+    id: module.id,
+    title,
+    description: subject?.description ?? "",
+    totalSteps: steps.length,
+    completedSteps,
+    progressPercent:
+      steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0,
+    status:
+      completedSteps === steps.length
+        ? "completed"
+        : completedSteps > 0
+          ? "in-progress"
+          : "locked",
+    steps,
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -236,43 +146,54 @@ function getStepIconTone(typeLabel: string): { bg: string; fg: string } {
 export default function ClassMaterialListPageTemplate({
   slug,
 }: IClassMaterialListPageTemplateProps) {
-  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(
-    MATERIAL_MODULES.find((m) => m.status === "in-progress")?.id ?? null,
+  const { data: course } = useGsCourseBySlug(slug);
+  const { data: courseModules, isLoading } = useGsModulesByCourse(
+    course?.id ?? "",
   );
+
+  const modules: IMaterialModule[] = (courseModules ?? [])
+    .filter((m) => m.type === "SUBJECT")
+    .map((m, i) => mapModuleToMaterial(m, i));
+
+  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (modules.length > 0 && expandedModuleId === null) {
+      const inProgress = modules.find((m) => m.status === "in-progress");
+      setExpandedModuleId(inProgress?.id ?? modules[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modules.length]);
 
   const toggleExpand = (moduleId: string) => {
     setExpandedModuleId((cur) => (cur === moduleId ? null : moduleId));
   };
 
   /* ---------- Derived ---------- */
-  const totalModules = MATERIAL_MODULES.length;
-  const completedModules = MATERIAL_MODULES.filter(
+  const totalModules = modules.length;
+  const completedModules = modules.filter(
     (m) => m.status === "completed",
   ).length;
   const overallProgress =
     totalModules > 0
       ? Math.round(
-          MATERIAL_MODULES.reduce((sum, m) => sum + m.progressPercent, 0) /
-            totalModules,
+          modules.reduce((sum, m) => sum + m.progressPercent, 0) / totalModules,
         )
       : 0;
-  const totalStepsAll = MATERIAL_MODULES.reduce(
-    (sum, m) => sum + m.totalSteps,
-    0,
-  );
-  const completedStepsAll = MATERIAL_MODULES.reduce(
+  const totalStepsAll = modules.reduce((sum, m) => sum + m.totalSteps, 0);
+  const completedStepsAll = modules.reduce(
     (sum, m) => sum + m.completedSteps,
     0,
   );
 
   const filteredModules = searchQuery.trim()
-    ? MATERIAL_MODULES.filter(
+    ? modules.filter(
         (m) =>
           m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           m.description.toLowerCase().includes(searchQuery.toLowerCase()),
       )
-    : MATERIAL_MODULES;
+    : modules;
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -341,7 +262,7 @@ export default function ClassMaterialListPageTemplate({
             icon: ClockIcon,
             iconBg: "bg-[#DBEAFE]",
             iconFg: "text-[#2563EB]",
-            value: `${MATERIAL_MODULES.filter((m) => m.status === "in-progress").length}`,
+            value: `${modules.filter((m) => m.status === "in-progress").length}`,
             label: "Sedang Dipelajari",
           },
           {
@@ -397,6 +318,16 @@ export default function ClassMaterialListPageTemplate({
           </div>
         )}
 
+        {isLoading && (
+          <p className="py-10 text-center text-sm text-[#9CA3AF]">
+            Memuat materi...
+          </p>
+        )}
+        {!isLoading && filteredModules.length === 0 && (
+          <p className="py-10 text-center text-sm text-[#9CA3AF]">
+            Belum ada materi tersedia.
+          </p>
+        )}
         {filteredModules.map((module, moduleIndex) => {
           const isExpanded = expandedModuleId === module.id;
           const statusConfig = STATUS_CONFIG[module.status];

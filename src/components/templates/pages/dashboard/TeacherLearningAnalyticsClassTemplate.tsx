@@ -1,7 +1,6 @@
-import TeacherLearningAnalyticsClassContent, {
-  ITeacherClassLearningAnalyticsDetail,
-} from "@/components/organisms/TeacherLearningAnalyticsClassContent";
+import TeacherLearningAnalyticsClassContent from "@/components/organisms/TeacherLearningAnalyticsClassContent";
 import { LEARNING_ANALYTICS_CLASS_DATA } from "@/components/templates/pages/dashboard/AdminLearningAnalyticsClassTemplate";
+import type { ITeacherClassLearningAnalyticsDetail } from "@/types/learningAnalytics";
 
 interface ITeacherLearningAnalyticsClassTemplateProps {
   slug: string;

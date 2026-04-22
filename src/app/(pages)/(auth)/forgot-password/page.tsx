@@ -2,21 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useForgotPassword } from "@/services";
+import { useGsForgotPassword } from "@/services";
 import { toast } from "react-toastify";
 import { BodySmallMedium, Heading3 } from "@/components/atoms/Typography";
 import EmailInput from "@/components/atoms/inputs/EmailInput";
 import { SubmitButton } from "@/components/atoms/buttons/SubmitButton";
-import { UserRole } from "@/types/auth";
-
-type ForgotPasswordRole = Extract<UserRole, "teacher" | "student" | "parent">;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<ForgotPasswordRole>("teacher");
-  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
-  const forgotPassword = useForgotPassword();
+  const forgotPassword = useGsForgotPassword();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,15 +23,15 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      const result = await forgotPassword.mutateAsync({ email, role });
-      setResetToken(result.resetToken);
+      await forgotPassword.mutateAsync({ email });
+      setSent(true);
       toast.success("Link reset password berhasil dikirim!");
     } catch (error: any) {
       toast.error(error?.message || "Gagal mengirim link reset password.");
     }
   };
 
-  if (resetToken) {
+  if (sent) {
     return (
       <div className="w-full max-w-md mx-auto p-6 sm:p-8">
         <div className="text-center mb-8">
@@ -54,94 +50,32 @@ export default function ForgotPasswordPage() {
               />
             </svg>
           </div>
-          <Heading3 className="text-neutral-02 mb-2">Token Reset!</Heading3>
+          <Heading3 className="text-neutral-02 mb-2">Email Terkirim!</Heading3>
           <p className="text-grey text-sm">
-            Gunakan token di bawah ini untuk reset password Anda. Token valid
-            selama 15 menit.
+            Silakan cek email Anda dan klik link reset password yang telah
+            dikirim.
           </p>
         </div>
-
-        <div className="bg-grey-light/50 rounded-lg p-4 mb-6">
-          <p className="text-xs text-grey mb-2">Reset Token:</p>
-          <p className="text-sm font-mono break-all text-neutral-02 bg-white p-3 rounded border border-grey-stroke">
-            {resetToken}
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <Link
-            href={`/reset-password?token=${encodeURIComponent(resetToken)}`}
-            className="block w-full"
-          >
-            <button className="w-full bg-charcoal-green text-white py-3 rounded-lg font-medium hover:bg-charcoal-green-dark transition-colors">
-              Reset Password Sekarang
-            </button>
-          </Link>
-
-          <Link href="/login" className="block w-full">
-            <button className="w-full bg-grey-light text-neutral-02 py-3 rounded-lg font-medium hover:bg-grey-stroke transition-colors">
-              Kembali ke Login
-            </button>
-          </Link>
-        </div>
+        <Link href="/login" className="block w-full">
+          <button className="w-full bg-charcoal-green text-white py-3 rounded-lg font-medium hover:bg-charcoal-green-dark transition-colors">
+            Kembali ke Login
+          </button>
+        </Link>
       </div>
     );
   }
 
   return (
     <div className="w-full p-5 sm:p-8">
-      <div className=" w-full md:w-md mx-auto p-5 lg:p-10 bg-white rounded-xl">
+      <div className="w-full md:w-md mx-auto p-5 lg:p-10 bg-white rounded-xl">
         <div className="text-center mb-8">
           <Heading3 className="text-neutral-02 mb-2">Lupa Password?</Heading3>
           <p className="text-grey text-sm">
-            Masukkan email Anda untuk menerima token reset password.
+            Masukkan email Anda untuk menerima link reset password.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Role Selection */}
-          <div>
-            <label className="block mb-2">
-              <BodySmallMedium>Tipe Akun</BodySmallMedium>
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => setRole("teacher")}
-                className={`py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                  role === "teacher"
-                    ? "bg-charcoal-green text-white-mineral"
-                    : "bg-white/5 text-charcoal-green-dark border border-grey-stroke hover:bg-grey-light"
-                }`}
-              >
-                Guru
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("student")}
-                className={`py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                  role === "student"
-                    ? "bg-charcoal-green text-white-mineral"
-                    : "bg-white/5 text-charcoal-green-dark border border-grey-stroke hover:bg-grey-light"
-                }`}
-              >
-                Siswa
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("parent")}
-                className={`py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                  role === "parent"
-                    ? "bg-charcoal-green text-white-mineral"
-                    : "bg-white/5 text-charcoal-green-dark border border-grey-stroke hover:bg-grey-light"
-                }`}
-              >
-                Orang Tua
-              </button>
-            </div>
-          </div>
-
-          {/* Email */}
           <div>
             <label htmlFor="email" className="block">
               <BodySmallMedium>Email</BodySmallMedium>

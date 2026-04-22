@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   ClassMetricCard,
@@ -14,58 +16,15 @@ import {
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
+import {
+  useGsCourseBySlug,
+  useGsEnrollmentsByCourse,
+  useGsModulesByCourse,
+} from "@/services";
 
 interface IClassDashboardPageTemplateProps {
   slug: string;
 }
-
-const metricItems: {
-  key: string;
-  value: string;
-  label: string;
-  hint: string;
-  routeKey: ClassSidebarRouteKey;
-}[] = [
-  {
-    key: "metric-read-material",
-    value: "2/6",
-    label: "Materi Terbaca",
-    hint: "3 materi selesai",
-    routeKey: "materi",
-  },
-  {
-    key: "metric-diagnostic",
-    value: "1",
-    label: "Tes Aktif",
-    hint: "Tes diagnosis berjalan",
-    routeKey: "diagnosis",
-  },
-  {
-    key: "metric-progress",
-    value: "76",
-    label: "Rata-rata Nilai",
-    hint: "Lihat LAD lengkapmu",
-    routeKey: "lad",
-  },
-  {
-    key: "metric-score",
-    value: "#2",
-    label: "Peringkat Kelas",
-    hint: "Dari 28 siswa",
-    routeKey: "lad",
-  },
-];
-
-const studentItems = [
-  "Andi P.",
-  "Bima S.",
-  "Citra R.",
-  "Dani W.",
-  "Evi N.",
-  "Fajar M.",
-  "Gita K.",
-  "Hana L.",
-];
 
 const studentToneClassNames = [
   "bg-[#C84B4B]",
@@ -86,6 +45,66 @@ export default function ClassDashboardPageTemplate({
     (item) => item.key !== "overview",
   );
 
+  const { data: course } = useGsCourseBySlug(slug);
+  const { data: enrollmentsData } = useGsEnrollmentsByCourse(course?.id ?? "", {
+    limit: 50,
+  });
+  const { data: modules } = useGsModulesByCourse(course?.id ?? "");
+
+  const courseName = course?.courseName ?? classTitle;
+  const courseCode = course?.courseCode ?? "–";
+  const totalStudents = enrollmentsData?.pagination.totalItems ?? 0;
+  // Hitung hanya modul bertipe SUBJECT dari kelas ini (bukan semua materi system)
+  const totalSubjects = (modules ?? []).filter(
+    (m) => m.type === "SUBJECT",
+  ).length;
+  const totalDiagnosticTests = (modules ?? []).filter(
+    (m) => m.type === "DIAGNOSTIC_TEST",
+  ).length;
+
+  // Gunakan student.fullName yang dikembalikan backend, bukan studentId
+  const studentItems = (enrollmentsData?.enrollments ?? []).map(
+    (e) =>
+      e.student?.fullName ?? `Siswa ${e.studentId.slice(-4).toUpperCase()}`,
+  );
+
+  const metricItems: {
+    key: string;
+    value: string;
+    label: string;
+    hint: string;
+    routeKey: ClassSidebarRouteKey;
+  }[] = [
+    {
+      key: "metric-read-material",
+      value: `0/${totalSubjects}`,
+      label: "Materi Terbaca",
+      hint: `${totalSubjects} materi tersedia`,
+      routeKey: "materi",
+    },
+    {
+      key: "metric-diagnostic",
+      value: String(totalDiagnosticTests),
+      label: "Tes Diagnostik",
+      hint: `${totalDiagnosticTests} tes tersedia`,
+      routeKey: "diagnosis",
+    },
+    {
+      key: "metric-progress",
+      value: "–",
+      label: "Rata-rata Nilai",
+      hint: "Lihat LAD lengkapmu",
+      routeKey: "lad",
+    },
+    {
+      key: "metric-score",
+      value: "–",
+      label: "Peringkat Kelas",
+      hint: `Dari ${totalStudents} siswa`,
+      routeKey: "lad",
+    },
+  ];
+
   return (
     <ClassPageShellTemplate
       slug={slug}
@@ -95,9 +114,10 @@ export default function ClassDashboardPageTemplate({
       <header className="rounded-3xl bg-[#1F2375] p-5 text-white shadow-[0px_20px_40px_rgba(39,48,132,0.28)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">{classTitle}</h1>
+            <h1 className="text-2xl font-bold">{courseName}</h1>
             <p className="mt-1 text-sm text-white/80">
-              Bpk. Budi Santoso • Semester Genap 2026
+              {course?.schoolName ?? "–"} •{" "}
+              {course ? (course.isArchived ? "Diarsipkan" : "Aktif") : "–"}
             </p>
           </div>
           <Link
@@ -111,22 +131,29 @@ export default function ClassDashboardPageTemplate({
         <div className="mt-5">
           <div className="flex items-center justify-between text-xs font-medium text-white/85">
             <span>Progres keseluruhan</span>
-            <span>75%</span>
+            <span>0%</span>
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/20">
-            <div className="h-full w-[75%] rounded-full bg-[#DCE3FF]" />
+            <div className="h-full w-0 rounded-full bg-[#DCE3FF]" />
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {["3/6 Materi Selesai", "28 Siswa", "MATH-X-001"].map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/90"
-            >
-              {tag}
-            </span>
-          ))}
+          {[
+            `${totalSubjects} Materi`,
+            totalDiagnosticTests > 0 ? `${totalDiagnosticTests} Tes` : null,
+            `${totalStudents} Siswa`,
+            courseCode,
+          ]
+            .filter(Boolean)
+            .map((tag) => (
+              <span
+                key={tag!}
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/90"
+              >
+                {tag}
+              </span>
+            ))}
         </div>
       </header>
 
@@ -162,13 +189,20 @@ export default function ClassDashboardPageTemplate({
           <h2 className="text-base font-bold text-[#0F172A]">
             Daftar Siswa Kelas
           </h2>
-          <p className="text-xs text-[#94A3B8]">28 siswa terdaftar</p>
+          <p className="text-xs text-[#94A3B8]">
+            {totalStudents} siswa terdaftar
+          </p>
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {studentItems.length === 0 && (
+            <p className="col-span-4 py-4 text-center text-sm text-[#9CA3AF]">
+              Belum ada siswa terdaftar.
+            </p>
+          )}
           {studentItems.map((name, index) => (
             <ClassStudentChip
-              key={name}
+              key={`${name}-${index}`}
               name={name}
               initial={name.charAt(0)}
               toneClassName={

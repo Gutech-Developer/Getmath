@@ -1,17 +1,19 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { decodeJWT, getDashboardPathByRole } from "@/libs/jwt";
+import {
+  decodeGsJWTServer,
+  getDashboardPathServer,
+} from "@/libs/gs-jwt.server";
 
 const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
   const cookieStore = await cookies();
-  const token = cookieStore.get("access_token")?.value;
+  const token = cookieStore.get("gs_access_token")?.value;
 
   if (token) {
-    const payload = decodeJWT(token);
-    // console.log(payload);
+    const payload = decodeGsJWTServer(token);
     if (payload) {
-      redirect(getDashboardPathByRole(payload.role));
+      redirect(getDashboardPathServer(payload.role));
     }
   }
 

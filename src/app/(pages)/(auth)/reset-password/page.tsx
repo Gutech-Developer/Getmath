@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useResetPassword } from "@/services";
+import { useGsResetPassword } from "@/services";
 import { toast } from "react-toastify";
 import { BodySmallMedium, Heading3 } from "@/components/atoms/Typography";
 import PasswordInput from "@/components/atoms/inputs/PasswordInput";
@@ -16,7 +16,7 @@ function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const resetPassword = useResetPassword();
+  const resetPassword = useGsResetPassword();
 
   useEffect(() => {
     const tokenParam = searchParams.get("token");

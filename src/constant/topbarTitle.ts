@@ -20,6 +20,7 @@ const explicitTopbarTitleMap: Record<string, string> = {
   "/student/dashboard/profil": "Profil Siswa",
   "/teacher/dashboard": "Teacher Dashboard",
   "/teacher/dashboard/manage-diagnostics": "Kelola Tes Diagnostik",
+  "/teacher/dashboard/manage-diagnostics/create": "Buat Tes Diagnostik",
   "/teacher/dashboard/manage-material": "Manage Material",
   "/teacher/dashboard/lad": "Teacher LAD",
   "/teacher/dashboard/notifikasi": "Notifications",

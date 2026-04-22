@@ -13,16 +13,16 @@ import {
   getSidebarMenuByRole,
   type StudentSidebarContentType,
 } from "@/constant/roleBasedSidebarMenu";
-import { getUserRole } from "@/libs/jwt";
 import { showErrorToast, showToast } from "@/libs/toast";
 import { isActiveMenu } from "@/libs/utils";
 import { useSidebar } from "@/providers/SidebarProvider";
-import { useCurrentUser, useLogout } from "@/services";
-import type { UserRole } from "@/types/auth";
+import { useGsCurrentUser, useGsLogout } from "@/services";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-const roleLabelByRole = {
+type SidebarRole = "admin" | "teacher" | "student" | "parent" | "counselor";
+
+const roleLabelByRole: Record<SidebarRole, string> = {
   admin: "Admin",
   teacher: "Guru",
   student: "Siswa",
@@ -30,7 +30,7 @@ const roleLabelByRole = {
   counselor: "Konselor",
 } as const;
 
-const profilePathByRole: Record<UserRole, string> = {
+const profilePathByRole: Record<SidebarRole, string> = {
   admin: "/admin/dashboard/profil",
   teacher: "/teacher/dashboard/profil",
   student: "/student/dashboard/profil",
@@ -38,65 +38,40 @@ const profilePathByRole: Record<UserRole, string> = {
   counselor: "/teacher/dashboard/profil",
 };
 
-function resolveRoleFromPathname(pathname: string): UserRole | null {
-  if (pathname.startsWith("/student")) {
-    return "student";
-  }
-
-  if (pathname.startsWith("/parent")) {
-    return "parent";
-  }
-
-  if (pathname.startsWith("/admin")) {
-    return "admin";
-  }
-
-  if (pathname.startsWith("/teacher")) {
-    return "teacher";
-  }
-
+function resolveRoleFromPathname(pathname: string): SidebarRole | null {
+  if (pathname.startsWith("/student")) return "student";
+  if (pathname.startsWith("/parent")) return "parent";
+  if (pathname.startsWith("/admin")) return "admin";
+  if (pathname.startsWith("/teacher")) return "teacher";
   return null;
 }
 
 function resolveSidebarRole(
   pathname: string,
-  authRole: UserRole | null,
-): UserRole | null {
+  authRole: SidebarRole | null,
+): SidebarRole | null {
   const pathnameRole = resolveRoleFromPathname(pathname);
 
-  // Fallback ke pathname saat role token belum tersedia.
-  if (!authRole) {
-    return pathnameRole;
-  }
-
-  if (!pathnameRole) {
-    return authRole;
-  }
-
-  // Counselor tetap dianggap varian teacher untuk route teacher.
-  if (authRole === "counselor" && pathnameRole === "teacher") {
-    return "counselor";
-  }
-
-  // Jika role token dan pathname beda, pakai pathname untuk konteks UI sidebar.
-  if (authRole !== pathnameRole) {
-    return pathnameRole;
-  }
+  if (!authRole) return pathnameRole;
+  if (!pathnameRole) return authRole;
+  if (authRole !== pathnameRole) return pathnameRole;
 
   return authRole;
 }
 
 export const Sidebar = () => {
-  const { data: user } = useCurrentUser();
-  const authRole = getUserRole();
+  const { data: user } = useGsCurrentUser();
   const { isOpen, isMobile, close } = useSidebar();
   const pathname = usePathname();
   const [openMenus, setOpenMenus] = useState<string[]>([]);
-  const logout = useLogout();
+  const logout = useGsLogout();
+
+  // Derive sidebar role from GsUserRole → SidebarRole
+  const gsRole = user?.role?.toLowerCase() as SidebarRole | undefined;
 
   const role = useMemo(
-    () => resolveSidebarRole(pathname, authRole),
-    [authRole, pathname],
+    () => resolveSidebarRole(pathname, gsRole ?? null),
+    [gsRole, pathname],
   );
 
   const resolvedSidebarContent = useMemo(
@@ -116,7 +91,7 @@ export const Sidebar = () => {
   const studentSidebarContentType: StudentSidebarContentType =
     studentContentType;
 
-  const userName = user?.fullname ?? "Guest User";
+  const userName = (user?.profile?.fullName as string) ?? "Guest User";
   const roleLabel = role ? roleLabelByRole[role] : "Loading...";
   const profileUrl = role ? profilePathByRole[role] : "/";
 

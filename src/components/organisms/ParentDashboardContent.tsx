@@ -15,7 +15,7 @@ import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import ClipboardIcon from "@/components/atoms/icons/ClipboardIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
 import { cn } from "@/libs/utils";
-import ParentClassDetailCard from "../molecules/cards/ParentClassDetailCard";
+import ClassLADPageTemplate from "@/components/templates/pages/classroom/ClassLADPageTemplate";
 
 // ============ TYPES ============
 
@@ -28,6 +28,7 @@ export interface ParentStat {
 
 export interface ParentClass {
   id: string;
+  slug: string;
   title: string;
   teacherName: string;
   symbol: ReactNode;
@@ -343,13 +344,14 @@ export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
                   )}
                 />
 
-                {selectedClassId === cls.id && (
-                  <ParentClassDetailCard
-                    key={cls.id}
-                    classActivities={classActivities}
-                    classDiagnosticResults={classDiagnosticResults}
-                    selectedClassModules={selectedClassModules}
-                  />
+                {selectedClassId === cls.id && selectedClass && (
+                  <div className="mt-6">
+                    <ClassLADPageTemplate
+                      slug={selectedClass.slug}
+                      backHref="/parent/dashboard"
+                      backLabel="← Kembali ke Dashboard Orang Tua"
+                    />
+                  </div>
                 )}
               </div>
             ))}
