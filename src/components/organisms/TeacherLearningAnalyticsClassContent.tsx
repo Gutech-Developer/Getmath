@@ -14,13 +14,12 @@ import {
   LearningAnalyticsViewSwitcher,
   TeacherOverviewSection,
 } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
+import type { IBaseMateriSectionProps } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
 import type {
   ClassAnalyticsViewType,
   IClassAnalyticsReportSummaryCard,
-  ILearningAnalyticsELKPDItem,
   ILearningAnalyticsEmotionSegment,
   ILearningAnalyticsHeaderCardData,
-  ILearningAnalyticsMaterialItem,
   ILearningAnalyticsScoreBucket,
   ITeacherClassLearningAnalyticsDetail,
   ITeacherStudentAnalyticsItem,
@@ -37,6 +36,7 @@ export type {
 interface ITeacherLearningAnalyticsClassContentProps {
   classDetail: ITeacherClassLearningAnalyticsDetail;
   buildStudentDetailHref?: (studentId: string) => string;
+  materiSectionProps?: Omit<IBaseMateriSectionProps, "materials">;
 }
 
 interface ITeacherSidebarItem {
@@ -132,60 +132,6 @@ function buildDefaultEmotionSegments(
   ];
 }
 
-function createDefaultMaterials(
-  className: string,
-): ILearningAnalyticsMaterialItem[] {
-  return [
-    {
-      id: "material-1",
-      title: `Pengantar ${className}`,
-      updatedAt: "12 Apr 2026",
-      type: "Materi",
-      status: "Aktif",
-    },
-    {
-      id: "material-2",
-      title: "Latihan Soal Terstruktur",
-      updatedAt: "09 Apr 2026",
-      type: "Tes",
-      status: "Aktif",
-    },
-    {
-      id: "material-3",
-      title: "Video Pembahasan Konsep",
-      updatedAt: "07 Apr 2026",
-      type: "Video",
-      status: "Draft",
-    },
-  ];
-}
-
-function createDefaultELKPDItems(): ILearningAnalyticsELKPDItem[] {
-  return [
-    {
-      id: "elkpd-1",
-      title: "E-LKPD 1 - Pemahaman Konsep",
-      dueLabel: "18 Apr 2026",
-      submittedCount: 18,
-      status: "Aktif",
-    },
-    {
-      id: "elkpd-2",
-      title: "E-LKPD 2 - Soal Aplikasi",
-      dueLabel: "24 Apr 2026",
-      submittedCount: 9,
-      status: "Aktif",
-    },
-    {
-      id: "elkpd-3",
-      title: "E-LKPD 3 - Refleksi Akhir",
-      dueLabel: "31 Mar 2026",
-      submittedCount: 28,
-      status: "Ditutup",
-    },
-  ];
-}
-
 function resolveTeacherViewType(
   value: string | null,
 ): ClassAnalyticsViewType | undefined {
@@ -207,6 +153,7 @@ const TEACHER_VIEW_TABS = TEACHER_VIEW_ITEMS.map((item) => ({
 export default function TeacherLearningAnalyticsClassContent({
   classDetail,
   buildStudentDetailHref,
+  materiSectionProps,
 }: ITeacherLearningAnalyticsClassContentProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -253,9 +200,8 @@ export default function TeacherLearningAnalyticsClassContent({
 
   const reportSummaryCards =
     classDetail.reportSummaryCards ?? defaultSummaryCards;
-  const materials =
-    classDetail.materials ?? createDefaultMaterials(classDetail.className);
-  const elkpdItems = classDetail.elkpdItems ?? createDefaultELKPDItems();
+  const materials = classDetail.materials ?? [];
+  const elkpdItems = classDetail.elkpdItems ?? [];
   const scoreBuckets =
     classDetail.scoreBuckets ?? buildDefaultScoreBuckets(classDetail.students);
   const emotionSegments =
@@ -285,7 +231,7 @@ export default function TeacherLearningAnalyticsClassContent({
       <TeacherOverviewSection classDetail={classDetail} materials={materials} />
     ),
     Siswa: <BaseSiswaSection students={classDetail.students} />,
-    Materi: <BaseMateriSection materials={materials} />,
+    Materi: <BaseMateriSection materials={materials} {...materiSectionProps} />,
     "Kelola E-LKPD": (
       <BaseKelolaELKPDSection
         elkpdItems={elkpdItems}

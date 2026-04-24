@@ -20,3 +20,10 @@ export * from "./classInfo";
 export * from "./adminClassList";
 export * from "./materialManagement";
 export * from "./learningAnalytics";
+
+// GetSmart API Types
+export * from "./gs-auth";
+export * from "./gs-course";
+export * from "./gs-diagnostic-test";
+export * from "./gs-subject";
+export * from "./gs-health";

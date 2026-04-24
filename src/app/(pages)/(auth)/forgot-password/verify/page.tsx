@@ -1,14 +1,15 @@
+"use client";
+
 import Link from "next/link";
-import { gsPublicGet } from "@/libs/api/getsmart";
+import { useSearchParams } from "next/navigation";
+import { useGsForgotPasswordVerify } from "@/services";
 
-interface Props {
-  searchParams: Promise<{ token?: string }>;
-}
-
-export default async function ForgotPasswordVerifyPage({
-  searchParams,
-}: Props) {
-  const { token } = await searchParams;
+export default function ForgotPasswordVerifyPage() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token") ?? "";
+  const { data, isLoading, isError, error } = useGsForgotPasswordVerify({
+    token,
+  });
 
   if (!token) {
     return (
@@ -44,19 +45,15 @@ export default async function ForgotPasswordVerifyPage({
     );
   }
 
-  let success = false;
-  let errorMessage = "Link reset password tidak valid atau sudah kedaluwarsa.";
-
-  try {
-    await gsPublicGet(
-      `/auth/forgot-password/verify?token=${encodeURIComponent(token)}`,
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-md mx-auto p-6 sm:p-8 text-center">
+        <div className="animate-spin mx-auto h-8 w-8 rounded-full border-b-2 border-charcoal-green" />
+      </div>
     );
-    success = true;
-  } catch (err: any) {
-    errorMessage = err?.message || errorMessage;
   }
 
-  if (success) {
+  if (data) {
     return (
       <div className="w-full max-w-md mx-auto p-6 sm:p-8 text-center">
         <div className="w-16 h-16 bg-jade/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -89,6 +86,9 @@ export default async function ForgotPasswordVerifyPage({
       </div>
     );
   }
+
+  const errorMessage =
+    error?.message || "Link reset password tidak valid atau sudah kedaluwarsa.";
 
   return (
     <div className="w-full max-w-md mx-auto p-6 sm:p-8 text-center">
