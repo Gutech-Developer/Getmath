@@ -112,6 +112,12 @@ export interface GsCourseModule {
   diagnosticTest?: GsCourseModuleDiagnosticTest;
 }
 
+/**
+ * Backend docs saat ini menunjukkan response create module berupa array modul.
+ * Beberapa implementasi bisa mengembalikan object tunggal.
+ */
+export type GsCreateCourseModuleResponse = GsCourseModule | GsCourseModule[];
+
 /** Input untuk POST /course-modules/:courseId */
 export interface GsCreateCourseModuleInput {
   order: number;

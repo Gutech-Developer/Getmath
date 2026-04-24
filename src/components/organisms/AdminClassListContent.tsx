@@ -26,6 +26,7 @@ interface IAdminClassListContentProps {
   onDeleteClass: (classId: string) => void;
   onToggleClassStatus: (classId: string) => void;
   onManageClass?: (classId: string) => void;
+  showTeacherSelection?: boolean;
 }
 
 interface IClassFormModalProps {
@@ -37,6 +38,7 @@ interface IClassFormModalProps {
   onClose: () => void;
   onValuesChange: (values: IClassFormPayload) => void;
   onSubmit: () => void;
+  showTeacherSelection: boolean;
 }
 
 function ClassFormModal({
@@ -49,6 +51,7 @@ function ClassFormModal({
   onValuesChange,
   onSubmit,
   isTeacherPage,
+  showTeacherSelection,
 }: IClassFormModalProps & { isTeacherPage: boolean }) {
   const isSubmitDisabled = values.className.trim().length < 3;
 
@@ -137,7 +140,7 @@ function ClassFormModal({
             />
           </div>
 
-          {!isTeacherPage && (
+          {!isTeacherPage && showTeacherSelection && (
             <div className="space-y-2">
               <label className="block text-lg font-semibold text-[#374151]">
                 Pilih Guru
@@ -189,6 +192,7 @@ export default function AdminClassListContent({
   onDeleteClass,
   onToggleClassStatus,
   onManageClass,
+  showTeacherSelection = true,
 }: IAdminClassListContentProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -206,14 +210,59 @@ export default function AdminClassListContent({
   const [statusFilter, setStatusFilter] = useState<AdminClassStatus | "all">(
     "all",
   );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<
+    | "name-asc"
+    | "name-desc"
+    | "students-desc"
+    | "students-asc"
+    | "tests-desc"
+    | "tests-asc"
+  >("name-asc");
 
   const filteredClasses = useMemo(() => {
-    if (statusFilter === "all") {
-      return classes;
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    let nextItems = classes;
+
+    if (statusFilter !== "all") {
+      nextItems = nextItems.filter(
+        (classItem) => classItem.status === statusFilter,
+      );
     }
 
-    return classes.filter((classItem) => classItem.status === statusFilter);
-  }, [classes, statusFilter]);
+    if (normalizedQuery) {
+      nextItems = nextItems.filter((classItem) => {
+        return (
+          classItem.name.toLowerCase().includes(normalizedQuery) ||
+          classItem.teacherName.toLowerCase().includes(normalizedQuery) ||
+          classItem.code.toLowerCase().includes(normalizedQuery)
+        );
+      });
+    }
+
+    const sorted = [...nextItems];
+
+    sorted.sort((a, b) => {
+      switch (sortBy) {
+        case "name-desc":
+          return b.name.localeCompare(a.name, "id");
+        case "students-desc":
+          return b.studentCount - a.studentCount;
+        case "students-asc":
+          return a.studentCount - b.studentCount;
+        case "tests-desc":
+          return b.testCount - a.testCount;
+        case "tests-asc":
+          return a.testCount - b.testCount;
+        case "name-asc":
+        default:
+          return a.name.localeCompare(b.name, "id");
+      }
+    });
+
+    return sorted;
+  }, [classes, searchQuery, sortBy, statusFilter]);
 
   const teacherIdByLabel = useMemo(
     () =>
@@ -304,21 +353,57 @@ export default function AdminClassListContent({
         </header>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            className="inline-flex h-12 min-w-[136px] items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 text-[#6B7280] transition hover:bg-[#F9FAFB]"
-            aria-label="Filter daftar kelas"
-          >
-            <FilterIcon className="h-4 w-4" />
-          </button>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Cari nama kelas, guru, atau kode"
+            className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+            aria-label="Cari kelas"
+          />
 
-          <button
-            type="button"
-            className="inline-flex h-12 min-w-[136px] items-center rounded-2xl border border-[#E5E7EB] bg-white px-3 text-[#6B7280] transition hover:bg-[#F9FAFB]"
-            aria-label="Urutkan daftar kelas"
-          >
-            <SortIcon className="h-4 w-4" />
-          </button>
+          <div className="relative">
+            <FilterIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" />
+            <select
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as AdminClassStatus | "all")
+              }
+              className="h-12 min-w-[170px] appearance-none rounded-2xl border border-[#E5E7EB] bg-white pl-9 pr-8 text-sm font-semibold text-[#475569] outline-none transition focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+              aria-label="Filter status kelas"
+            >
+              <option value="all">Semua Status</option>
+              <option value="Aktif">Aktif</option>
+              <option value="Nonaktif">Nonaktif</option>
+            </select>
+          </div>
+
+          <div className="relative">
+            <SortIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" />
+            <select
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(
+                  event.target.value as
+                    | "name-asc"
+                    | "name-desc"
+                    | "students-desc"
+                    | "students-asc"
+                    | "tests-desc"
+                    | "tests-asc",
+                )
+              }
+              className="h-12 min-w-[190px] appearance-none rounded-2xl border border-[#E5E7EB] bg-white pl-9 pr-8 text-sm font-semibold text-[#475569] outline-none transition focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+              aria-label="Urutkan daftar kelas"
+            >
+              <option value="name-asc">Nama Kelas (A-Z)</option>
+              <option value="name-desc">Nama Kelas (Z-A)</option>
+              <option value="students-desc">Jumlah Siswa (Terbanyak)</option>
+              <option value="students-asc">Jumlah Siswa (Tersedikit)</option>
+              <option value="tests-desc">Jumlah Tes (Terbanyak)</option>
+              <option value="tests-asc">Jumlah Tes (Tersedikit)</option>
+            </select>
+          </div>
         </div>
 
         {filteredClasses.length > 0 ? (
@@ -470,6 +555,7 @@ export default function AdminClassListContent({
         onValuesChange={setCreateFormValues}
         onSubmit={handleCreateClass}
         isTeacherPage={isTeacherPage}
+        showTeacherSelection={showTeacherSelection}
       />
 
       <ClassFormModal
@@ -482,6 +568,7 @@ export default function AdminClassListContent({
         onValuesChange={setEditFormValues}
         onSubmit={handleUpdateClass}
         isTeacherPage={isTeacherPage}
+        showTeacherSelection={showTeacherSelection}
       />
     </>
   );

@@ -95,17 +95,17 @@ function JoinCourseModal({
               setCourseId("");
               onClose();
             }}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-grey hover:bg-grey-stroke/40 transition-colors"
+            className="px-4 py-2 rounded-xl border border-grey-stroke text-sm font-medium text-grey hover:bg-grey-stroke/40 transition-colors"
           >
             Batal
           </button>
           <button
             onClick={handleSubmit}
             disabled={!courseId.trim() || enrollCourse.isPending}
-            className="px-5 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+            className="px-5 py-2 rounded-xl text-sm font-semibold bg-[#1F2375] text-white hover:bg-[#171B5C] disabled:cursor-not-allowed disabled:opacity-50 transition-colors flex items-center gap-2"
           >
             <PlusIcon className="w-4 h-4" />
-            {enrollCourse.isPending ? "Mendaftar..." : "Gabung"}
+            {enrollCourse.isPending ? "Memproses..." : "Masuk Kelas"}
           </button>
         </div>
       </div>

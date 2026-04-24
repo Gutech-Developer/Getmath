@@ -112,6 +112,18 @@ export const queryKeys = {
   gsAuth: {
     all: ["gs", "auth"] as const,
     me: () => [...queryKeys.gsAuth.all, "me"] as const,
+    activationVerify: (token: string) =>
+      [...queryKeys.gsAuth.all, "activationVerify", token] as const,
+    forgotPasswordVerify: (token: string) =>
+      [...queryKeys.gsAuth.all, "forgotPasswordVerify", token] as const,
+    googleAuthUrl: (redirectUri: string) =>
+      [...queryKeys.gsAuth.all, "googleAuthUrl", redirectUri] as const,
+  },
+
+  // Health Check
+  gsHealth: {
+    all: ["gs", "health"] as const,
+    status: () => [...queryKeys.gsHealth.all, "status"] as const,
   },
 
   // Diagnostic Tests
@@ -148,6 +160,18 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.gsSubjects.details(), id] as const,
     elkpd: (subjectId: string) =>
       [...queryKeys.gsSubjects.all, "elkpd", subjectId] as const,
+    moduleProgress: (courseModuleId: string) =>
+      [...queryKeys.gsSubjects.all, "moduleProgress", courseModuleId] as const,
+    moduleSubmissions: (
+      courseModuleId: string,
+      filters?: Record<string, unknown>,
+    ) =>
+      [
+        ...queryKeys.gsSubjects.all,
+        "moduleSubmissions",
+        courseModuleId,
+        filters,
+      ] as const,
   },
 
   // Courses

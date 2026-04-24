@@ -16,6 +16,10 @@ import {
   useGsUpdateELKPD,
 } from "@/services";
 
+interface ITeacherManageMaterialContentProps {
+  useSubjectsQuery?: typeof useGsMySubjects;
+}
+
 // ─── Form state ───────────────────────────────────────────────────────────────
 
 interface ISubjectForm {
@@ -392,14 +396,16 @@ function SubjectModal({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function TeacherManageMaterialContent() {
+export default function TeacherManageMaterialContent({
+  useSubjectsQuery = useGsMySubjects,
+}: ITeacherManageMaterialContentProps = {}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [form, setForm] = useState<ISubjectForm>(createEmptyForm);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<IPreview | null>(null);
 
-  const { data: subjectsData, isLoading } = useGsMySubjects({ limit: 50 });
+  const { data: subjectsData, isLoading } = useSubjectsQuery({ limit: 50 });
   const createSubject = useGsCreateSubject();
   const updateSubject = useGsUpdateSubject();
   const deleteSubject = useGsDeleteSubject();

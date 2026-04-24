@@ -73,8 +73,16 @@ interface IBaseSiswaSectionProps {
   buildStudentDetailHref?: (studentId: string) => string;
 }
 
-interface IBaseMateriSectionProps {
+export interface IBaseMateriSectionProps {
   materials: ILearningAnalyticsMaterialItem[];
+  sequenceItems?: IMateriSequenceItem[];
+  assetOptions?: IMateriAssetItem[];
+  diagnosticOptions?: ILearningAnalyticsDiagnosticOption[];
+  onCreateModuleFromAsset?: (assetId: string) => void;
+  onCreateDiagnosticFromOption?: (diagnosticId: string) => void;
+  onMoveSequenceItem?: (itemId: string, direction: -1 | 1) => void;
+  onDeleteSequenceItem?: (itemId: string) => void;
+  onViewSequenceItem?: (itemId: string) => void;
 }
 
 interface IBaseKelolaELKPDSectionProps {
@@ -871,17 +879,31 @@ export function BaseSiswaSection({
   );
 }
 
-export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
-  const [sequenceItems, setSequenceItems] = useState<IMateriSequenceItem[]>(
-    () => buildInitialMateriSequence(materials),
-  );
+export function BaseMateriSection({
+  materials,
+  sequenceItems: sequenceItemsProp,
+  assetOptions,
+  diagnosticOptions,
+  onCreateModuleFromAsset,
+  onCreateDiagnosticFromOption,
+  onMoveSequenceItem: onMoveSequenceItemProp,
+  onDeleteSequenceItem: onDeleteSequenceItemProp,
+  onViewSequenceItem,
+}: IBaseMateriSectionProps) {
+  const isControlled = Array.isArray(sequenceItemsProp);
+  const [localSequenceItems, setLocalSequenceItems] = useState<
+    IMateriSequenceItem[]
+  >(() => buildInitialMateriSequence(materials));
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
   const [moduleTitle, setModuleTitle] = useState("");
   const [moduleDescription, setModuleDescription] = useState("");
+  const resolvedAssetOptions = assetOptions ?? MODULE_ASSET_OPTIONS;
+  const resolvedDiagnosticOptions =
+    diagnosticOptions ?? DIAGNOSTIC_TEST_OPTIONS;
+  const sequenceItems = sequenceItemsProp ?? localSequenceItems;
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([
-    MODULE_ASSET_OPTIONS[0]?.id ?? "",
-    MODULE_ASSET_OPTIONS[1]?.id ?? "",
+    resolvedAssetOptions[0]?.id ?? "",
   ]);
 
   const hasOpenPopup = isModuleModalOpen || isDiagnosticModalOpen;
@@ -910,10 +932,7 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
   const resetModuleForm = () => {
     setModuleTitle("");
     setModuleDescription("");
-    setSelectedAssetIds([
-      MODULE_ASSET_OPTIONS[0]?.id ?? "",
-      MODULE_ASSET_OPTIONS[1]?.id ?? "",
-    ]);
+    setSelectedAssetIds([resolvedAssetOptions[0]?.id ?? ""]);
   };
 
   const closeModuleModal = () => {
@@ -926,6 +945,11 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
   };
 
   const toggleAssetSelection = (assetId: string) => {
+    if (isControlled) {
+      setSelectedAssetIds([assetId]);
+      return;
+    }
+
     setSelectedAssetIds((previousAssetIds) =>
       previousAssetIds.includes(assetId)
         ? previousAssetIds.filter((id) => id !== assetId)
@@ -934,13 +958,23 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
   };
 
   const moveSequenceItem = (itemIndex: number, direction: -1 | 1) => {
+    const sourceItem = sequenceItems[itemIndex];
+    if (!sourceItem) {
+      return;
+    }
+
+    if (onMoveSequenceItemProp) {
+      onMoveSequenceItemProp(sourceItem.id, direction);
+      return;
+    }
+
     const targetIndex = itemIndex + direction;
 
     if (targetIndex < 0 || targetIndex >= sequenceItems.length) {
       return;
     }
 
-    setSequenceItems((previousItems) => {
+    setLocalSequenceItems((previousItems) => {
       const nextItems = [...previousItems];
       const currentItem = nextItems[itemIndex];
 
@@ -952,7 +986,12 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
   };
 
   const deleteSequenceItem = (itemId: string) => {
-    setSequenceItems((previousItems) =>
+    if (onDeleteSequenceItemProp) {
+      onDeleteSequenceItemProp(itemId);
+      return;
+    }
+
+    setLocalSequenceItems((previousItems) =>
       previousItems.filter((item) => item.id !== itemId),
     );
   };
@@ -960,16 +999,27 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
   const saveNewModule = () => {
     const trimmedTitle = moduleTitle.trim();
 
-    if (!trimmedTitle) {
+    if (!onCreateModuleFromAsset && !trimmedTitle) {
       return;
     }
 
-    const selectedAssets = MODULE_ASSET_OPTIONS.filter((asset) =>
-      selectedAssetIds.includes(asset.id),
-    ).map((asset) => ({
-      ...asset,
-      id: `module-${Date.now()}-${asset.id}`,
-    }));
+    const selectedAssets = resolvedAssetOptions
+      .filter((asset) => selectedAssetIds.includes(asset.id))
+      .map((asset) => ({
+        ...asset,
+        id: `module-${Date.now()}-${asset.id}`,
+      }));
+
+    if (onCreateModuleFromAsset) {
+      const selectedAssetId = selectedAssetIds[0];
+      if (!selectedAssetId) {
+        return;
+      }
+
+      onCreateModuleFromAsset(selectedAssetId);
+      closeModuleModal();
+      return;
+    }
 
     const moduleItem: IMateriSequenceItem = {
       id: `materi-sequence-module-${Date.now()}`,
@@ -981,12 +1031,18 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
       assets: selectedAssets,
     };
 
-    setSequenceItems((previousItems) => [...previousItems, moduleItem]);
+    setLocalSequenceItems((previousItems) => [...previousItems, moduleItem]);
     closeModuleModal();
   };
 
   const selectDiagnosticTest = (option: ILearningAnalyticsDiagnosticOption) => {
-    setSequenceItems((previousItems) => {
+    if (onCreateDiagnosticFromOption) {
+      onCreateDiagnosticFromOption(option.id);
+      closeDiagnosticModal();
+      return;
+    }
+
+    setLocalSequenceItems((previousItems) => {
       const isAlreadyExist = previousItems.some(
         (item) => item.type === "Tes Diagnostik" && item.title === option.title,
       );
@@ -1158,6 +1214,7 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
                   <div className="flex shrink-0 items-start gap-2 pt-0.5">
                     <button
                       type="button"
+                      onClick={() => onViewSequenceItem?.(item.id)}
                       className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
                       aria-label={`Lihat ${item.title}`}
                     >
@@ -1271,7 +1328,7 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
                 </p>
                 <div className="rounded-2xl border border-[#E5E7EB] bg-[#FCFCFD] p-2">
                   <div className="space-y-1.5">
-                    {MODULE_ASSET_OPTIONS.map((asset) => {
+                    {resolvedAssetOptions.map((asset) => {
                       const isSelected = selectedAssetIds.includes(asset.id);
                       const AssetIcon = getAssetIconComponent(asset.kind);
                       const textClassName = getAssetTextClassName(asset.kind);
@@ -1387,7 +1444,7 @@ export function BaseMateriSection({ materials }: IBaseMateriSectionProps) {
             </div>
 
             <div className="space-y-2">
-              {DIAGNOSTIC_TEST_OPTIONS.map((option) => {
+              {resolvedDiagnosticOptions.map((option) => {
                 const alreadyAdded = sequenceItems.some(
                   (item) =>
                     item.type === "Tes Diagnostik" &&

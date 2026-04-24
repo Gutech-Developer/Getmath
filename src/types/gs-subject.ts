@@ -3,6 +3,7 @@
  */
 
 import type { GsPaginationMeta, GsPaginationParams } from "./gs-course";
+import type { GsTeacherBasic } from "./gs-course";
 
 export type { GsPaginationMeta, GsPaginationParams };
 
@@ -16,6 +17,33 @@ export interface GsELKPD {
   fileUrl: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface GsStudentModuleProgress {
+  fileReadAt: string | null;
+  videoWatchedAt: string | null;
+  eLKPDSubmittedAt: string | null;
+  isCompleted: boolean;
+  completedAt: string | null;
+}
+
+export interface GsELKPDSubmissionStudent {
+  id: string;
+  fullName: string;
+}
+
+export interface GsModuleELKPDSubmission {
+  id: string;
+  studentId: string;
+  eLKPDId: string;
+  submissionFileUrl: string;
+  score: number | null;
+  teacherNote: string | null;
+  submittedAt: string;
+  gradedAt: string | null;
+  gradedBy?: GsTeacherBasic | null;
+  student?: GsELKPDSubmissionStudent;
+  eLKPD?: GsELKPD;
 }
 
 export interface GsSubject {
@@ -35,6 +63,46 @@ export interface GsSubject {
 export interface GsCreateSubjectResponse {
   subject: GsSubject;
   eLKPD?: GsELKPD;
+}
+
+export interface GsModuleProgressResponse {
+  progress: GsStudentModuleProgress | null;
+  submissions: GsModuleELKPDSubmission[];
+}
+
+export interface GsModuleELKPDSubmissionsResponse {
+  submissions: GsModuleELKPDSubmission[];
+  pagination: GsPaginationMeta;
+}
+
+export interface GsMarkModuleReadResponse {
+  fileReadAt: string | null;
+  videoWatchedAt: string | null;
+  eLKPDSubmittedAt: string | null;
+  isCompleted: boolean;
+  completedAt: string | null;
+}
+
+export interface GsSubmitELKPDResponse {
+  submission: GsModuleELKPDSubmission;
+  progress: GsStudentModuleProgress | null;
+}
+
+export interface GsGradeELKPDSubmissionInput {
+  score: number;
+  teacherNote?: string;
+}
+
+export interface GsGradeELKPDSubmissionResponse {
+  id: string;
+  score: number | null;
+  teacherNote: string | null;
+  gradedAt: string | null;
+  gradedBy?: GsTeacherBasic | null;
+  submittedAt: string;
+  studentId: string;
+  eLKPDId: string;
+  submissionFileUrl: string;
 }
 
 // ─── Paginated result ─────────────────────────────────────────────────────────
