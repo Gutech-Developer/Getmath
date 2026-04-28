@@ -204,6 +204,16 @@ export const queryKeys = {
       ] as const,
   },
 
+  // Notifications
+  gsNotifications: {
+    all: ["gs", "notifications"] as const,
+    lists: () => [...queryKeys.gsNotifications.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsNotifications.lists(), filters] as const,
+    unreadCount: () =>
+      [...queryKeys.gsNotifications.all, "unreadCount"] as const,
+  },
+
   // Course Modules
   gsCourseModules: {
     all: ["gs", "courseModules"] as const,

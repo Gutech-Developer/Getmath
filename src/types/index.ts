@@ -27,3 +27,4 @@ export * from "./gs-course";
 export * from "./gs-diagnostic-test";
 export * from "./gs-subject";
 export * from "./gs-health";
+export * from "./gs-notification";

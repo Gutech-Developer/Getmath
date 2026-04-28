@@ -58,6 +58,17 @@ describe("integrated endpoint schema", () => {
     expect(
       queryKeys.gsCourseEnrollments.byCourse("course-1", { page: 2 }),
     ).toEqual(["gs", "courseEnrollments", "byCourse", "course-1", { page: 2 }]);
+    expect(queryKeys.gsNotifications.unreadCount()).toEqual([
+      "gs",
+      "notifications",
+      "unreadCount",
+    ]);
+    expect(queryKeys.gsNotifications.list({ isRead: false, page: 1 })).toEqual([
+      "gs",
+      "notifications",
+      "list",
+      { isRead: false, page: 1 },
+    ]);
     expect(queryKeys.gsSubjects.moduleProgress("module-1")).toEqual([
       "gs",
       "subjects",

@@ -5,7 +5,7 @@
  *
  * Role breakdown:
  *  - STUDENT : GET /my (daftar course yg diikuti), POST (daftar kelas), DELETE /:courseId (keluar kelas)
- *  - TEACHER/ADMIN: GET /course/:courseId (lihat peserta)
+ *  - TEACHER/ADMIN: GET /course/:courseId (lihat peserta), DELETE /:courseId/students/:studentId
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -91,6 +91,29 @@ export function useGsUnenrollCourse() {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseEnrollments.all,
+      });
+    },
+  });
+}
+
+// ─── TEACHER/ADMIN: DELETE /course-enrollments/:courseId/students/:studentId ─
+
+export function useGsKickStudentFromCourse() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    Error,
+    { courseId: string; studentId: string }
+  >({
+    mutationFn: ({ courseId, studentId }) =>
+      gsDel<void>(`/course-enrollments/${courseId}/students/${studentId}`),
+    onSuccess: (_, { courseId }) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseEnrollments.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseEnrollments.byCourse(courseId),
       });
     },
   });
