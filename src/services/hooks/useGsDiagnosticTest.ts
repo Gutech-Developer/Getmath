@@ -123,17 +123,16 @@ export function useGsUpdateDiagnosticTest() {
   >({
     mutationFn: ({ id, data }) =>
       gsPatch<GsDiagnosticTest>(`/diagnostic-tests/${id}`, data),
-    onSuccess: (updated) => {
+    onSuccess: async (_updated, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsDiagnosticTests.myList(),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsDiagnosticTests.lists(),
       });
-      queryClient.setQueryData(
-        queryKeys.gsDiagnosticTests.detail(updated.id),
-        updated,
-      );
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.gsDiagnosticTests.detail(variables.id),
+      });
     },
   });
 }

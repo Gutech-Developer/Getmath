@@ -1,12 +1,56 @@
-import DashboardFeatureInitTemplate from "@/components/templates/pages/dashboard/DashboardFeatureInitTemplate";
+"use client";
+
+import { useGsCurrentUser, useGsLogout } from "@/services";
+import TeacherProfileContent from "@/components/organisms/profile/TeacherProfileContent";
+import { showToast } from "@/libs/toast";
+import { useState } from "react";
 
 export default function TeacherDashboardProfilPage() {
+  const { data: user, isLoading } = useGsCurrentUser();
+  const logoutMutation = useGsLogout();
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+
+  const handleChangePhoto = () => {
+    showToast.info("Fitur ubah foto akan segera tersedia");
+    setIsPhotoLoading(false);
+  };
+
+  const handleEditProfile = () => {
+    showToast.info("Fitur edit profil akan segera tersedia");
+  };
+
+  const handleChangePassword = () => {
+    showToast.info("Fitur ubah password akan segera tersedia");
+  };
+
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onError: (err) => {
+        showToast.error(err.message ?? "Gagal logout");
+      },
+    });
+  };
+
+  const profile = (user?.profile as Record<string, any>) || {};
+
   return (
-    <DashboardFeatureInitTemplate
-      title="Profil Guru"
-      description="Halaman profil guru masih berupa init screen. Nantinya berisi data akun, preferensi kelas, dan pengaturan personal."
-      dashboardHref="/teacher/dashboard"
-      dashboardLabel="Kembali ke Dashboard Guru"
+    <TeacherProfileContent
+      isLoading={isLoading}
+      fullName={profile.fullName || user?.fullName || "-"}
+      email={user?.email || "-"}
+      phone={profile.phoneNumber || user?.phoneNumber || "-"}
+      nip={profile.NIP || "-"}
+      province={profile.province || "-"}
+      city={profile.city || "-"}
+      school={profile.schoolName || "-"}
+      avatarInitial={(profile.fullName || user?.fullName || "?")
+        .charAt(0)
+        .toUpperCase()}
+      onChangePhoto={handleChangePhoto}
+      onEditProfile={handleEditProfile}
+      onChangePassword={handleChangePassword}
+      onLogout={handleLogout}
+      isLogoutLoading={logoutMutation.isPending}
     />
   );
 }

@@ -63,6 +63,20 @@ function humanizeSegment(segment: string): string {
   return capitalizeWords(normalizedSegment);
 }
 
+function stripTrailingClassCode(value: string): string {
+  const normalizedValue = value.trim();
+  const classCodeMatch = normalizedValue.match(
+    /^(.*?)(?:\s+([0-9a-f]{6,}|[0-9a-f]{4,8}-[0-9a-f]{4,8}))$/i,
+  );
+
+  if (!classCodeMatch?.[1]) {
+    return normalizedValue;
+  }
+
+  const className = classCodeMatch[1].trim();
+  return className || normalizedValue;
+}
+
 function pickSlug(slugParam?: string | string[]): string | undefined {
   if (Array.isArray(slugParam)) {
     return slugParam[0];
@@ -91,7 +105,7 @@ export function resolveTopbarTitle({
   const slug = pickSlug(slugParam) ?? resolvedSidebar.classSlug;
 
   if (resolvedSidebar.variant === sidebarVariant.class && slug) {
-    const classTitle = humanizeSegment(slug);
+    const classTitle = stripTrailingClassCode(humanizeSegment(slug));
     const activeRouteKey = resolvedSidebar.activeClassRouteKey ?? "overview";
 
     if (activeRouteKey === "overview") {
@@ -111,5 +125,5 @@ export function resolveTopbarTitle({
     return "GetMath";
   }
 
-  return humanizeSegment(fallbackSegment);
+  return stripTrailingClassCode(humanizeSegment(fallbackSegment));
 }
