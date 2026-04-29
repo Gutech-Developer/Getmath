@@ -396,6 +396,7 @@ export default function TeacherLearningAnalyticsClassTemplate({
         studentCount > 0 ? Math.round((passedCount / studentCount) * 100) : 0;
 
       return {
+        id: course.id,
         slug,
         className: course.courseName,
         teacherName: course.teacher?.fullName ?? "Guru",

@@ -59,6 +59,7 @@ export interface ILearningAnalyticsHeaderCardData {
 }
 
 export interface ILearningAnalyticsClassDetail {
+  id?: string;
   slug: string;
   className: string;
   teacherName: string;

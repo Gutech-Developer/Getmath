@@ -7,7 +7,12 @@
  * selalu bekerja terhadap notifikasi user yang sedang login.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
 import { gsGet, gsPatch, gsDel } from "@/libs/api/getsmart";
 import type {
@@ -26,27 +31,44 @@ function buildQuery(params?: GsNotificationListParams): string {
   return qs ? `?${qs}` : "";
 }
 
+interface GsNotificationQueryOptions {
+  enabled?: boolean;
+  refetchInterval?: number | false;
+  staleTime?: number;
+}
+
 // ─── GET /notifications ──────────────────────────────────────────────────────
 
-export function useGsNotifications(params?: GsNotificationListParams) {
+export function useGsNotifications(
+  params?: GsNotificationListParams,
+  options?: GsNotificationQueryOptions,
+) {
   return useQuery<GsPaginatedNotifications, Error>({
     queryKey: queryKeys.gsNotifications.list(
       params as Record<string, unknown> | undefined,
     ),
     queryFn: () =>
       gsGet<GsPaginatedNotifications>(`/notifications${buildQuery(params)}`),
-    staleTime: 30 * 1000,
+    staleTime: options?.staleTime ?? 30 * 1000,
+    enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval,
+    placeholderData: keepPreviousData,
   });
 }
 
 // ─── GET /notifications/unread-count ────────────────────────────────────────
 
-export function useGsUnreadNotificationsCount() {
+export function useGsUnreadNotificationsCount(
+  options?: GsNotificationQueryOptions,
+) {
   return useQuery<GsUnreadNotificationsResponse, Error>({
     queryKey: queryKeys.gsNotifications.unreadCount(),
     queryFn: () =>
       gsGet<GsUnreadNotificationsResponse>("/notifications/unread-count"),
-    staleTime: 30 * 1000,
+    staleTime: options?.staleTime ?? 30 * 1000,
+    enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval ?? 30 * 1000,
+    refetchIntervalInBackground: true,
   });
 }
 

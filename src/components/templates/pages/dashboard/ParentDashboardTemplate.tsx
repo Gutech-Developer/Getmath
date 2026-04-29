@@ -16,6 +16,7 @@ import ActivityIcon from "@/components/atoms/icons/ActivityIcon";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import TrophyIcon from "@/components/atoms/icons/TrophyIcon";
 import ClockIcon from "@/components/atoms/icons/ClockIcon";
+import { useGsCurrentUser } from "@/services";
 
 // ============ MOCK DATA ============
 // Replace with real API data from hooks
@@ -172,12 +173,24 @@ const MANAGED_CHILDREN: IManagedChild[] = [
 
 export default function ParentDashboardTemplate() {
   const [isChildManagementOpen, setIsChildManagementOpen] = useState(false);
+  const { data: user } = useGsCurrentUser();
+
+  // Extract parent name from user profile
+  const parentName =
+    (user?.profile?.fullName as string) ||
+    (user?.fullName as string) ||
+    (user?.profile?.fullname as string) ||
+    user?.fullname ||
+    "Parent";
+
+  // Default child name — ideally should come from API or selection
+  const childName = "Ahmad Rizki";
 
   return (
     <>
       <ParentDashboardContent
-        parentName="Musliadi"
-        childName="Ahmad Rizki"
+        parentName={parentName}
+        childName={childName}
         stats={PARENT_STATS}
         alertMessage="Ahmad Rizki belum lulus di 2 tes dan wajib menonton video remedial. Pastikan ia meluangkan waktu untuk mengulang materi terkait."
         onAlertClick={() => console.log("Lihat detail alert")}

@@ -11,6 +11,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
 import { gsGet, gsPost, gsDel } from "@/libs/api/getsmart";
+import { showToast, showErrorToast } from "@/libs/toast";
 import type {
   GsCourseEnrollment,
   GsEnrollCourseInput,
@@ -101,20 +102,20 @@ export function useGsUnenrollCourse() {
 export function useGsKickStudentFromCourse() {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    void,
-    Error,
-    { courseId: string; studentId: string }
-  >({
+  return useMutation<void, Error, { courseId: string; studentId: string }>({
     mutationFn: ({ courseId, studentId }) =>
       gsDel<void>(`/course-enrollments/${courseId}/students/${studentId}`),
     onSuccess: (_, { courseId }) => {
+      showToast.success("Siswa berhasil dikeluarkan dari kelas");
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseEnrollments.all,
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseEnrollments.byCourse(courseId),
       });
+    },
+    onError: (error) => {
+      showErrorToast(error);
     },
   });
 }

@@ -16,7 +16,10 @@ interface IDiagnosticItem {
   id: string;
   title: string;
   description: string;
-  typeTags: string[];
+  packageSummaries: Array<{
+    label: string;
+    questionCount: number;
+  }>;
   totalQuestions: number;
   durationMinutes: number;
   kkm: number;
@@ -24,15 +27,38 @@ interface IDiagnosticItem {
 }
 
 function mapGsDiagnosticToItem(dt: GsDiagnosticTest): IDiagnosticItem {
+  const packages = dt.packages ?? [];
+
+  // Prefer backend-provided totalQuestions when available (list endpoints may return this)
+  const backendTotal: number | undefined = (dt as any).totalQuestions;
+
+  const packageSummaries = packages.length
+    ? packages.map((pkg, index) => ({
+        label: pkg.packageName ?? `Tipe ${String.fromCharCode(65 + index)}`,
+        questionCount: pkg.questions?.length ?? 0,
+      }))
+    : backendTotal !== undefined
+      ? [
+          {
+            label: "Bank",
+            questionCount: backendTotal,
+          },
+        ]
+      : [
+          {
+            label: "Bank",
+            questionCount: 0,
+          },
+        ];
+
   const totalQuestions =
-    dt.packages?.reduce((s, p) => s + (p.questions?.length ?? 0), 0) ?? 0;
+    backendTotal ??
+    packageSummaries.reduce((sum, pkg) => sum + pkg.questionCount, 0);
   return {
     id: dt.id,
     title: dt.testName,
     description: dt.description ?? "",
-    typeTags: dt.packages?.length
-      ? dt.packages.map((_, i) => `Tipe ${String.fromCharCode(65 + i)}`)
-      : ["Tipe A"],
+    packageSummaries,
     totalQuestions,
     durationMinutes: dt.durationMinutes,
     kkm: dt.passingScore,
@@ -49,8 +75,10 @@ function mapGsDiagnosticToItem(dt: GsDiagnosticTest): IDiagnosticItem {
 /* ------------------------------------------------------------------ */
 export default function TeacherManageDiagnosticsContent() {
   const router = useRouter();
+  // Use pagination defaults (page=1, limit=10) to match list endpoints
   const { data: diagnosticTestsData, isLoading } = useGsMyDiagnosticTests({
-    limit: 50,
+    page: 1,
+    limit: 10,
   });
   const deleteMutation = useGsDeleteDiagnosticTest();
 
@@ -118,12 +146,12 @@ export default function TeacherManageDiagnosticsContent() {
                 {diagnostic.description}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                {diagnostic.typeTags.map((tag) => (
+                {diagnostic.packageSummaries.map((pkg) => (
                   <span
-                    key={tag}
+                    key={pkg.label}
                     className="inline-flex rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#2563EB]"
                   >
-                    {tag}
+                    {pkg.label} · {pkg.questionCount} soal
                   </span>
                 ))}
                 <span className="text-xs text-[#9CA3AF]">

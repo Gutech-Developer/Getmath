@@ -19,6 +19,7 @@ import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { MathSymbolAvatar } from "@/components/atoms/MathSymbolAvatar";
 import { WelcomeBanner } from "@/components/molecules/cards/WelcomeBanner";
 import { DonutChart } from "@/components/molecules/charts/DonutChart";
+import { Modal } from "@/components/molecules/Modal";
 import InitTemplate from "@/components/templates/init/InitTemplate";
 import { cn } from "@/libs/utils";
 import Link from "next/link";
@@ -71,6 +72,8 @@ interface IBaseBerandaSectionProps {
 interface IBaseSiswaSectionProps {
   students: ILearningAnalyticsStudentListItem[];
   buildStudentDetailHref?: (studentId: string) => string;
+  onKickStudent?: (student: ILearningAnalyticsStudentListItem) => void;
+  isKickingStudent?: boolean;
 }
 
 export interface IBaseMateriSectionProps {
@@ -649,10 +652,14 @@ export function BaseBerandaSection({
 export function BaseSiswaSection({
   students,
   buildStudentDetailHref,
+  onKickStudent,
+  isKickingStudent = false,
 }: IBaseSiswaSectionProps) {
   const [searchValue, setSearchValue] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<StudentStatusFilter>("Semua");
+  const [pendingKickStudent, setPendingKickStudent] =
+    useState<ILearningAnalyticsStudentListItem | null>(null);
 
   const studentRows = useMemo(
     () =>
@@ -855,19 +862,33 @@ export function BaseSiswaSection({
                   </td>
 
                   <td className="px-4 py-3 align-middle">
-                    {buildStudentDetailHref ? (
-                      <Link
-                        href={buildStudentDetailHref(student.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-[#9CA3AF] transition hover:bg-[#F1F5F9]"
-                        aria-label={`Lihat detail ${student.fullname}`}
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                      </Link>
-                    ) : (
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-[#9CA3AF]">
-                        <EyeIcon className="h-4 w-4" />
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {/* {buildStudentDetailHref ? (
+                        <Link
+                          href={buildStudentDetailHref(student.id)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-[#9CA3AF] transition hover:bg-[#F1F5F9]"
+                          aria-label={`Lihat detail ${student.fullname}`}
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </Link>
+                      ) : (
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-[#9CA3AF]">
+                          <EyeIcon className="h-4 w-4" />
+                        </span>
+                      )} */}
+
+                      {onKickStudent ? (
+                        <button
+                          type="button"
+                          onClick={() => setPendingKickStudent(student)}
+                          disabled={isKickingStudent}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#FECACA] bg-[#FEF2F2] text-[#DC2626] transition hover:bg-[#FEE2E2] disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label={`Keluarkan ${student.fullname} dari kelas`}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -875,6 +896,49 @@ export function BaseSiswaSection({
           </tbody>
         </table>
       </div>
+
+      <Modal
+        isOpen={!!pendingKickStudent}
+        onClose={() => setPendingKickStudent(null)}
+        title="Keluarkan Siswa"
+        size="md"
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
+            <p className="text-sm font-semibold text-[#991B1B]">
+              Yakin ingin mengeluarkan siswa ini dari kelas?
+            </p>
+            <p className="mt-1 text-sm text-[#B91C1C]">
+              {pendingKickStudent?.fullname} · NIS {pendingKickStudent?.nis}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setPendingKickStudent(null)}
+              className="h-12 flex-1 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 text-sm font-semibold text-[#64748B] transition hover:bg-[#F1F5F9]"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!pendingKickStudent) {
+                  return;
+                }
+
+                onKickStudent?.(pendingKickStudent);
+                setPendingKickStudent(null);
+              }}
+              disabled={!pendingKickStudent || isKickingStudent}
+              className="h-12 flex-1 rounded-2xl bg-[#DC2626] px-5 text-sm font-semibold text-white transition hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isKickingStudent ? "Memproses..." : "Keluarkan"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }

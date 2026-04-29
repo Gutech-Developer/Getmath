@@ -5,7 +5,13 @@ import { useSidebar } from "@/providers/SidebarProvider";
 import ChevronSquareIcon from "../atoms/icons/ChevronSquareIcon";
 import NotificationIcon from "../atoms/icons/NotificationIcon";
 import { resolveTopbarTitle } from "@/constant/topbarTitle";
+import { useGsUnreadNotificationsCount } from "@/services";
+import {
+  formatNotificationBadgeCount,
+  resolveNotificationPathFromPathname,
+} from "@/utils/gs-notification";
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useParams, usePathname } from "next/navigation";
 
@@ -14,6 +20,9 @@ const Topbar = () => {
   const pathname = usePathname();
   const params = useParams();
   const [currentDate, setCurrentDate] = useState("");
+  const { data: unreadData } = useGsUnreadNotificationsCount();
+  const unreadCount = unreadData?.unreadCount ?? 0;
+  const notificationHref = resolveNotificationPathFromPathname(pathname);
 
   const topbarTitle = useMemo(
     () =>
@@ -94,14 +103,22 @@ const Topbar = () => {
           <SearchBar />
         </div>
 
-        <button
-          type="button"
+        <Link
+          href={notificationHref ?? pathname}
           className="relative inline-flex items-center justify-center rounded-full border border-grey-stroke bg-white p-2 text-neutral-02 transition hover:bg-grey-lightest"
-          aria-label="Notification"
+          aria-label={
+            unreadCount > 0
+              ? `${unreadCount} notifikasi belum dibaca`
+              : "Buka notifikasi"
+          }
         >
           <NotificationIcon className="w-5 h-5" />
-          <span className="absolute -right-1 -top-1 inline-flex h-2.5 w-2.5 rounded-full bg-error" />
-        </button>
+          {unreadCount > 0 ? (
+            <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#2563EB] px-1 text-[10px] font-semibold leading-none text-white">
+              {formatNotificationBadgeCount(unreadCount)}
+            </span>
+          ) : null}
+        </Link>
 
         <Image
           src="/avatars/1.png"

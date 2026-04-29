@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import InfoCircleIcon from "@/components/atoms/icons/InfoCircleIcon";
@@ -6,9 +8,6 @@ import UsersIcon from "@/components/atoms/icons/UsersIcon";
 import {
   CLASS_INFO_PROGRESS_ITEMS,
   CLASS_INFO_PROGRESS_PERCENT,
-  CLASS_INFO_STUDENTS,
-  CLASS_INFO_TOTAL_STUDENTS,
-  CLASS_INFO_VISIBLE_STUDENTS,
   getClassInfoDetailItems,
 } from "@/constant/classInfo";
 import type { IClassInfoPageTemplateProps } from "@/types";
@@ -18,12 +17,23 @@ import ClassStudentMemberCard from "@/components/molecules/classroom/info/ClassS
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
+import { useGsCourseBySlug } from "@/services";
+import { CLASS_INFO_STUDENTS as STATIC_STUDENTS } from "@/constant/classInfo";
 
 export default function ClassInfoPageTemplate({
   slug,
 }: IClassInfoPageTemplateProps) {
   const classTitle = formatClassTitleFromSlug(slug);
-  const detailItems = getClassInfoDetailItems(classTitle);
+
+  const { data: course, isLoading, error } = useGsCourseBySlug(slug);
+
+  const teacherName = course?.teacher?.fullName ?? "Guru Kelas";
+  const totalStudents = course?.enrolledCount ?? STATIC_STUDENTS.length;
+
+  const detailItems = getClassInfoDetailItems(classTitle, {
+    teacherName,
+    totalStudents,
+  });
 
   return (
     <ClassPageShellTemplate
@@ -39,7 +49,7 @@ export default function ClassInfoPageTemplate({
                 <h1 className="text-lg font-semibold sm:text-3xl">
                   {classTitle}
                 </h1>
-                <p className="mt-2 text-lg text-white/75">Bpk. Budi Santoso</p>
+                <p className="mt-2 text-lg text-white/75">{teacherName}</p>
               </div>
             </div>
 
@@ -117,7 +127,7 @@ export default function ClassInfoPageTemplate({
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {CLASS_INFO_STUDENTS.map((student) => (
+            {STATIC_STUDENTS.map((student) => (
               <ClassStudentMemberCard
                 key={student.id}
                 name={student.name}

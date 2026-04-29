@@ -1,5 +1,5 @@
 import NotificationPageTemplate from "@/components/templates/pages/dashboard/NotificationPageTemplate";
 
-export default function TeacherDashboardNotifikasiPage() {
+export default function StudentDashboardNotifikasiPage() {
   return <NotificationPageTemplate />;
 }

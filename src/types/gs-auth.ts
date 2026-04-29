@@ -149,3 +149,11 @@ export const GS_DASHBOARD_PATH: Record<GsUserRole, string> = {
   STUDENT: "/student/dashboard",
   PARENT: "/parent/dashboard",
 };
+
+/** Mapping role ke halaman notifikasi frontend */
+export const GS_NOTIFICATION_PATH: Record<GsUserRole, string> = {
+  ADMIN: "/admin/dashboard/notifikasi",
+  TEACHER: "/teacher/dashboard/notifikasi",
+  STUDENT: "/student/dashboard/notifikasi",
+  PARENT: "/parent/dashboard/notifikasi",
+};

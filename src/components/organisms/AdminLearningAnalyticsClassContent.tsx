@@ -9,6 +9,7 @@ import {
   LearningAnalyticsViewSwitcher,
   TeacherOverviewSection,
 } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
+import { useGsKickStudentFromCourse } from "@/services/hooks/useGsCourseEnrollment";
 import type {
   ClassAnalyticsViewType,
   IClassAnalyticsReportSummaryCard,
@@ -151,6 +152,8 @@ export default function AdminLearningAnalyticsClassContent({
   const [activeViewType, setActiveViewType] = useState<ClassAnalyticsViewType>(
     initialViewType ?? classDetail.defaultViewType ?? "Laporan",
   );
+  const { mutate: kickStudent, isPending: isKickingStudent } =
+    useGsKickStudentFromCourse();
 
   const defaultSummaryCards: IClassAnalyticsReportSummaryCard[] =
     useMemo(() => {
@@ -214,6 +217,9 @@ export default function AdminLearningAnalyticsClassContent({
       `/admin/dashboard/learning-analytics/${classDetail.slug}/${studentId}`);
   const elkpdScoreHrefBuilder = (elkpdId: string) =>
     `/admin/dashboard/learning-analytics/${classDetail.slug}/elkpd/${elkpdId}`;
+  const handleKickStudent = (studentId: string) => {
+    kickStudent({ courseId: classDetail.id ?? classDetail.slug, studentId });
+  };
 
   const renderedByType: Record<ClassAnalyticsViewType, ReactNode> = {
     Beranda: (
@@ -223,6 +229,8 @@ export default function AdminLearningAnalyticsClassContent({
       <BaseSiswaSection
         students={classDetail.students}
         buildStudentDetailHref={studentDetailHrefBuilder}
+        onKickStudent={(student) => handleKickStudent(student.id)}
+        isKickingStudent={isKickingStudent}
       />
     ),
     Materi: <BaseMateriSection materials={materials} />,
