@@ -243,7 +243,14 @@ export default function TeacherLearningAnalyticsClassContent({
         isKickingStudent={isKickingStudent}
       />
     ),
-    Materi: <BaseMateriSection materials={materials} {...materiSectionProps} />,
+    Materi: (
+      <BaseMateriSection
+        materials={materials}
+        courseId={classDetail.id}
+        students={classDetail.students}
+        {...materiSectionProps}
+      />
+    ),
     "Kelola E-LKPD": (
       <BaseKelolaELKPDSection
         elkpdItems={elkpdItems}

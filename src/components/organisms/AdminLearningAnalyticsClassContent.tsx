@@ -233,7 +233,12 @@ export default function AdminLearningAnalyticsClassContent({
         isKickingStudent={isKickingStudent}
       />
     ),
-    Materi: <BaseMateriSection materials={materials} />,
+    Materi: (
+      <BaseMateriSection
+        materials={materials}
+        students={classDetail.students}
+      />
+    ),
     "Kelola E-LKPD": (
       <BaseKelolaELKPDSection
         elkpdItems={elkpdItems}
