@@ -1,11 +1,11 @@
 "use client";
 
 import { useGsCurrentUser, useGsLogout } from "@/services";
-import ParentProfileContent from "@/components/organisms/profile/ParentProfileContent";
+import AdminProfileContent from "@/components/organisms/profile/AdminProfileContent";
 import { showToast } from "@/libs/toast";
 import { useState } from "react";
 
-export default function ParentDashboardProfilPage() {
+export default function AdminDashboardProfilPage() {
   const { data: user, isLoading } = useGsCurrentUser();
   const logoutMutation = useGsLogout();
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
@@ -34,12 +34,11 @@ export default function ParentDashboardProfilPage() {
   const profile = (user?.profile as Record<string, any>) || {};
 
   return (
-    <ParentProfileContent
+    <AdminProfileContent
       isLoading={isLoading}
       fullName={profile.fullName || user?.fullName || "-"}
       email={user?.email || "-"}
       phone={profile.phoneNumber || user?.phoneNumber || "-"}
-      nis={profile.NIS || "-"}
       province={profile.province || "-"}
       city={profile.city || "-"}
       school={profile.schoolName || "-"}

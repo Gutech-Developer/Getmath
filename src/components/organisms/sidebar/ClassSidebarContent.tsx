@@ -15,9 +15,20 @@ interface IClassSidebarContentProps {
 }
 
 function formatClassTitle(slug: string): string {
-  return decodeURIComponent(slug)
-    .split("-")
-    .filter(Boolean)
+  const decoded = decodeURIComponent(slug);
+  const parts = decoded.split("-").filter(Boolean);
+  if (parts.length > 1) {
+    const last = parts[parts.length - 1];
+    const isLikelyId = /^[0-9a-f]{6,32}$/i.test(last);
+    if (isLikelyId) {
+      return parts
+        .slice(0, -1)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    }
+  }
+
+  return parts
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }

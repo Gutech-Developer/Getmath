@@ -1,9 +1,12 @@
+"use client";
+
 import LogoutIcon from "@/components/atoms/icons/LogoutIcon";
 import DashboardSidebarNav from "@/components/molecules/sidebar/DashboardSidebarNav";
 import {
   getDashboardSidebarRoutesByRole,
   resolveDashboardSidebarRouteKey,
 } from "@/constant/dashboardSidebarRoutes";
+import { useGsUnreadNotificationsCount } from "@/services";
 import type { UserRole } from "@/types/auth";
 import SidebarUserProfileCard from "./SidebarUserProfileCard";
 
@@ -26,7 +29,10 @@ export default function TeacherDashboardSidebarContent({
   userName,
   onLogout,
 }: ITeacherDashboardSidebarContentProps) {
-  const menuItems = getDashboardSidebarRoutesByRole(role);
+  const { data: unreadData } = useGsUnreadNotificationsCount();
+  const menuItems = getDashboardSidebarRoutesByRole(role, {
+    notificationBadgeCount: unreadData?.unreadCount ?? 0,
+  });
   const activeRouteKey = resolveDashboardSidebarRouteKey(pathname);
 
   return (

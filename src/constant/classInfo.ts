@@ -42,14 +42,18 @@ const classStudentNames = [
 
 export function getClassInfoDetailItems(
   classTitle: string,
+  opts?: { teacherName?: string; totalStudents?: number },
 ): IClassInfoDetailItem[] {
+  const teacherName = opts?.teacherName ?? "Bpk. Budi Santoso";
+  const totalStudents = opts?.totalStudents ?? 28;
+
   return [
     { label: "Nama Kelas", value: classTitle },
-    { label: "Guru Pengampu", value: "Bpk. Budi Santoso" },
+    { label: "Guru Pengampu", value: teacherName },
     { label: "Jurusan", value: "Umum" },
     { label: "Semester", value: "Ganjil 2024/2025" },
     { label: "Kode Kelas", value: "MAT-X-001" },
-    { label: "Jumlah Siswa", value: "28 Siswa" },
+    { label: "Jumlah Siswa", value: `${totalStudents} Siswa` },
   ];
 }
 

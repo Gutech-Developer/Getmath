@@ -13,14 +13,33 @@ import AlertIcon from "@/components/atoms/icons/AlertIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
 import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
-import BookIcon from "@/components/atoms/icons/BookIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { MathSymbolAvatar } from "@/components/atoms/MathSymbolAvatar";
 import { WelcomeBanner } from "@/components/molecules/cards/WelcomeBanner";
 import { DonutChart } from "@/components/molecules/charts/DonutChart";
+import { MateriModuleDetailModal } from "@/components/organisms/learningAnalytics/MateriModuleDetailModal";
+import { Modal } from "@/components/molecules/Modal";
+import {
+  DiagnosticPreviewBody,
+  MateriSequenceItemCard,
+  MaterialPreviewPanel,
+} from "@/components/organisms/learningAnalytics/ClassAnalyticsSequenceComponents";
 import InitTemplate from "@/components/templates/init/InitTemplate";
+import { showErrorToast, showToast } from "@/libs/toast";
 import { cn } from "@/libs/utils";
+import {
+  useGsCreateCourseModule,
+  useGsDeleteCourseModule,
+  useGsDiagnosticTestById,
+  useGsModuleById,
+  useGsModulesByCourse,
+  useGsMyDiagnosticTests,
+  useGsMySubjects,
+  useGsReorderCourseModules,
+  useGsUpdateCourseModule,
+} from "@/services";
+import type { GsCourseModule } from "@/types/gs-course";
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -71,13 +90,17 @@ interface IBaseBerandaSectionProps {
 interface IBaseSiswaSectionProps {
   students: ILearningAnalyticsStudentListItem[];
   buildStudentDetailHref?: (studentId: string) => string;
+  onKickStudent?: (student: ILearningAnalyticsStudentListItem) => void;
+  isKickingStudent?: boolean;
 }
 
 export interface IBaseMateriSectionProps {
   materials: ILearningAnalyticsMaterialItem[];
+  courseId?: string;
   sequenceItems?: IMateriSequenceItem[];
   assetOptions?: IMateriAssetItem[];
   diagnosticOptions?: ILearningAnalyticsDiagnosticOption[];
+  students?: ILearningAnalyticsStudentListItem[];
   onCreateModuleFromAsset?: (assetId: string) => void;
   onCreateDiagnosticFromOption?: (diagnosticId: string) => void;
   onMoveSequenceItem?: (itemId: string, direction: -1 | 1) => void;
@@ -438,6 +461,119 @@ function buildDiagnosticDescription(title: string): string {
   return `Tes untuk mengukur pemahaman siswa tentang ${topic.toLowerCase()}`;
 }
 
+function formatCourseModuleDateLabel(input?: string | null): string {
+  if (!input) {
+    return "-";
+  }
+
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function toDateInputValue(input?: string | null): string {
+  if (!input) {
+    return "";
+  }
+
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildCourseModuleAssets(
+  module: GsCourseModule,
+  index: number,
+): IMateriAssetItem[] {
+  if (module.type !== "SUBJECT") {
+    return [];
+  }
+
+  const assets: IMateriAssetItem[] = [];
+  const subjectName = module.subject?.subjectName ?? `Modul ${index + 1}`;
+
+  if (module.subject?.subjectFileUrl) {
+    assets.push({
+      id: `${module.id}-pdf`,
+      kind: "PDF",
+      label: subjectName,
+    });
+  }
+
+  if (module.subject?.videoUrl) {
+    assets.push({
+      id: `${module.id}-video`,
+      kind: "Video",
+      label: `${subjectName} (Video)`,
+    });
+  }
+
+  if (assets.length === 0) {
+    assets.push({
+      id: `${module.id}-default`,
+      kind: "PDF",
+      label: subjectName,
+    });
+  }
+
+  return assets;
+}
+
+function buildCourseModuleSequenceItems(
+  modules: GsCourseModule[],
+): IMateriSequenceItem[] {
+  return modules.map((module, index) => {
+    const deadlineLabel = module.deadline
+      ? `Deadline: ${formatCourseModuleDateLabel(module.deadline)}`
+      : "Tanpa deadline";
+
+    if (module.type === "DIAGNOSTIC_TEST") {
+      const diagnosticTitle =
+        module.diagnosticTest?.testName ?? `Tes Diagnostik ${index + 1}`;
+      const diagnosticDescription = module.diagnosticTest?.description?.trim();
+
+      return {
+        id: module.id,
+        type: "Tes Diagnostik",
+        title: diagnosticTitle,
+        description: diagnosticDescription
+          ? `${diagnosticDescription} · ${deadlineLabel}`
+          : deadlineLabel,
+        assets: [],
+        durationMinutes: module.diagnosticTest?.durationMinutes,
+      } satisfies IMateriSequenceItem;
+    }
+
+    const subjectTitle = module.subject?.subjectName ?? `Modul ${index + 1}`;
+    const subjectDescription = module.subject?.description?.trim();
+    const assets = buildCourseModuleAssets(module, index);
+
+    return {
+      id: module.id,
+      type: "Modul",
+      title: subjectTitle,
+      description: subjectDescription
+        ? `${subjectDescription} · ${deadlineLabel}`
+        : deadlineLabel,
+      formatLabel: assets[0]?.kind,
+      assets,
+    } satisfies IMateriSequenceItem;
+  });
+}
+
 function buildInitialMateriSequence(
   materials: ILearningAnalyticsMaterialItem[],
 ): IMateriSequenceItem[] {
@@ -649,10 +785,14 @@ export function BaseBerandaSection({
 export function BaseSiswaSection({
   students,
   buildStudentDetailHref,
+  onKickStudent,
+  isKickingStudent = false,
 }: IBaseSiswaSectionProps) {
   const [searchValue, setSearchValue] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<StudentStatusFilter>("Semua");
+  const [pendingKickStudent, setPendingKickStudent] =
+    useState<ILearningAnalyticsStudentListItem | null>(null);
 
   const studentRows = useMemo(
     () =>
@@ -855,19 +995,33 @@ export function BaseSiswaSection({
                   </td>
 
                   <td className="px-4 py-3 align-middle">
-                    {buildStudentDetailHref ? (
-                      <Link
-                        href={buildStudentDetailHref(student.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-[#9CA3AF] transition hover:bg-[#F1F5F9]"
-                        aria-label={`Lihat detail ${student.fullname}`}
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                      </Link>
-                    ) : (
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-[#9CA3AF]">
-                        <EyeIcon className="h-4 w-4" />
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {/* {buildStudentDetailHref ? (
+                        <Link
+                          href={buildStudentDetailHref(student.id)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-[#9CA3AF] transition hover:bg-[#F1F5F9]"
+                          aria-label={`Lihat detail ${student.fullname}`}
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </Link>
+                      ) : (
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-[#9CA3AF]">
+                          <EyeIcon className="h-4 w-4" />
+                        </span>
+                      )} */}
+
+                      {onKickStudent ? (
+                        <button
+                          type="button"
+                          onClick={() => setPendingKickStudent(student)}
+                          disabled={isKickingStudent}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[#FECACA] bg-[#FEF2F2] text-[#DC2626] transition hover:bg-[#FEE2E2] disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label={`Keluarkan ${student.fullname} dari kelas`}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -875,36 +1029,188 @@ export function BaseSiswaSection({
           </tbody>
         </table>
       </div>
+
+      <Modal
+        isOpen={!!pendingKickStudent}
+        onClose={() => setPendingKickStudent(null)}
+        title="Keluarkan Siswa"
+        size="md"
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
+            <p className="text-sm font-semibold text-[#991B1B]">
+              Yakin ingin mengeluarkan siswa ini dari kelas?
+            </p>
+            <p className="mt-1 text-sm text-[#B91C1C]">
+              {pendingKickStudent?.fullname} · NIS {pendingKickStudent?.nis}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setPendingKickStudent(null)}
+              className="h-12 flex-1 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 text-sm font-semibold text-[#64748B] transition hover:bg-[#F1F5F9]"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!pendingKickStudent) {
+                  return;
+                }
+
+                onKickStudent?.(pendingKickStudent);
+                setPendingKickStudent(null);
+              }}
+              disabled={!pendingKickStudent || isKickingStudent}
+              className="h-12 flex-1 rounded-2xl bg-[#DC2626] px-5 text-sm font-semibold text-white transition hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isKickingStudent ? "Memproses..." : "Keluarkan"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }
 
 export function BaseMateriSection({
   materials,
+  courseId,
   sequenceItems: sequenceItemsProp,
   assetOptions,
   diagnosticOptions,
+  students = [],
   onCreateModuleFromAsset,
   onCreateDiagnosticFromOption,
   onMoveSequenceItem: onMoveSequenceItemProp,
   onDeleteSequenceItem: onDeleteSequenceItemProp,
   onViewSequenceItem,
 }: IBaseMateriSectionProps) {
-  const isControlled = Array.isArray(sequenceItemsProp);
+  const isApiMode = Boolean(courseId);
+  const isControlled = !isApiMode && Array.isArray(sequenceItemsProp);
   const [localSequenceItems, setLocalSequenceItems] = useState<
     IMateriSequenceItem[]
   >(() => buildInitialMateriSequence(materials));
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailModuleId, setDetailModuleId] = useState("");
+  const [deadlineDraft, setDeadlineDraft] = useState("");
   const [moduleTitle, setModuleTitle] = useState("");
   const [moduleDescription, setModuleDescription] = useState("");
-  const resolvedAssetOptions = assetOptions ?? MODULE_ASSET_OPTIONS;
-  const resolvedDiagnosticOptions =
-    diagnosticOptions ?? DIAGNOSTIC_TEST_OPTIONS;
-  const sequenceItems = sequenceItemsProp ?? localSequenceItems;
-  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([
-    resolvedAssetOptions[0]?.id ?? "",
-  ]);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+
+  const {
+    data: courseModules = [],
+    isLoading: isCourseModulesLoading,
+    error: courseModulesError,
+  } = useGsModulesByCourse(courseId ?? "");
+  const { data: subjectsData, isLoading: isSubjectsLoading } = useGsMySubjects(
+    { limit: 200 },
+    { enabled: isApiMode },
+  );
+  const { data: diagnosticTestsData, isLoading: isDiagnosticTestsLoading } =
+    useGsMyDiagnosticTests({ limit: 200 }, { enabled: isApiMode });
+  const createCourseModuleMutation = useGsCreateCourseModule();
+  const updateCourseModuleMutation = useGsUpdateCourseModule();
+  const reorderCourseModulesMutation = useGsReorderCourseModules();
+  const deleteCourseModuleMutation = useGsDeleteCourseModule();
+  const {
+    data: selectedModule,
+    isLoading: isSelectedModuleLoading,
+    error: selectedModuleError,
+  } = useGsModuleById(isApiMode ? detailModuleId : "");
+  const {
+    data: selectedDiagnosticTest,
+    isLoading: isSelectedDiagnosticTestLoading,
+  } = useGsDiagnosticTestById(selectedModule?.diagnosticTestId ?? "");
+
+  const orderedCourseModules = useMemo(
+    () =>
+      [...courseModules].sort((a, b) => {
+        const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+        const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+        return orderA - orderB;
+      }),
+    [courseModules],
+  );
+
+  const apiSequenceItems = useMemo(
+    () => buildCourseModuleSequenceItems(orderedCourseModules),
+    [orderedCourseModules],
+  );
+
+  const apiAssetOptions = useMemo<IMateriAssetItem[]>(
+    () =>
+      (subjectsData?.subjects ?? []).map((subject) => ({
+        id: subject.id,
+        kind: subject.videoUrl ? "Video" : "PDF",
+        label: subject.subjectName,
+      })),
+    [subjectsData],
+  );
+
+  const apiDiagnosticOptions = useMemo<ILearningAnalyticsDiagnosticOption[]>(
+    () =>
+      (diagnosticTestsData?.diagnosticTests ?? []).map((test) => ({
+        id: test.id,
+        title: test.testName,
+        questionCount:
+          test.packages?.reduce(
+            (count, diagnosticPackage) =>
+              count + diagnosticPackage.questions.length,
+            0,
+          ) ?? 0,
+        durationMinutes: test.durationMinutes,
+      })),
+    [diagnosticTestsData],
+  );
+
+  const usedSubjectIds = useMemo(
+    () =>
+      new Set(
+        orderedCourseModules
+          .filter((module) => module.type === "SUBJECT" && module.subjectId)
+          .map((module) => module.subjectId as string),
+      ),
+    [orderedCourseModules],
+  );
+
+  const usedDiagnosticIds = useMemo(
+    () =>
+      new Set(
+        orderedCourseModules
+          .filter(
+            (module) =>
+              module.type === "DIAGNOSTIC_TEST" && module.diagnosticTestId,
+          )
+          .map((module) => module.diagnosticTestId as string),
+      ),
+    [orderedCourseModules],
+  );
+
+  const resolvedAssetOptions = isApiMode
+    ? apiAssetOptions
+    : (assetOptions ?? MODULE_ASSET_OPTIONS);
+  const resolvedDiagnosticOptions = isApiMode
+    ? apiDiagnosticOptions
+    : (diagnosticOptions ?? DIAGNOSTIC_TEST_OPTIONS);
+  const sequenceItems = isApiMode
+    ? apiSequenceItems
+    : (sequenceItemsProp ?? localSequenceItems);
+  const selectedAssetId = selectedAssetIds[0] ?? "";
+  const selectedAssetCount = selectedAssetIds.filter(Boolean).length;
+  const availableSubjectCount = resolvedAssetOptions.filter(
+    (asset) => !usedSubjectIds.has(asset.id),
+  ).length;
+  const isMutatingCourseModules =
+    createCourseModuleMutation.isPending ||
+    updateCourseModuleMutation.isPending ||
+    reorderCourseModulesMutation.isPending ||
+    deleteCourseModuleMutation.isPending;
 
   const hasOpenPopup = isModuleModalOpen || isDiagnosticModalOpen;
 
@@ -929,10 +1235,78 @@ export function BaseMateriSection({
     };
   }, [hasOpenPopup]);
 
+  useEffect(() => {
+    if (!selectedModuleError || !isDetailModalOpen) {
+      return;
+    }
+
+    showErrorToast(selectedModuleError);
+  }, [isDetailModalOpen, selectedModuleError]);
+
+  useEffect(() => {
+    if (!selectedModule) {
+      setDeadlineDraft("");
+      return;
+    }
+
+    setDeadlineDraft(toDateInputValue(selectedModule.deadline));
+  }, [selectedModule]);
+
+  useEffect(() => {
+    if (!isModuleModalOpen) {
+      return;
+    }
+
+    const validSelectedAssetIds = selectedAssetIds.filter(
+      (assetId) =>
+        resolvedAssetOptions.some((asset) => asset.id === assetId) &&
+        (!isApiMode || !usedSubjectIds.has(assetId)),
+    );
+
+    if (validSelectedAssetIds.length > 0) {
+      return;
+    }
+
+    if (isApiMode) {
+      const nextAvailableSubject = resolvedAssetOptions.find(
+        (asset) => !usedSubjectIds.has(asset.id),
+      );
+
+      setSelectedAssetIds(
+        nextAvailableSubject ? [nextAvailableSubject.id] : [],
+      );
+      return;
+    }
+
+    setSelectedAssetIds(
+      resolvedAssetOptions[0]?.id ? [resolvedAssetOptions[0].id] : [],
+    );
+  }, [
+    isApiMode,
+    isModuleModalOpen,
+    resolvedAssetOptions,
+    selectedAssetIds,
+    usedSubjectIds,
+  ]);
+
   const resetModuleForm = () => {
     setModuleTitle("");
     setModuleDescription("");
-    setSelectedAssetIds([resolvedAssetOptions[0]?.id ?? ""]);
+
+    if (isApiMode) {
+      const nextAvailableSubject = resolvedAssetOptions.find(
+        (asset) => !usedSubjectIds.has(asset.id),
+      );
+
+      setSelectedAssetIds(
+        nextAvailableSubject ? [nextAvailableSubject.id] : [],
+      );
+      return;
+    }
+
+    setSelectedAssetIds(
+      resolvedAssetOptions[0]?.id ? [resolvedAssetOptions[0].id] : [],
+    );
   };
 
   const closeModuleModal = () => {
@@ -944,8 +1318,14 @@ export function BaseMateriSection({
     setIsDiagnosticModalOpen(false);
   };
 
+  const closeDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setDetailModuleId("");
+    setDeadlineDraft("");
+  };
+
   const toggleAssetSelection = (assetId: string) => {
-    if (isControlled) {
+    if (isApiMode || isControlled || onCreateModuleFromAsset) {
       setSelectedAssetIds([assetId]);
       return;
     }
@@ -957,9 +1337,45 @@ export function BaseMateriSection({
     );
   };
 
-  const moveSequenceItem = (itemIndex: number, direction: -1 | 1) => {
+  const moveSequenceItem = async (itemIndex: number, direction: -1 | 1) => {
     const sourceItem = sequenceItems[itemIndex];
     if (!sourceItem) {
+      return;
+    }
+
+    if (isApiMode && courseId) {
+      const currentIndex = orderedCourseModules.findIndex(
+        (module) => module.id === sourceItem.id,
+      );
+      const targetIndex = currentIndex + direction;
+
+      if (
+        currentIndex < 0 ||
+        targetIndex < 0 ||
+        targetIndex >= orderedCourseModules.length
+      ) {
+        return;
+      }
+
+      const reorderedModules = [...orderedCourseModules];
+      const currentModule = reorderedModules[currentIndex];
+      reorderedModules[currentIndex] = reorderedModules[targetIndex];
+      reorderedModules[targetIndex] = currentModule;
+
+      try {
+        await reorderCourseModulesMutation.mutateAsync({
+          courseId,
+          data: {
+            modules: reorderedModules.map((module, index) => ({
+              id: module.id,
+              order: index + 1,
+            })),
+          },
+        });
+      } catch (error) {
+        showErrorToast(error);
+      }
+
       return;
     }
 
@@ -985,7 +1401,21 @@ export function BaseMateriSection({
     });
   };
 
-  const deleteSequenceItem = (itemId: string) => {
+  const deleteSequenceItem = async (itemId: string) => {
+    if (isApiMode && courseId) {
+      try {
+        await deleteCourseModuleMutation.mutateAsync({
+          id: itemId,
+          courseId,
+        });
+        showToast.success("Modul berhasil dihapus");
+      } catch (error) {
+        showErrorToast(error);
+      }
+
+      return;
+    }
+
     if (onDeleteSequenceItemProp) {
       onDeleteSequenceItemProp(itemId);
       return;
@@ -996,7 +1426,30 @@ export function BaseMateriSection({
     );
   };
 
-  const saveNewModule = () => {
+  const saveNewModule = async () => {
+    if (isApiMode && courseId) {
+      if (!selectedAssetId) {
+        return;
+      }
+
+      try {
+        await createCourseModuleMutation.mutateAsync({
+          courseId,
+          data: {
+            order: orderedCourseModules.length + 1,
+            type: "SUBJECT",
+            subjectId: selectedAssetId,
+          },
+        });
+        showToast.success("Modul materi berhasil ditambahkan");
+        closeModuleModal();
+      } catch (error) {
+        showErrorToast(error);
+      }
+
+      return;
+    }
+
     const trimmedTitle = moduleTitle.trim();
 
     if (!onCreateModuleFromAsset && !trimmedTitle) {
@@ -1035,7 +1488,32 @@ export function BaseMateriSection({
     closeModuleModal();
   };
 
-  const selectDiagnosticTest = (option: ILearningAnalyticsDiagnosticOption) => {
+  const selectDiagnosticTest = async (
+    option: ILearningAnalyticsDiagnosticOption,
+  ) => {
+    if (isApiMode && courseId) {
+      if (usedDiagnosticIds.has(option.id)) {
+        return;
+      }
+
+      try {
+        await createCourseModuleMutation.mutateAsync({
+          courseId,
+          data: {
+            order: orderedCourseModules.length + 1,
+            type: "DIAGNOSTIC_TEST",
+            diagnosticTestId: option.id,
+          },
+        });
+        showToast.success("Tes diagnostik berhasil ditambahkan");
+        closeDiagnosticModal();
+      } catch (error) {
+        showErrorToast(error);
+      }
+
+      return;
+    }
+
     if (onCreateDiagnosticFromOption) {
       onCreateDiagnosticFromOption(option.id);
       closeDiagnosticModal();
@@ -1067,7 +1545,47 @@ export function BaseMateriSection({
     closeDiagnosticModal();
   };
 
-  const selectedAssetCount = selectedAssetIds.length;
+  const openSequenceItemDetail = (itemId: string) => {
+    if (onViewSequenceItem) {
+      onViewSequenceItem(itemId);
+      return;
+    }
+
+    if (!isApiMode) {
+      return;
+    }
+
+    setDetailModuleId(itemId);
+    setIsDetailModalOpen(true);
+  };
+
+  const saveModuleDeadline = async () => {
+    if (!courseId || !selectedModule) {
+      return;
+    }
+
+    try {
+      await updateCourseModuleMutation.mutateAsync({
+        id: selectedModule.id,
+        courseId,
+        data: {
+          deadline: deadlineDraft
+            ? new Date(`${deadlineDraft}T00:00:00`).toISOString()
+            : null,
+        },
+      });
+      showToast.success("Deadline modul berhasil diperbarui");
+      closeDetailModal();
+    } catch (error) {
+      showErrorToast(error);
+    }
+  };
+
+  const isModuleSaveDisabled = isApiMode
+    ? !selectedAssetId || createCourseModuleMutation.isPending
+    : onCreateModuleFromAsset
+      ? !selectedAssetId
+      : !moduleTitle.trim();
 
   return (
     <section className="space-y-3">
@@ -1081,164 +1599,40 @@ export function BaseMateriSection({
         </p>
 
         <div className="mt-4 space-y-2.5">
-          {sequenceItems.map((item, index) => {
-            const isFirst = index === 0;
-            const isLast = index === sequenceItems.length - 1;
-
-            return (
-              <article
+          {courseModulesError ? (
+            <article className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-4 text-sm text-[#B91C1C]">
+              Gagal memuat urutan modul kelas: {courseModulesError.message}
+            </article>
+          ) : isApiMode && isCourseModulesLoading ? (
+            <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-6 text-center text-sm text-[#94A3B8]">
+              Memuat urutan materi kelas...
+            </article>
+          ) : sequenceItems.length === 0 ? (
+            <article className="rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-8 text-center text-sm text-[#64748B]">
+              Belum ada modul atau tes diagnostik. Tambahkan subject atau tes
+              untuk mulai menyusun urutan belajar kelas.
+            </article>
+          ) : (
+            sequenceItems.map((item, index) => (
+              <MateriSequenceItemCard
                 key={item.id}
-                className="rounded-2xl border border-[#E5E7EB] bg-[#FCFCFD] px-3 py-3 md:px-4"
-              >
-                <div className="flex items-start gap-2.5 md:gap-3">
-                  <div className="flex shrink-0 flex-col gap-1 pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => moveSequenceItem(index, -1)}
-                      disabled={isFirst}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F8FAFC] text-[#94A3B8] transition hover:bg-[#F1F5F9] disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label={`Geser ${item.title} ke atas`}
-                    >
-                      <svg
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        className="h-3.5 w-3.5"
-                      >
-                        <path
-                          d="M5.5 12.5L10 8L14.5 12.5"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => moveSequenceItem(index, 1)}
-                      disabled={isLast}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-[#E5E7EB] bg-[#F8FAFC] text-[#94A3B8] transition hover:bg-[#F1F5F9] disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label={`Geser ${item.title} ke bawah`}
-                    >
-                      <svg
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        className="h-3.5 w-3.5"
-                      >
-                        <path
-                          d="M5.5 7.5L10 12L14.5 7.5"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <span
-                    className={cn(
-                      "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
-                      item.type === "Modul"
-                        ? "bg-[#DBEAFE] text-[#2563EB]"
-                        : "bg-[#EDE9FE] text-[#7C3AED]",
-                    )}
-                  >
-                    {item.type === "Modul" ? (
-                      <BookIcon className="h-4 w-4" />
-                    ) : (
-                      <NotebookIcon className="h-4 w-4" />
-                    )}
-                  </span>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 font-semibold",
-                          item.type === "Modul"
-                            ? "bg-[#DBEAFE] text-[#2563EB]"
-                            : "bg-[#EDE9FE] text-[#6D28D9]",
-                        )}
-                      >
-                        {item.type}
-                      </span>
-                      <span className="text-[#9CA3AF]">Urutan {index + 1}</span>
-                      {item.formatLabel && (
-                        <span className="rounded-md border border-[#E5E7EB] bg-white px-2 py-0.5 text-[#94A3B8]">
-                          {item.formatLabel}
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="mt-1 text-lg font-bold leading-tight text-[#1F2937]">
-                      {item.title}
-                    </h3>
-                    <p className="mt-0.5 text-sm text-[#94A3B8]">
-                      {item.description}
-                    </p>
-
-                    {item.type === "Modul" ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        {item.assets.map((asset) => {
-                          const AssetIcon = getAssetIconComponent(asset.kind);
-                          const textClassName = getAssetTextClassName(
-                            asset.kind,
-                          );
-
-                          return (
-                            <span
-                              key={asset.id}
-                              className={cn(
-                                "inline-flex items-center gap-1 text-xs font-medium",
-                                textClassName,
-                              )}
-                            >
-                              <AssetIcon
-                                className={cn("h-3.5 w-3.5", textClassName)}
-                              />
-                              {asset.kind}: {asset.label}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-xs font-medium text-[#9CA3AF]">
-                        KKM 80 · Durasi: {item.durationMinutes ?? 60} menit ·{" "}
-                        {item.questionCount ?? 5} soal acak 2 tipe soal
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex shrink-0 items-start gap-2 pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => onViewSequenceItem?.(item.id)}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
-                      aria-label={`Lihat ${item.title}`}
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteSequenceItem(item.id)}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-[#FEF2F2] text-[#DC2626] transition hover:bg-[#FEE2E2]"
-                      aria-label={`Hapus ${item.title}`}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+                item={item}
+                index={index}
+                totalItems={sequenceItems.length}
+                isMutating={isMutatingCourseModules}
+                onMove={moveSequenceItem}
+                onView={openSequenceItemDetail}
+                onDelete={(itemId) => void deleteSequenceItem(itemId)}
+              />
+            ))
+          )}
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             onClick={() => setIsModuleModalOpen(true)}
+            disabled={isMutatingCourseModules}
             className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
           >
             <PlusIcon className="h-4 w-4" />
@@ -1248,6 +1642,7 @@ export function BaseMateriSection({
           <button
             type="button"
             onClick={() => setIsDiagnosticModalOpen(true)}
+            disabled={isMutatingCourseModules}
             className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#C4B5FD] bg-[#F5F3FF] px-4 text-sm font-semibold text-[#5B21B6] transition hover:bg-[#EDE9FE]"
           >
             <PlusIcon className="h-4 w-4" />
@@ -1268,7 +1663,7 @@ export function BaseMateriSection({
           <section className="relative z-10 w-full max-w-[540px] rounded-3xl bg-white p-5 shadow-[0_24px_48px_rgba(15,23,42,0.24)] md:p-6">
             <div className="flex items-start justify-between gap-4">
               <h3 className="text-4xl font-bold leading-none text-[#1F2937]">
-                Tambah Modul Baru
+                {isApiMode ? "Tambah Modul dari Subject" : "Tambah Modul Baru"}
               </h3>
               <button
                 type="button"
@@ -1288,105 +1683,139 @@ export function BaseMateriSection({
             </div>
 
             <div className="mt-4 space-y-4">
-              <div>
-                <label
-                  htmlFor="materi-module-title"
-                  className="mb-1.5 block text-sm font-semibold text-[#334155]"
-                >
-                  Nama Modul
-                </label>
-                <input
-                  id="materi-module-title"
-                  type="text"
-                  value={moduleTitle}
-                  onChange={(event) => setModuleTitle(event.target.value)}
-                  placeholder="Contoh: Modul Aljabar"
-                  className="h-11 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
-                />
-              </div>
+              {!isApiMode ? (
+                <>
+                  <div>
+                    <label
+                      htmlFor="materi-module-title"
+                      className="mb-1.5 block text-sm font-semibold text-[#334155]"
+                    >
+                      Nama Modul
+                    </label>
+                    <input
+                      id="materi-module-title"
+                      type="text"
+                      value={moduleTitle}
+                      onChange={(event) => setModuleTitle(event.target.value)}
+                      placeholder="Contoh: Modul Aljabar"
+                      className="h-11 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+                    />
+                  </div>
 
-              <div>
-                <label
-                  htmlFor="materi-module-description"
-                  className="mb-1.5 block text-sm font-semibold text-[#334155]"
-                >
-                  Deskripsi
-                </label>
-                <textarea
-                  id="materi-module-description"
-                  value={moduleDescription}
-                  onChange={(event) => setModuleDescription(event.target.value)}
-                  placeholder="Deskripsi modul"
-                  rows={3}
-                  className="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
-                />
-              </div>
+                  <div>
+                    <label
+                      htmlFor="materi-module-description"
+                      className="mb-1.5 block text-sm font-semibold text-[#334155]"
+                    >
+                      Deskripsi
+                    </label>
+                    <textarea
+                      id="materi-module-description"
+                      value={moduleDescription}
+                      onChange={(event) =>
+                        setModuleDescription(event.target.value)
+                      }
+                      placeholder="Deskripsi modul"
+                      rows={3}
+                      className="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] px-4 py-3 text-sm text-[#1D4ED8]">
+                  Subject yang tampil di bawah ini diambil dari data materi yang
+                  sudah Anda buat. Pilih satu subject untuk dijadikan modul
+                  berikutnya di urutan kelas.
+                </div>
+              )}
 
               <div>
                 <p className="mb-1.5 text-sm font-semibold text-[#334155]">
-                  Pilih Aset Materi
+                  {isApiMode ? "Pilih Subject Materi" : "Pilih Aset Materi"}
                 </p>
                 <div className="rounded-2xl border border-[#E5E7EB] bg-[#FCFCFD] p-2">
-                  <div className="space-y-1.5">
-                    {resolvedAssetOptions.map((asset) => {
-                      const isSelected = selectedAssetIds.includes(asset.id);
-                      const AssetIcon = getAssetIconComponent(asset.kind);
-                      const textClassName = getAssetTextClassName(asset.kind);
+                  {isApiMode && isSubjectsLoading ? (
+                    <div className="rounded-xl bg-white px-3 py-8 text-center text-sm text-[#94A3B8]">
+                      Memuat subject materi...
+                    </div>
+                  ) : resolvedAssetOptions.length === 0 ? (
+                    <div className="rounded-xl bg-white px-3 py-8 text-center text-sm text-[#94A3B8]">
+                      Belum ada subject yang tersedia. Buat subject terlebih
+                      dahulu agar bisa ditambahkan ke urutan kelas.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {resolvedAssetOptions.map((asset) => {
+                        const isSelected = selectedAssetIds.includes(asset.id);
+                        const isAlreadyAdded =
+                          isApiMode && usedSubjectIds.has(asset.id);
+                        const AssetIcon = getAssetIconComponent(asset.kind);
+                        const textClassName = getAssetTextClassName(asset.kind);
 
-                      return (
-                        <button
-                          key={asset.id}
-                          type="button"
-                          onClick={() => toggleAssetSelection(asset.id)}
-                          className={cn(
-                            "flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition",
-                            isSelected
-                              ? "border-[#BFDBFE] bg-[#EFF6FF]"
-                              : "border-transparent bg-transparent hover:bg-[#F8FAFC]",
-                          )}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <AssetIcon
-                              className={cn("h-4 w-4", textClassName)}
-                            />
-                            <span
-                              className={cn(
-                                "text-sm font-semibold",
-                                textClassName,
-                              )}
-                            >
-                              {asset.kind}
-                            </span>
-                            <span className="text-sm font-semibold text-[#334155]">
-                              {asset.label}
-                            </span>
-                          </div>
-
-                          {isSelected && (
-                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#2563EB] text-white">
-                              <svg
-                                viewBox="0 0 20 20"
-                                fill="none"
-                                className="h-3.5 w-3.5"
+                        return (
+                          <button
+                            key={asset.id}
+                            type="button"
+                            onClick={() => toggleAssetSelection(asset.id)}
+                            disabled={isAlreadyAdded}
+                            className={cn(
+                              "flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition",
+                              isSelected
+                                ? "border-[#BFDBFE] bg-[#EFF6FF]"
+                                : "border-transparent bg-transparent hover:bg-[#F8FAFC]",
+                              isAlreadyAdded &&
+                                "cursor-not-allowed border-[#E5E7EB] bg-[#F8FAFC] opacity-60",
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <AssetIcon
+                                className={cn("h-4 w-4", textClassName)}
+                              />
+                              <span
+                                className={cn(
+                                  "text-sm font-semibold",
+                                  textClassName,
+                                )}
                               >
-                                <path
-                                  d="M5 10.5L8.5 14L15 7.5"
-                                  stroke="currentColor"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                                {asset.kind}
+                              </span>
+                              <span className="text-sm font-semibold text-[#334155]">
+                                {asset.label}
+                              </span>
+                            </div>
+
+                            {isAlreadyAdded ? (
+                              <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#2563EB]">
+                                Sudah ditambahkan
+                              </span>
+                            ) : isSelected ? (
+                              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#2563EB] text-white">
+                                <svg
+                                  viewBox="0 0 20 20"
+                                  fill="none"
+                                  className="h-3.5 w-3.5"
+                                >
+                                  <path
+                                    d="M5 10.5L8.5 14L15 7.5"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <p className="mt-1.5 text-xs font-semibold text-[#94A3B8]">
-                  {selectedAssetCount} aset dipilih
+                  {isApiMode
+                    ? `${availableSubjectCount} subject belum dimasukkan ke kelas`
+                    : `${selectedAssetCount} aset dipilih`}
                 </p>
               </div>
             </div>
@@ -1401,11 +1830,13 @@ export function BaseMateriSection({
               </button>
               <button
                 type="button"
-                onClick={saveNewModule}
-                disabled={!moduleTitle.trim()}
+                onClick={() => void saveNewModule()}
+                disabled={isModuleSaveDisabled}
                 className="h-11 rounded-2xl bg-[#2563EB] text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Simpan Modul
+                {createCourseModuleMutation.isPending
+                  ? "Menyimpan..."
+                  : "Simpan Modul"}
               </button>
             </div>
           </section>
@@ -1444,53 +1875,82 @@ export function BaseMateriSection({
             </div>
 
             <div className="space-y-2">
-              {resolvedDiagnosticOptions.map((option) => {
-                const alreadyAdded = sequenceItems.some(
-                  (item) =>
-                    item.type === "Tes Diagnostik" &&
-                    item.title === option.title,
-                );
+              {isApiMode && isDiagnosticTestsLoading ? (
+                <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-8 text-center text-sm text-[#94A3B8]">
+                  Memuat tes diagnostik...
+                </div>
+              ) : resolvedDiagnosticOptions.length === 0 ? (
+                <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-8 text-center text-sm text-[#94A3B8]">
+                  Belum ada tes diagnostik yang tersedia.
+                </div>
+              ) : (
+                resolvedDiagnosticOptions.map((option) => {
+                  const alreadyAdded = isApiMode
+                    ? usedDiagnosticIds.has(option.id)
+                    : sequenceItems.some(
+                        (item) =>
+                          item.type === "Tes Diagnostik" &&
+                          item.title === option.title,
+                      );
 
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => selectDiagnosticTest(option)}
-                    disabled={alreadyAdded}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
-                      alreadyAdded
-                        ? "cursor-not-allowed border-[#E5E7EB] bg-[#F8FAFC] opacity-60"
-                        : "border-[#E5E7EB] bg-white hover:border-[#C4B5FD] hover:bg-[#FAF5FF]",
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#EDE9FE] text-[#7C3AED]">
-                        <NotebookIcon className="h-4 w-4" />
-                      </span>
-                      <div>
-                        <p className="text-lg font-bold text-[#1F2937]">
-                          {option.title}
-                        </p>
-                        <p className="text-sm text-[#94A3B8]">
-                          {option.questionCount} soal · {option.durationMinutes}{" "}
-                          menit
-                        </p>
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => void selectDiagnosticTest(option)}
+                      disabled={
+                        alreadyAdded || createCourseModuleMutation.isPending
+                      }
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
+                        alreadyAdded
+                          ? "cursor-not-allowed border-[#E5E7EB] bg-[#F8FAFC] opacity-60"
+                          : "border-[#E5E7EB] bg-white hover:border-[#C4B5FD] hover:bg-[#FAF5FF]",
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#EDE9FE] text-[#7C3AED]">
+                          <NotebookIcon className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="text-lg font-bold text-[#1F2937]">
+                            {option.title}
+                          </p>
+                          <p className="text-sm text-[#94A3B8]">
+                            {option.questionCount} soal ·{" "}
+                            {option.durationMinutes} menit
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    {alreadyAdded && (
-                      <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#2563EB]">
-                        Sudah ditambahkan
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                      {alreadyAdded && (
+                        <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#2563EB]">
+                          Sudah ditambahkan
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </section>
         </div>
       )}
+
+      <MateriModuleDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={closeDetailModal}
+        module={selectedModule}
+        diagnosticTest={selectedDiagnosticTest}
+        elkpds={selectedModule?.subject?.eLKPDs ?? []}
+        students={students}
+        isLoading={isSelectedModuleLoading}
+        isDiagnosticLoading={isSelectedDiagnosticTestLoading}
+        deadlineDraft={deadlineDraft}
+        onDeadlineChange={setDeadlineDraft}
+        onSaveDeadline={() => void saveModuleDeadline()}
+        isSaving={updateCourseModuleMutation.isPending}
+      />
     </section>
   );
 }

@@ -28,10 +28,6 @@ const classSidebarRouteRegex = new RegExp(
   `^/student(?:/dashboard)?/class/([^/]+)(?:/(${classSidebarSegmentPattern}))?(?:/.*)?$`,
 );
 
-const teacherClassSidebarRegex = new RegExp(
-  `^/teacher/dashboard/class-list/([^/]+)(?:/.*)?$`,
-);
-
 export interface IResolvedSidebarVariant {
   variant: SidebarVariant;
   classSlug?: string;
@@ -42,14 +38,6 @@ export function resolveSidebarVariant(
   pathname: string,
 ): IResolvedSidebarVariant {
   const classRouteMatch = pathname.match(classSidebarRouteRegex);
-  const teacherClassMatch = pathname.match(teacherClassSidebarRegex);
-
-  if (teacherClassMatch?.[1]) {
-    return {
-      variant: sidebarVariant.teacherClass,
-      classSlug: decodeURIComponent(teacherClassMatch[1]),
-    };
-  }
 
   if (!classRouteMatch?.[1]) {
     return { variant: sidebarVariant.dashboardStudent };

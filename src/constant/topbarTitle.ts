@@ -10,20 +10,23 @@ const explicitTopbarTitleMap: Record<string, string> = {
   "/admin/dashboard/class-list": "Daftar Kelas",
   "/admin/dashboard/material-management": "Manajemen Materi",
   "/admin/dashboard/test-management": "Manajemen Tes",
+  "/admin/dashboard/notifikasi": "Notifikasi",
   "/admin/dashboard/profil": "Profil Admin",
   "/parent/dashboard": "Dashboard Orang Tua",
   "/parent/dashboard/lad": "LAD Orang Tua",
+  "/parent/dashboard/notifikasi": "Notifikasi",
   "/parent/dashboard/profil": "Profil Orang Tua",
   "/profile": "Profil",
   "/student/dashboard": "Dashboard Siswa",
   "/student/dashboard/lad": "LAD Siswa",
+  "/student/dashboard/notifikasi": "Notifikasi",
   "/student/dashboard/profil": "Profil Siswa",
   "/teacher/dashboard": "Teacher Dashboard",
   "/teacher/dashboard/manage-diagnostics": "Kelola Tes Diagnostik",
   "/teacher/dashboard/manage-diagnostics/create": "Buat Tes Diagnostik",
   "/teacher/dashboard/manage-material": "Manage Material",
   "/teacher/dashboard/lad": "Teacher LAD",
-  "/teacher/dashboard/notifikasi": "Notifications",
+  "/teacher/dashboard/notifikasi": "Notifikasi",
   "/teacher/dashboard/profil": "Teacher Profile",
 };
 
@@ -63,6 +66,20 @@ function humanizeSegment(segment: string): string {
   return capitalizeWords(normalizedSegment);
 }
 
+function stripTrailingClassCode(value: string): string {
+  const normalizedValue = value.trim();
+  const classCodeMatch = normalizedValue.match(
+    /^(.*?)(?:\s+([0-9a-f]{6,}|[0-9a-f]{4,8}-[0-9a-f]{4,8}))$/i,
+  );
+
+  if (!classCodeMatch?.[1]) {
+    return normalizedValue;
+  }
+
+  const className = classCodeMatch[1].trim();
+  return className || normalizedValue;
+}
+
 function pickSlug(slugParam?: string | string[]): string | undefined {
   if (Array.isArray(slugParam)) {
     return slugParam[0];
@@ -91,7 +108,7 @@ export function resolveTopbarTitle({
   const slug = pickSlug(slugParam) ?? resolvedSidebar.classSlug;
 
   if (resolvedSidebar.variant === sidebarVariant.class && slug) {
-    const classTitle = humanizeSegment(slug);
+    const classTitle = stripTrailingClassCode(humanizeSegment(slug));
     const activeRouteKey = resolvedSidebar.activeClassRouteKey ?? "overview";
 
     if (activeRouteKey === "overview") {
@@ -111,5 +128,5 @@ export function resolveTopbarTitle({
     return "GetMath";
   }
 
-  return humanizeSegment(fallbackSegment);
+  return stripTrailingClassCode(humanizeSegment(fallbackSegment));
 }

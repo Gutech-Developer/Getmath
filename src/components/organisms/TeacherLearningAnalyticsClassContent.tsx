@@ -15,6 +15,7 @@ import {
   TeacherOverviewSection,
 } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
 import type { IBaseMateriSectionProps } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
+import { useGsKickStudentFromCourse } from "@/services/hooks/useGsCourseEnrollment";
 import type {
   ClassAnalyticsViewType,
   IClassAnalyticsReportSummaryCard,
@@ -158,6 +159,8 @@ export default function TeacherLearningAnalyticsClassContent({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { mutate: kickStudent, isPending: isKickingStudent } =
+    useGsKickStudentFromCourse();
   const queryView = searchParams?.get("view");
   const activeViewType =
     resolveTeacherViewType(queryView) ??
@@ -225,13 +228,29 @@ export default function TeacherLearningAnalyticsClassContent({
       `/teacher/dashboard/class-list/${classDetail.slug}/${studentId}`);
   const elkpdScoreHrefBuilder = (elkpdId: string) =>
     `/teacher/dashboard/class-list/${classDetail.slug}/elkpd/${elkpdId}`;
+  const handleKickStudent = (studentId: string) => {
+    kickStudent({ courseId: classDetail.id ?? classDetail.slug, studentId });
+  };
 
   const renderedByType: Record<ClassAnalyticsViewType, ReactNode> = {
     Beranda: (
       <TeacherOverviewSection classDetail={classDetail} materials={materials} />
     ),
-    Siswa: <BaseSiswaSection students={classDetail.students} />,
-    Materi: <BaseMateriSection materials={materials} {...materiSectionProps} />,
+    Siswa: (
+      <BaseSiswaSection
+        students={classDetail.students}
+        onKickStudent={(student) => handleKickStudent(student.id)}
+        isKickingStudent={isKickingStudent}
+      />
+    ),
+    Materi: (
+      <BaseMateriSection
+        materials={materials}
+        courseId={classDetail.id}
+        students={classDetail.students}
+        {...materiSectionProps}
+      />
+    ),
     "Kelola E-LKPD": (
       <BaseKelolaELKPDSection
         elkpdItems={elkpdItems}

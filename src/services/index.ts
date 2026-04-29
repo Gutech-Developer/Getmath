@@ -11,4 +11,5 @@ export * from "./hooks/useGsCourseModule";
 export * from "./hooks/useGsDiagnosticTest";
 export * from "./hooks/useGsSubject";
 export * from "./hooks/useGsHealth";
+export * from "./hooks/useGsNotification";
 export * from "./hooks/useLegacyStubs";

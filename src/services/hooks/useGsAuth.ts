@@ -45,7 +45,10 @@ import type {
 export function useGsCurrentUser(options?: { enabled?: boolean }) {
   return useQuery<GsUser, Error>({
     queryKey: queryKeys.gsAuth.me(),
-    queryFn: () => gsGet<GsUser>("/auth/me"),
+    queryFn: async () => {
+      const resp = await gsGet<{ user?: GsUser }>("/auth/me");
+      return (resp as any).user ?? (resp as unknown as GsUser);
+    },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 menit
     ...options,
@@ -172,8 +175,38 @@ export function useGsForgotPasswordVerify(input: GsActivationVerifyInput) {
 // ─── POST /api/auth/refresh ──────────────────────────────────────────────────
 
 export function useGsRefreshToken() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
   return useMutation<GsAuthResponse, Error, GsRefreshTokenInput>({
     mutationFn: (input) => gsPublicPost<GsAuthResponse>("/auth/refresh", input),
+    onSuccess: async (data) => {
+      // Save tokens to httpOnly cookie via server action
+      if (data?.tokens) {
+        await saveTokens(data.tokens);
+      }
+
+      // Try to fetch current user and update cache so UI (sidebar) shows user
+      try {
+        const resp = await gsGet<{ user?: GsUser }>("/auth/me");
+        const me = (resp as any).user ?? (resp as unknown as GsUser);
+        queryClient.setQueryData(queryKeys.gsAuth.me(), me);
+      } catch (err) {
+        // If fetching user fails, clear tokens to avoid inconsistent state
+        console.error(
+          "useGsRefreshToken: failed to fetch /auth/me after refresh",
+          err,
+        );
+        await clearTokens();
+      }
+
+      // Trigger a client refresh so server components re-run with updated cookies
+      try {
+        router.refresh();
+      } catch (err) {
+        /* ignore */
+      }
+    },
   });
 }
 

@@ -32,6 +32,11 @@ import type {
   GsGradeELKPDSubmissionResponse,
 } from "@/types/gs-subject";
 
+interface IGsMySubjectsQueryOptions {
+  enabled?: boolean;
+  staleTime?: number;
+}
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 function buildQuery(params?: GsPaginationParams): string {
@@ -56,12 +61,16 @@ export function useGsAllSubjects(params?: GsPaginationParams) {
 
 // ─── TEACHER: GET /subjects/my ────────────────────────────────────────────────
 
-export function useGsMySubjects(params?: GsPaginationParams) {
+export function useGsMySubjects(
+  params?: GsPaginationParams,
+  options?: IGsMySubjectsQueryOptions,
+) {
   return useQuery<GsPaginatedSubjects, Error>({
     queryKey: queryKeys.gsSubjects.myList(params as Record<string, unknown>),
     queryFn: () =>
       gsGet<GsPaginatedSubjects>(`/subjects/my${buildQuery(params)}`),
-    staleTime: 2 * 60 * 1000,
+    enabled: options?.enabled ?? true,
+    staleTime: options?.staleTime ?? 2 * 60 * 1000,
   });
 }
 

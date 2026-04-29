@@ -5,6 +5,7 @@ export type ApiFeature =
   | "courses"
   | "course-modules"
   | "course-enrollments"
+  | "notifications"
   | "subjects"
   | "diagnostic-tests";
 export type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -256,6 +257,13 @@ export const integratedEndpoints: IntegratedEndpointSchema[] = [
     roles: ["admin", "teacher"],
   },
   {
+    id: "course-enrollments.kick-student",
+    method: "DELETE",
+    path: "/course-enrollments/:courseId/students/:studentId",
+    feature: "course-enrollments",
+    roles: ["admin", "teacher"],
+  },
+  {
     id: "course-enrollments.enroll",
     method: "POST",
     path: "/course-enrollments",
@@ -268,6 +276,51 @@ export const integratedEndpoints: IntegratedEndpointSchema[] = [
     path: "/course-enrollments/:courseId",
     feature: "course-enrollments",
     roles: ["student"],
+  },
+
+  // Notifications
+  {
+    id: "notifications.list",
+    method: "GET",
+    path: "/notifications",
+    feature: "notifications",
+    roles: ["admin", "teacher", "student", "parent"],
+    notes: "page, limit, and optional isRead are passed as query strings.",
+  },
+  {
+    id: "notifications.unread-count",
+    method: "GET",
+    path: "/notifications/unread-count",
+    feature: "notifications",
+    roles: ["admin", "teacher", "student", "parent"],
+  },
+  {
+    id: "notifications.mark-all-read",
+    method: "PATCH",
+    path: "/notifications/read-all",
+    feature: "notifications",
+    roles: ["admin", "teacher", "student", "parent"],
+  },
+  {
+    id: "notifications.delete-all",
+    method: "DELETE",
+    path: "/notifications",
+    feature: "notifications",
+    roles: ["admin", "teacher", "student", "parent"],
+  },
+  {
+    id: "notifications.mark-read",
+    method: "PATCH",
+    path: "/notifications/:id/read",
+    feature: "notifications",
+    roles: ["admin", "teacher", "student", "parent"],
+  },
+  {
+    id: "notifications.delete",
+    method: "DELETE",
+    path: "/notifications/:id",
+    feature: "notifications",
+    roles: ["admin", "teacher", "student", "parent"],
   },
 
   // Subjects

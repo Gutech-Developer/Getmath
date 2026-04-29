@@ -20,6 +20,11 @@ import type {
   GsPaginationParams,
 } from "@/types/gs-diagnostic-test";
 
+interface IGsMyDiagnosticTestsQueryOptions {
+  enabled?: boolean;
+  staleTime?: number;
+}
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 function buildQuery(params?: GsPaginationParams): string {
@@ -49,7 +54,10 @@ export function useGsAllDiagnosticTests(params?: GsPaginationParams) {
 
 // ─── TEACHER: GET /diagnostic-tests/my ───────────────────────────────────────
 
-export function useGsMyDiagnosticTests(params?: GsPaginationParams) {
+export function useGsMyDiagnosticTests(
+  params?: GsPaginationParams,
+  options?: IGsMyDiagnosticTestsQueryOptions,
+) {
   return useQuery<GsPaginatedDiagnosticTests, Error>({
     queryKey: queryKeys.gsDiagnosticTests.myList(
       params as Record<string, unknown>,
@@ -58,7 +66,8 @@ export function useGsMyDiagnosticTests(params?: GsPaginationParams) {
       gsGet<GsPaginatedDiagnosticTests>(
         `/diagnostic-tests/my${buildQuery(params)}`,
       ),
-    staleTime: 2 * 60 * 1000,
+    enabled: options?.enabled ?? true,
+    staleTime: options?.staleTime ?? 2 * 60 * 1000,
   });
 }
 
@@ -123,17 +132,16 @@ export function useGsUpdateDiagnosticTest() {
   >({
     mutationFn: ({ id, data }) =>
       gsPatch<GsDiagnosticTest>(`/diagnostic-tests/${id}`, data),
-    onSuccess: (updated) => {
+    onSuccess: async (_updated, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsDiagnosticTests.myList(),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsDiagnosticTests.lists(),
       });
-      queryClient.setQueryData(
-        queryKeys.gsDiagnosticTests.detail(updated.id),
-        updated,
-      );
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.gsDiagnosticTests.detail(variables.id),
+      });
     },
   });
 }

@@ -85,7 +85,7 @@ function CreateCourseModal({
           <button
             onClick={handleSubmit}
             disabled={!courseName.trim() || createCourse.isPending}
-            className="px-5 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+            className="px-5 py-2 rounded-xl text-sm font-semibold bg-[#1F2375] text-white hover:bg-[#171B5C] disabled:cursor-not-allowed disabled:opacity-50 transition-colors flex items-center gap-2"
           >
             <PlusIcon className="w-4 h-4" />
             {createCourse.isPending ? "Menyimpan..." : "Buat Kelas"}

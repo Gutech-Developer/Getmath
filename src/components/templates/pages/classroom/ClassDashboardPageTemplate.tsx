@@ -16,11 +16,7 @@ import {
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
-import {
-  useGsCourseBySlug,
-  useGsEnrollmentsByCourse,
-  useGsModulesByCourse,
-} from "@/services";
+import { useGsCourseBySlug, useGsModulesByCourse } from "@/services";
 
 interface IClassDashboardPageTemplateProps {
   slug: string;
@@ -46,14 +42,11 @@ export default function ClassDashboardPageTemplate({
   );
 
   const { data: course } = useGsCourseBySlug(slug);
-  const { data: enrollmentsData } = useGsEnrollmentsByCourse(course?.id ?? "", {
-    limit: 50,
-  });
   const { data: modules } = useGsModulesByCourse(course?.id ?? "");
 
   const courseName = course?.courseName ?? classTitle;
   const courseCode = course?.courseCode ?? "–";
-  const totalStudents = enrollmentsData?.pagination.totalItems ?? 0;
+  const totalStudents = course?.enrolledCount ?? 0;
   // Hitung hanya modul bertipe SUBJECT dari kelas ini (bukan semua materi system)
   const totalSubjects = (modules ?? []).filter(
     (m) => m.type === "SUBJECT",
@@ -61,12 +54,6 @@ export default function ClassDashboardPageTemplate({
   const totalDiagnosticTests = (modules ?? []).filter(
     (m) => m.type === "DIAGNOSTIC_TEST",
   ).length;
-
-  // Gunakan student.fullName yang dikembalikan backend, bukan studentId
-  const studentItems = (enrollmentsData?.enrollments ?? []).map(
-    (e) =>
-      e.student?.fullName ?? `Siswa ${e.studentId.slice(-4).toUpperCase()}`,
-  );
 
   const metricItems: {
     key: string;
@@ -142,7 +129,7 @@ export default function ClassDashboardPageTemplate({
           {[
             `${totalSubjects} Materi`,
             totalDiagnosticTests > 0 ? `${totalDiagnosticTests} Tes` : null,
-            `${totalStudents} Siswa`,
+            `${totalStudents} Siswa Terdaftar`,
             courseCode,
           ]
             .filter(Boolean)
@@ -194,22 +181,13 @@ export default function ClassDashboardPageTemplate({
           </p>
         </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {studentItems.length === 0 && (
-            <p className="col-span-4 py-4 text-center text-sm text-[#9CA3AF]">
-              Belum ada siswa terdaftar.
-            </p>
-          )}
-          {studentItems.map((name, index) => (
-            <ClassStudentChip
-              key={`${name}-${index}`}
-              name={name}
-              initial={name.charAt(0)}
-              toneClassName={
-                studentToneClassNames[index % studentToneClassNames.length]
-              }
-            />
-          ))}
+        <div className="mt-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-5 text-center">
+          <p className="text-sm font-medium text-[#0F172A]">
+            {totalStudents} siswa terdaftar di kelas ini.
+          </p>
+          <p className="mt-1 text-xs text-[#64748B]">
+            Daftar siswa lengkap hanya tersedia untuk role guru.
+          </p>
         </div>
       </section>
     </ClassPageShellTemplate>

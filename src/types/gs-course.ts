@@ -86,6 +86,13 @@ export interface GsCourseModuleSubject {
   description: string | null;
   subjectFileUrl: string;
   videoUrl: string | null;
+  eLKPDs?: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    fileUrl: string;
+    createdAt: string;
+  }>;
 }
 
 /** Subset diagnostic test yang di-embed dalam modul */
