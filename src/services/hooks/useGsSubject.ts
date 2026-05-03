@@ -114,9 +114,17 @@ export function useGsCreateSubject() {
     mutationFn: (input) => gsPost<GsCreateSubjectResponse>("/subjects", input),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsSubjects.myList(),
+        queryKey: ["gs", "subjects", "my"],
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.gsSubjects.lists() });
+
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsSubjects.lists(),
+      });
+
+      queryClient.refetchQueries({
+        queryKey: ["gs", "subjects", "my"],
+        type: "active",
+      });
     },
   });
 }
@@ -134,13 +142,21 @@ export function useGsUpdateSubject() {
     mutationFn: ({ id, data }) => gsPut<GsSubject>(`/subjects/${id}`, data),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsSubjects.myList(),
+        queryKey: ["gs", "subjects", "my"],
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.gsSubjects.lists() });
+
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsSubjects.lists(),
+      });
+
       queryClient.setQueryData(
         queryKeys.gsSubjects.detail(updated.id),
         updated,
       );
+
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsSubjects.detail(updated.id),
+      });
     },
   });
 }
