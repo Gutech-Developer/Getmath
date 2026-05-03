@@ -2,48 +2,19 @@
 
 import {
   AdminDashboardContent,
-  AdminStat,
   AdminChartLine,
+  AdminStat,
   TeacherActivity,
 } from "@/components/organisms/AdminDashboardContent";
-import UsersIcon from "@/components/atoms/icons/UsersIcon";
-import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import ClipboardIcon from "@/components/atoms/icons/ClipboardIcon";
-
-// ============ MOCK DATA ============
-// Replace with real API data from hooks
-
-const ADMIN_STATS: AdminStat[] = [
-  {
-    icon: <UsersIcon className="w-5 h-5" />,
-    iconColor: "bg-blue-100 text-blue-500",
-    value: 10234,
-    label: "Total Siswa",
-    delta: 128,
-  },
-  {
-    icon: <DashboardIcon className="w-5 h-5" variant="filled" />,
-    iconColor: "bg-emerald-100 text-emerald-500",
-    value: 4,
-    label: "Total Kelas",
-    delta: 3,
-  },
-  {
-    icon: <BookIcon className="w-5 h-5" />,
-    iconColor: "bg-violet-100 text-violet-500",
-    value: 4,
-    label: "Total Materi",
-    delta: 3,
-  },
-  {
-    icon: <ClipboardIcon className="w-5 h-5" />,
-    iconColor: "bg-amber-100 text-amber-500",
-    value: 3,
-    label: "Total Tes",
-    delta: 3,
-  },
-];
+import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
+import UsersIcon from "@/components/atoms/icons/UsersIcon";
+import {
+  useGsAllCourses,
+  useGsAllDiagnosticTests,
+  useGsAllSubjects,
+} from "@/services";
 
 const CHART_LABELS = ["Jan", "Feb", "Mar", "Apr"];
 
@@ -109,9 +80,46 @@ const TEACHER_ACTIVITIES: TeacherActivity[] = [
 ];
 
 export default function AdminDashboardTemplate() {
+  const { data: coursesData } = useGsAllCourses({ limit: 1 });
+  const { data: subjectsData } = useGsAllSubjects({ limit: 1 });
+  const { data: diagnosticTestsData } = useGsAllDiagnosticTests({ limit: 1 });
+
+  const stats: AdminStat[] = [
+    {
+      icon: <UsersIcon className="h-5 w-5" />,
+      iconColor: "bg-blue-100 text-blue-500",
+      value: coursesData?.pagination.totalItems ?? 0,
+      label: "Total Kelas",
+      delta: 3,
+    },
+    {
+      icon: <DashboardIcon className="h-5 w-5" variant="filled" />,
+      iconColor: "bg-emerald-100 text-emerald-500",
+      value: subjectsData?.pagination.totalItems ?? 0,
+      label: "Total Materi",
+      delta: 3,
+    },
+    {
+      icon: <BookIcon className="h-5 w-5" />,
+      iconColor: "bg-violet-100 text-violet-500",
+      value: diagnosticTestsData?.pagination.totalItems ?? 0,
+      label: "Total Tes",
+      delta: 3,
+    },
+    {
+      icon: <ClipboardIcon className="h-5 w-5" />,
+      iconColor: "bg-amber-100 text-amber-500",
+      value:
+        (coursesData?.pagination.totalItems ?? 0) +
+        (subjectsData?.pagination.totalItems ?? 0),
+      label: "Total Konten",
+      delta: 3,
+    },
+  ];
+
   return (
     <AdminDashboardContent
-      stats={ADMIN_STATS}
+      stats={stats}
       chartLabels={CHART_LABELS}
       chartLines={CHART_LINES}
       chartTitle="Tren Pertumbuhan Platform"

@@ -20,6 +20,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { gsLogger } from "@/utils/logger";
 
 // ─── Konfigurasi ──────────────────────────────────────────────────────────────
 
@@ -93,21 +94,44 @@ export async function saveTokens(tokens: GsTokenPair): Promise<void> {
   const store = await getCookieStore();
   const isProduction = process.env.NODE_ENV === "production";
 
-  store.set(COOKIE_KEYS.accessToken, tokens.accessToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: "lax",
-    path: "/",
-    maxAge: COOKIE_TTL.accessToken,
-  });
+  try {
+    // Set cookies (httpOnly)
+    store.set(COOKIE_KEYS.accessToken, tokens.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      path: "/",
+      maxAge: COOKIE_TTL.accessToken,
+    });
 
-  store.set(COOKIE_KEYS.refreshToken, tokens.refreshToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: "lax",
-    path: "/",
-    maxAge: COOKIE_TTL.refreshToken,
-  });
+    store.set(COOKIE_KEYS.refreshToken, tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      path: "/",
+      maxAge: COOKIE_TTL.refreshToken,
+    });
+
+    if (IS_GS_API_DEBUG) {
+      gsLogger.info(
+        "[GS Auth] saveTokens: accessToken present, refreshToken present",
+      );
+      try {
+        // read back from cookie store to verify
+        const maybeAccess = store.get(COOKIE_KEYS.accessToken)?.value;
+        const maybeRefresh = store.get(COOKIE_KEYS.refreshToken)?.value;
+        gsLogger.info("[GS Auth] saveTokens: verify store access:", {
+          accessTokenExists: !!maybeAccess,
+          refreshTokenExists: !!maybeRefresh,
+        });
+      } catch (err) {
+        gsLogger.info("[GS Auth] saveTokens: verify readback failed", err);
+      }
+    }
+  } catch (err) {
+    console.error("[GS Auth] saveTokens: gagal menyimpan cookie:", err);
+    throw err;
+  }
 }
 
 /** Hapus semua token (logout / session expired) */
@@ -131,6 +155,36 @@ function buildBaseHeaders(accessToken?: string): Record<string, string> {
   }
 
   return headers;
+}
+
+const IS_GS_API_DEBUG = process.env.NODE_ENV === "development";
+
+function logGsApiRequest(params: {
+  method: string;
+  endpoint: string;
+  headers: Record<string, string>;
+  payload?: unknown;
+}): void {
+  gsLogger.request(
+    params.method,
+    params.endpoint,
+    params.headers,
+    params.payload,
+  );
+}
+
+function logGsApiResponse(params: {
+  method: string;
+  endpoint: string;
+  status: number;
+  response: unknown;
+}): void {
+  gsLogger.response(
+    params.method,
+    params.endpoint,
+    params.status,
+    params.response,
+  );
 }
 
 // ─── Token Refresh ────────────────────────────────────────────────────────────
@@ -159,6 +213,20 @@ async function _doRefreshOnce(): Promise<string | null> {
     return null;
   }
 
+  if (IS_GS_API_DEBUG) {
+    try {
+      gsLogger.info(
+        "[GS Auth] doRefreshToken: found refresh token in cookie (length)",
+        refreshToken.length,
+      );
+    } catch (err) {
+      gsLogger.info(
+        "[GS Auth] doRefreshToken: failed to read refresh token length",
+        err,
+      );
+    }
+  }
+
   // ── 1. Kirim request refresh ─────────────────────────────────────────────
   let res: Response;
   try {
@@ -171,6 +239,21 @@ async function _doRefreshOnce(): Promise<string | null> {
   } catch (err) {
     console.error("[GS Auth] doRefreshToken: network error:", err);
     return null;
+  }
+
+  if (IS_GS_API_DEBUG) {
+    try {
+      const sc = res.headers.get("set-cookie");
+      gsLogger.info("[GS Auth] doRefreshToken: refresh response status:", {
+        status: res.status,
+        hasSetCookie: !!sc,
+      });
+    } catch (err) {
+      gsLogger.info(
+        "[GS Auth] doRefreshToken: failed to read response headers",
+        err,
+      );
+    }
   }
 
   if (!res.ok) {
@@ -197,6 +280,13 @@ async function _doRefreshOnce(): Promise<string | null> {
     return null;
   }
 
+  if (IS_GS_API_DEBUG) {
+    gsLogger.info("[GS Auth] doRefreshToken: parsed tokens presence", {
+      access: !!newTokens?.accessToken,
+      refresh: !!newTokens?.refreshToken,
+    });
+  }
+
   if (!newTokens?.accessToken || !newTokens?.refreshToken) {
     console.error(
       "[GS Auth] doRefreshToken: response tidak mengandung tokens yang valid:",
@@ -208,7 +298,16 @@ async function _doRefreshOnce(): Promise<string | null> {
   // ── 3. Simpan token ke cookie ────────────────────────────────────────────
   // Dipisah agar kegagalan save tidak memblokir return (retry tetap bisa jalan)
   try {
+    if (IS_GS_API_DEBUG) {
+      gsLogger.info(
+        "[GS Auth] doRefreshToken: menerima tokens dari endpoint refresh. saving...",
+      );
+      // Do not log actual tokens
+    }
     await saveTokens(newTokens);
+    if (IS_GS_API_DEBUG) {
+      gsLogger.info("[GS Auth] doRefreshToken: saveTokens completed");
+    }
   } catch (err) {
     console.error(
       "[GS Auth] doRefreshToken: saveTokens gagal (token baru tidak disimpan ke cookie):",
@@ -232,7 +331,7 @@ async function _doRefreshOnce(): Promise<string | null> {
 async function doRefreshToken(): Promise<string | null> {
   // Jika sudah ada refresh yang sedang berjalan, tunggu hasilnya
   if (_refreshInFlight) {
-    console.log(
+    gsLogger.info(
       "[GS Auth] doRefreshToken: menunggu refresh yang sudah berjalan...",
     );
     return _refreshInFlight;
@@ -272,13 +371,22 @@ async function coreFetch<T>(
   } = config;
 
   const accessToken = withAuth ? await getAccessToken() : undefined;
+  const endpoint = `${BASE_URL}${path}`;
+  const headers = {
+    ...buildBaseHeaders(accessToken),
+    ...extraHeaders,
+  };
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  logGsApiRequest({
     method,
-    headers: {
-      ...buildBaseHeaders(accessToken),
-      ...extraHeaders,
-    },
+    endpoint,
+    headers,
+    payload: body,
+  });
+
+  const res = await fetch(endpoint, {
+    method,
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache,
     next,
@@ -321,6 +429,12 @@ async function coreFetch<T>(
     }
 
     const retryJson: GsApiResponse<T> = await retryRes.json();
+    logGsApiResponse({
+      method,
+      endpoint,
+      status: retryRes.status,
+      response: retryJson.data,
+    });
     return retryJson.data;
   }
 
@@ -341,6 +455,12 @@ async function coreFetch<T>(
   }
 
   const json: GsApiResponse<T> = await res.json();
+  logGsApiResponse({
+    method,
+    endpoint,
+    status: res.status,
+    response: json.data,
+  });
   return json.data;
 }
 

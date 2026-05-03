@@ -86,6 +86,13 @@ export interface GsCourseModuleSubject {
   description: string | null;
   subjectFileUrl: string;
   videoUrl: string | null;
+  eLKPDs?: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    fileUrl: string;
+    createdAt: string;
+  }>;
 }
 
 /** Subset diagnostic test yang di-embed dalam modul */
@@ -111,6 +118,12 @@ export interface GsCourseModule {
   subject?: GsCourseModuleSubject;
   diagnosticTest?: GsCourseModuleDiagnosticTest;
 }
+
+/**
+ * Backend docs saat ini menunjukkan response create module berupa array modul.
+ * Beberapa implementasi bisa mengembalikan object tunggal.
+ */
+export type GsCreateCourseModuleResponse = GsCourseModule | GsCourseModule[];
 
 /** Input untuk POST /course-modules/:courseId */
 export interface GsCreateCourseModuleInput {

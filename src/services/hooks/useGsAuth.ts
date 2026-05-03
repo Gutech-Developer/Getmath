@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 
 import { queryKeys } from "@/libs/api";
 import {
+  gsPublicGet,
   gsPublicPost,
   gsPost,
   gsGet,
@@ -27,6 +28,14 @@ import type {
   GsForgotPasswordInput,
   GsResetPasswordInput,
   GsResendActivationInput,
+  GsActivationVerifyInput,
+  GsRefreshTokenInput,
+  GsForgotPasswordVerifyResponse,
+  GsGoogleGetAuthUrlInput,
+  GsGoogleGetAuthUrlResponse,
+  GsGoogleCallbackInput,
+  GsGoogleCallbackResponse,
+  GsGoogleCompleteProfileInput,
   GsUser,
   GsMessageResponse,
 } from "@/types/gs-auth";
@@ -36,7 +45,10 @@ import type {
 export function useGsCurrentUser(options?: { enabled?: boolean }) {
   return useQuery<GsUser, Error>({
     queryKey: queryKeys.gsAuth.me(),
-    queryFn: () => gsGet<GsUser>("/auth/me"),
+    queryFn: async () => {
+      const resp = await gsGet<{ user?: GsUser }>("/auth/me");
+      return (resp as any).user ?? (resp as unknown as GsUser);
+    },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 menit
     ...options,
@@ -129,5 +141,103 @@ export function useGsResendActivation() {
   return useMutation<GsMessageResponse, Error, GsResendActivationInput>({
     mutationFn: (input) =>
       gsPublicPost<GsMessageResponse>("/auth/activation/resend", input),
+  });
+}
+
+// ─── GET /api/auth/activation/verify?token=... ──────────────────────────────
+
+export function useGsActivationVerify(input: GsActivationVerifyInput) {
+  return useQuery<GsAuthResponse, Error>({
+    queryKey: queryKeys.gsAuth.activationVerify(input.token),
+    queryFn: () =>
+      gsPublicGet<GsAuthResponse>(
+        `/auth/activation/verify?token=${encodeURIComponent(input.token)}`,
+      ),
+    enabled: !!input.token,
+    retry: false,
+  });
+}
+
+// ─── GET /api/auth/forgot-password/verify?token=... ─────────────────────────
+
+export function useGsForgotPasswordVerify(input: GsActivationVerifyInput) {
+  return useQuery<GsForgotPasswordVerifyResponse, Error>({
+    queryKey: queryKeys.gsAuth.forgotPasswordVerify(input.token),
+    queryFn: () =>
+      gsPublicGet<GsForgotPasswordVerifyResponse>(
+        `/auth/forgot-password/verify?token=${encodeURIComponent(input.token)}`,
+      ),
+    enabled: !!input.token,
+    retry: false,
+  });
+}
+
+// ─── POST /api/auth/refresh ──────────────────────────────────────────────────
+
+export function useGsRefreshToken() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  return useMutation<GsAuthResponse, Error, GsRefreshTokenInput>({
+    mutationFn: (input) => gsPublicPost<GsAuthResponse>("/auth/refresh", input),
+    onSuccess: async (data) => {
+      // Save tokens to httpOnly cookie via server action
+      if (data?.tokens) {
+        await saveTokens(data.tokens);
+      }
+
+      // Try to fetch current user and update cache so UI (sidebar) shows user
+      try {
+        const resp = await gsGet<{ user?: GsUser }>("/auth/me");
+        const me = (resp as any).user ?? (resp as unknown as GsUser);
+        queryClient.setQueryData(queryKeys.gsAuth.me(), me);
+      } catch (err) {
+        // If fetching user fails, clear tokens to avoid inconsistent state
+        console.error(
+          "useGsRefreshToken: failed to fetch /auth/me after refresh",
+          err,
+        );
+        await clearTokens();
+      }
+
+      // Trigger a client refresh so server components re-run with updated cookies
+      try {
+        router.refresh();
+      } catch (err) {
+        /* ignore */
+      }
+    },
+  });
+}
+
+// ─── GET /api/auth/google/url ────────────────────────────────────────────────
+
+export function useGsGoogleAuthUrl(input: GsGoogleGetAuthUrlInput) {
+  return useQuery<GsGoogleGetAuthUrlResponse, Error>({
+    queryKey: queryKeys.gsAuth.googleAuthUrl(input.redirectUri),
+    queryFn: () =>
+      gsPublicGet<GsGoogleGetAuthUrlResponse>(
+        `/auth/google/url?redirectUri=${encodeURIComponent(input.redirectUri)}`,
+      ),
+    enabled: !!input.redirectUri,
+    retry: false,
+  });
+}
+
+// ─── POST /api/auth/google/callback ──────────────────────────────────────────
+
+export function useGsGoogleCallback() {
+  return useMutation<GsGoogleCallbackResponse, Error, GsGoogleCallbackInput>({
+    mutationFn: (input) =>
+      gsPublicPost<GsGoogleCallbackResponse>("/auth/google/callback", input),
+  });
+}
+
+// ─── POST /api/auth/google/complete-profile ──────────────────────────────────
+
+export function useGsGoogleCompleteProfile() {
+  return useMutation<GsAuthResponse, Error, GsGoogleCompleteProfileInput>({
+    mutationFn: (input) =>
+      gsPublicPost<GsAuthResponse>("/auth/google/complete-profile", input),
   });
 }

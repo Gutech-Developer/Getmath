@@ -28,6 +28,18 @@ export interface IDashboardSidebarRouteItem {
   badgeCount?: number;
 }
 
+interface DashboardSidebarRouteOptions {
+  notificationBadgeCount?: number;
+}
+
+const notificationPathByRole: Record<UserRole, string> = {
+  admin: "/admin/dashboard/notifikasi",
+  teacher: "/teacher/dashboard/notifikasi",
+  student: "/student/dashboard/notifikasi",
+  parent: "/parent/dashboard/notifikasi",
+  counselor: "/teacher/dashboard/notifikasi",
+};
+
 const studentDashboardSidebarRoutes: IDashboardSidebarRouteItem[] = [
   {
     key: "dashboard",
@@ -36,10 +48,10 @@ const studentDashboardSidebarRoutes: IDashboardSidebarRouteItem[] = [
     icon: DashboardIcon,
   },
   {
-    key: "lad",
-    label: "LAD",
-    href: "/student/dashboard/lad",
-    icon: ActivityIcon,
+    key: "notifications",
+    label: "Notifikasi",
+    href: notificationPathByRole.student,
+    icon: NotificationIcon,
   },
   {
     key: "profil",
@@ -76,10 +88,9 @@ const teacherDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
   },
   {
     key: "notifications",
-    label: "Notifications",
-    href: "/teacher/dashboard/notifikasi",
+    label: "Notifikasi",
+    href: notificationPathByRole.teacher,
     icon: NotificationIcon,
-    badgeCount: 3,
   },
 
   {
@@ -98,6 +109,12 @@ const adminDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
     icon: DashboardIcon,
   },
 
+  {
+    key: "notifications",
+    label: "Notifikasi",
+    href: notificationPathByRole.admin,
+    icon: NotificationIcon,
+  },
   {
     key: "learning analytics",
     label: "Learning Analytics",
@@ -131,6 +148,12 @@ const parentDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
     href: "/parent/dashboard",
     icon: DashboardIcon,
   },
+  {
+    key: "notifications",
+    label: "Notifikasi",
+    href: notificationPathByRole.parent,
+    icon: NotificationIcon,
+  },
 
   {
     key: "profil",
@@ -140,14 +163,34 @@ const parentDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
   },
 ];
 
-export function getStudentDashboardSidebarRoutes(): IDashboardSidebarRouteItem[] {
-  return studentDashboardSidebarRoutes;
+function withNotificationBadgeCount(
+  items: IDashboardSidebarRouteItem[],
+  notificationBadgeCount?: number,
+): IDashboardSidebarRouteItem[] {
+  return items.map((item) =>
+    item.key === "notifications"
+      ? {
+          ...item,
+          badgeCount: notificationBadgeCount,
+        }
+      : item,
+  );
+}
+
+export function getStudentDashboardSidebarRoutes(
+  options?: DashboardSidebarRouteOptions,
+): IDashboardSidebarRouteItem[] {
+  return withNotificationBadgeCount(
+    studentDashboardSidebarRoutes,
+    options?.notificationBadgeCount,
+  );
 }
 
 export function getDashboardSidebarRoutesByRole(
   role: UserRole | null,
+  options?: DashboardSidebarRouteOptions,
 ): IDashboardSidebarRouteItem[] {
-  return getDashboardSidebarInitRoutesByRole(role);
+  return getDashboardSidebarInitRoutesByRole(role, options);
 }
 
 export function resolveDashboardSidebarRouteKey(
@@ -159,6 +202,10 @@ export function resolveDashboardSidebarRouteKey(
     normalizedPathname.startsWith("/teacher/dashboard");
 
   if (isAdminDashboard) {
+    if (normalizedPathname.includes("/dashboard/notifikasi")) {
+      return "notifications";
+    }
+
     if (normalizedPathname.includes("/dashboard/learning-analytics")) {
       return "learning analytics";
     }
@@ -205,6 +252,10 @@ export function resolveDashboardSidebarRouteKey(
     return "dashboard";
   }
 
+  if (normalizedPathname.includes("/dashboard/notifikasi")) {
+    return "notifications";
+  }
+
   if (normalizedPathname.includes("/dashboard/lad")) {
     return "lad";
   }
@@ -224,22 +275,19 @@ export function resolveStudentDashboardRouteKey(
 
 export function getDashboardSidebarInitRoutesByRole(
   role: UserRole | null,
+  options?: DashboardSidebarRouteOptions,
 ): IDashboardSidebarRouteItem[] {
+  let routes: IDashboardSidebarRouteItem[] = [];
+
   if (role === "student") {
-    return studentDashboardSidebarRoutes;
+    routes = studentDashboardSidebarRoutes;
+  } else if (role === "teacher" || role === "counselor") {
+    routes = teacherDashboardSidebarInitRoutes;
+  } else if (role === "admin") {
+    routes = adminDashboardSidebarInitRoutes;
+  } else if (role === "parent") {
+    routes = parentDashboardSidebarInitRoutes;
   }
 
-  if (role === "teacher" || role === "counselor") {
-    return teacherDashboardSidebarInitRoutes;
-  }
-
-  if (role === "admin") {
-    return adminDashboardSidebarInitRoutes;
-  }
-
-  if (role === "parent") {
-    return parentDashboardSidebarInitRoutes;
-  }
-
-  return [];
+  return withNotificationBadgeCount(routes, options?.notificationBadgeCount);
 }

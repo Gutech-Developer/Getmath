@@ -17,6 +17,7 @@ import { queryKeys } from "@/libs/api";
 import { gsGet, gsPost, gsPatch, gsDel } from "@/libs/api/getsmart";
 import type {
   GsCourseModule,
+  GsCreateCourseModuleResponse,
   GsCreateCourseModuleInput,
   GsUpdateCourseModuleInput,
   GsReorderCourseModulesInput,
@@ -51,12 +52,12 @@ export function useGsCreateCourseModule() {
   const queryClient = useQueryClient();
 
   return useMutation<
-    GsCourseModule,
+    GsCreateCourseModuleResponse,
     Error,
     { courseId: string; data: GsCreateCourseModuleInput }
   >({
     mutationFn: ({ courseId, data }) =>
-      gsPost<GsCourseModule>(`/course-modules/${courseId}`, data),
+      gsPost<GsCreateCourseModuleResponse>(`/course-modules/${courseId}`, data),
     onSuccess: (_, { courseId }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.byCourse(courseId),

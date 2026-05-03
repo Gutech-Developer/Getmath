@@ -1,35 +1,28 @@
 "use client";
 
 import AdminClassListContent from "@/components/organisms/AdminClassListContent";
-import {
-  INITIAL_ADMIN_CLASS_LIST,
-  ADMIN_CLASS_TEACHER_OPTIONS,
-} from "@/constant/adminClassList";
+import { showToast } from "@/libs/toast";
 import type {
   IAdminClassListItem,
   IClassFormPayload,
 } from "@/types/adminClassList";
-import { showToast } from "@/libs/toast";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  useGsAllCourses,
+  useGsArchiveCourse,
+  useGsCreateCourse,
+  useGsDeleteCourse,
+  useGsUnarchiveCourse,
+  useGsUpdateCourse,
+} from "@/services";
 
-function buildClassCode(className: string, serialNumber: number): string {
-  const prefix = className
-    .toUpperCase()
-    .replace(/[^A-Z0-9 ]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word.slice(0, 4))
-    .join("-");
-
-  const safePrefix = prefix || "KELAS";
-
-  return `${safePrefix}-${String(serialNumber).padStart(3, "0")}`;
-}
-
-function getTodayDateLabel(): string {
-  return new Date().toISOString().slice(0, 10);
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function toSlug(value: string): string {
@@ -43,116 +36,128 @@ function toSlug(value: string): string {
 export default function AdminClassListTemplate() {
   const pathname = usePathname();
   const router = useRouter();
-  const [classes, setClasses] = useState<IAdminClassListItem[]>(
-    INITIAL_ADMIN_CLASS_LIST,
-  );
   const isTeacherDashboard = pathname?.includes("/teacher/dashboard") ?? false;
 
-  const teacherNameById = useMemo(
-    () =>
-      ADMIN_CLASS_TEACHER_OPTIONS.reduce<Record<string, string>>(
-        (accumulator, teacher) => {
-          accumulator[teacher.id] = teacher.label;
-          return accumulator;
-        },
-        {},
-      ),
-    [],
-  );
+  const { data: coursesData, isLoading } = useGsAllCourses({ limit: 50 });
+  const createCourse = useGsCreateCourse();
+  const updateCourse = useGsUpdateCourse();
+  const archiveCourse = useGsArchiveCourse();
+  const unarchiveCourse = useGsUnarchiveCourse();
+  const deleteCourse = useGsDeleteCourse();
 
-  const resolveTeacherName = useCallback(
-    (teacherId: string) =>
-      teacherNameById[teacherId] ?? "Guru belum ditentukan",
-    [teacherNameById],
+  const classes: IAdminClassListItem[] = useMemo(
+    () =>
+      (coursesData?.courses ?? []).map((course) => ({
+        id: course.id,
+        name: course.courseName,
+        teacherName: course.teacher?.fullName ?? "Belum ditentukan",
+        createdAt: formatDate(course.createdAt),
+        studentCount: course.enrolledCount ?? 0,
+        testCount: course.diagnosticTestCount ?? 0,
+        code: course.courseCode,
+        status: course.isArchived ? "Nonaktif" : "Aktif",
+      })),
+    [coursesData],
   );
 
   const handleCreateClass = useCallback(
     (payload: IClassFormPayload) => {
-      setClasses((previous) => {
-        const nextSerial = previous.length + 1;
-        const newClass: IAdminClassListItem = {
-          id: `class-${Date.now()}`,
-          name: payload.className.trim(),
-          teacherName: resolveTeacherName(payload.teacherId),
-          createdAt: getTodayDateLabel(),
-          studentCount: 0,
-          testCount: 0,
-          code: buildClassCode(payload.className, nextSerial),
-          status: "Aktif",
-        };
-
-        return [newClass, ...previous];
-      });
-
-      showToast.success("Kelas baru berhasil ditambahkan");
+      createCourse.mutate(
+        { courseName: payload.className.trim() },
+        {
+          onSuccess: () => showToast.success("Kelas baru berhasil ditambahkan"),
+          onError: (error) =>
+            showToast.error(error.message ?? "Gagal menambahkan kelas"),
+        },
+      );
     },
-    [resolveTeacherName],
+    [createCourse],
   );
 
   const handleUpdateClass = useCallback(
     (classId: string, payload: IClassFormPayload) => {
-      setClasses((previous) =>
-        previous.map((classItem) =>
-          classItem.id === classId
-            ? {
-                ...classItem,
-                name: payload.className.trim(),
-                teacherName: resolveTeacherName(payload.teacherId),
-              }
-            : classItem,
-        ),
+      updateCourse.mutate(
+        { id: classId, data: { courseName: payload.className.trim() } },
+        {
+          onSuccess: () =>
+            showToast.success("Perubahan kelas berhasil disimpan"),
+          onError: (error) =>
+            showToast.error(error.message ?? "Gagal memperbarui kelas"),
+        },
       );
-
-      showToast.success("Perubahan kelas berhasil disimpan");
     },
-    [resolveTeacherName],
+    [updateCourse],
   );
 
-  const handleDeleteClass = useCallback((classId: string) => {
-    setClasses((previous) =>
-      previous.filter((classItem) => classItem.id !== classId),
-    );
-    showToast.success("Kelas berhasil dihapus");
-  }, []);
+  const handleDeleteClass = useCallback(
+    (classId: string) => {
+      deleteCourse.mutate(classId, {
+        onSuccess: () => showToast.success("Kelas berhasil dihapus"),
+        onError: (error) =>
+          showToast.error(error.message ?? "Gagal menghapus kelas"),
+      });
+    },
+    [deleteCourse],
+  );
 
-  const handleToggleClassStatus = useCallback((classId: string) => {
-    setClasses((previous) =>
-      previous.map((classItem) => {
-        if (classItem.id !== classId) {
-          return classItem;
-        }
+  const handleToggleClassStatus = useCallback(
+    (classId: string) => {
+      const course = coursesData?.courses.find((item) => item.id === classId);
 
-        return {
-          ...classItem,
-          status: classItem.status === "Aktif" ? "Nonaktif" : "Aktif",
-        };
-      }),
-    );
-  }, []);
+      if (!course) {
+        return;
+      }
+
+      if (course.isArchived) {
+        unarchiveCourse.mutate(classId, {
+          onSuccess: () => showToast.success("Kelas diaktifkan kembali"),
+          onError: (error) =>
+            showToast.error(error.message ?? "Gagal mengaktifkan kelas"),
+        });
+        return;
+      }
+
+      archiveCourse.mutate(classId, {
+        onSuccess: () => showToast.success("Kelas diarsipkan"),
+        onError: (error) =>
+          showToast.error(error.message ?? "Gagal mengarsipkan kelas"),
+      });
+    },
+    [archiveCourse, coursesData, unarchiveCourse],
+  );
 
   const handleManageClass = useCallback(
     (classId: string) => {
-      const classItem = classes.find((item) => item.id === classId);
+      const course = coursesData?.courses.find((item) => item.id === classId);
 
-      if (!classItem) {
+      if (!course) {
         showToast.info("Kelas yang dipilih tidak ditemukan");
         return;
       }
 
-      const slug = toSlug(classItem.name);
+      const slug = course.slug || toSlug(course.courseName);
       const targetHref = isTeacherDashboard
         ? `/teacher/dashboard/class-list/${slug}`
         : `/admin/dashboard/learning-analytics/${slug}`;
 
       router.push(targetHref);
     },
-    [classes, isTeacherDashboard, router],
+    [coursesData, isTeacherDashboard, router],
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex h-48 items-center justify-center text-sm text-[#9CA3AF]">
+        Memuat data kelas...
+      </div>
+    );
+  }
 
   return (
     <AdminClassListContent
       classes={classes}
-      teacherOptions={ADMIN_CLASS_TEACHER_OPTIONS}
+      teacherOptions={[]}
+      showTeacherSelection={false}
       onCreateClass={handleCreateClass}
       onUpdateClass={handleUpdateClass}
       onDeleteClass={handleDeleteClass}

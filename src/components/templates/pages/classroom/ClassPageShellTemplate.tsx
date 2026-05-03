@@ -19,6 +19,15 @@ function toTitleCase(value: string): string {
 
 export function formatClassTitleFromSlug(slug: string): string {
   const decodedSlug = decodeURIComponent(slug);
+  // Remove trailing id/uuid if present in slug (e.g. "kalkulus-1-7ea4ef87")
+  const parts = decodedSlug.split("-").filter(Boolean);
+  if (parts.length > 1) {
+    const last = parts[parts.length - 1];
+    const isLikelyId = /^[0-9a-f]{6,32}$/.test(last);
+    if (isLikelyId) {
+      return toTitleCase(parts.slice(0, -1).join("-"));
+    }
+  }
   return toTitleCase(decodedSlug);
 }
 

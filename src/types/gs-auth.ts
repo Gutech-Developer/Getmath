@@ -75,6 +75,67 @@ export interface GsResendActivationInput {
   email: string;
 }
 
+export interface GsActivationVerifyInput {
+  token: string;
+}
+
+export interface GsRefreshTokenInput {
+  refreshToken: string;
+}
+
+export interface GsForgotPasswordVerifyResponse {
+  resetToken: string;
+}
+
+export interface GsGoogleGetAuthUrlInput {
+  redirectUri: string;
+}
+
+export interface GsGoogleGetAuthUrlResponse {
+  url: string;
+}
+
+export interface GsGoogleCallbackInput {
+  code: string;
+  redirectUri: string;
+}
+
+export interface GsGoogleProfile {
+  googleId?: string;
+  email?: string;
+  name?: string;
+  picture?: string;
+}
+
+export interface GsGoogleCallbackExistingUserResponse {
+  isNewUser: false;
+  user: GsUser;
+  tokens: GsTokenPair;
+}
+
+export interface GsGoogleCallbackNewUserResponse {
+  isNewUser: true;
+  tempToken: string;
+  googleProfile?: GsGoogleProfile;
+}
+
+export type GsGoogleCallbackResponse =
+  | GsGoogleCallbackExistingUserResponse
+  | GsGoogleCallbackNewUserResponse;
+
+export interface GsGoogleCompleteProfileInput {
+  tempToken: string;
+  role: Exclude<GsUserRole, "ADMIN">;
+  fullName?: string;
+  phoneNumber?: string;
+  NIS?: string;
+  NIP?: string;
+  province?: string;
+  city?: string;
+  schoolId?: string;
+  schoolName?: string;
+}
+
 // ── Response types ─────────────────────────────────────────────────────────────
 
 export interface GsMessageResponse {
@@ -87,4 +148,12 @@ export const GS_DASHBOARD_PATH: Record<GsUserRole, string> = {
   TEACHER: "/teacher/dashboard",
   STUDENT: "/student/dashboard",
   PARENT: "/parent/dashboard",
+};
+
+/** Mapping role ke halaman notifikasi frontend */
+export const GS_NOTIFICATION_PATH: Record<GsUserRole, string> = {
+  ADMIN: "/admin/dashboard/notifikasi",
+  TEACHER: "/teacher/dashboard/notifikasi",
+  STUDENT: "/student/dashboard/notifikasi",
+  PARENT: "/parent/dashboard/notifikasi",
 };

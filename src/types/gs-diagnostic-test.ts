@@ -50,6 +50,8 @@ export interface GsDiagnosticTest {
   description: string | null;
   durationMinutes: number;
   passingScore: number;
+  /** Optional: precomputed total question count returned by some list endpoints */
+  totalQuestions?: number;
   packages?: GsTestQuestionPackage[];
   createdAt: string;
   updatedAt: string;
