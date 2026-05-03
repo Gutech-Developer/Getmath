@@ -54,6 +54,43 @@ function mapModuleToMaterial(
   module: GsCourseModule,
   index: number,
 ): IMaterialModule {
+  // Handle diagnostic test modules
+  if (module.type === "DIAGNOSTIC_TEST" && module.diagnosticTest) {
+    const test = module.diagnosticTest;
+    const title =
+      test.testName ?? `Tes Diagnostik ${module.order ?? index + 1}`;
+    const steps: IMaterialStep[] = [
+      {
+        id: `${module.id}-diagnostic`,
+        typeLabel: "Test Diagnosis",
+        title: test.testName ?? title,
+        status: index === 0 ? "in-progress" : "locked",
+      },
+    ];
+
+    const completedSteps = index === 0 ? 1 : 0;
+
+    return {
+      id: module.id,
+      title,
+      description: test.description ?? "",
+      totalSteps: steps.length,
+      completedSteps,
+      progressPercent:
+        steps.length > 0
+          ? Math.round((completedSteps / steps.length) * 100)
+          : 0,
+      status:
+        completedSteps === steps.length
+          ? "completed"
+          : completedSteps > 0
+            ? "in-progress"
+            : "locked",
+      steps,
+    };
+  }
+
+  // Fallback: SUBJECT modules (existing behavior)
   const subject = module.subject;
   const title = subject?.subjectName ?? `Modul ${module.order ?? index + 1}`;
   const steps: IMaterialStep[] = [];
@@ -152,7 +189,7 @@ export default function ClassMaterialListPageTemplate({
   );
 
   const modules: IMaterialModule[] = (courseModules ?? [])
-    .filter((m) => m.type === "SUBJECT")
+    .filter((m) => m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST")
     .map((m, i) => mapModuleToMaterial(m, i));
 
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
