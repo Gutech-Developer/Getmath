@@ -1,90 +1,180 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
-import DownloadIcon from "@/components/atoms/icons/DownloadIcon";
-import MinusIcon from "@/components/atoms/icons/MinusIcon";
-import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import PDFIcon from "@/components/atoms/icons/PDFIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
-import {
-  ELKPDForm,
-  ModulMateriCard,
-  PersamaanKuadratCard,
-} from "@/components/molecules/classroom";
 import { cn } from "@/libs/utils";
+import { toEmbedUrl } from "@/libs/embed";
+import { useGsModulesByCourse } from "@/services";
+import type {
+  GsCourseModule,
+  GsCourseModuleSubject,
+} from "@/types/gs-course";
 import type {
   IClassMaterialContentPageTemplateProps,
-  IModuleItem,
+  ModuleStepState,
 } from "@/types/classMaterial";
-import {
-  formatBreadcrumbLabel,
-  formatContentTitle,
-  getActiveContentMode,
-  getPaginationItems,
-} from "@/utils";
+import { formatBreadcrumbLabel, formatContentTitle } from "@/utils";
 
 /* ------------------------------------------------------------------ */
-/*  Static data (akan diganti API)                                     */
+/*  Types                                                              */
 /* ------------------------------------------------------------------ */
-const MATERIAL_MODULES: IModuleItem[] = [
-  {
-    id: "module-1",
-    title: "Modul Materi",
-    readLabel: "6/6 materi terbaca",
-    progressPercent: 38,
-    progressEntries: [
-      { label: "Progress Materi", value: 38, accent: "bg-[#3F76EC]" },
-      { label: "E-LKPD Selesai", value: 25, accent: "bg-[#16A34A]" },
-    ],
-  },
-  {
-    id: "module-2",
-    title: "Persamaan Kuadrat",
-    readLabel: "4/4 materi terbaca",
-    progressPercent: 100,
+type StepKind = "PDF" | "VIDEO" | "ELKPD" | "DIAGNOSTIC";
+
+interface IFlatStep {
+  id: string;
+  moduleId: string;
+  moduleTitle: string;
+  kind: StepKind;
+  typeLabel: string;
+  title: string;
+  /** URL embed yang siap dimasukkan ke <iframe>. Untuk DIAGNOSTIC: kosong. */
+  url: string | null;
+  /** URL asli (sebelum di-rewrite ke /embed) untuk tombol "Buka di tab baru". */
+  rawUrl: string | null;
+  state: ModuleStepState;
+}
+
+interface IModuleView {
+  id: string;
+  title: string;
+  description: string;
+  steps: IFlatStep[];
+}
+
+/* ------------------------------------------------------------------ */
+/*  API → view-model                                                   */
+/* ------------------------------------------------------------------ */
+function buildModuleView(
+  module: GsCourseModule,
+  index: number,
+): IModuleView | null {
+  if (module.type === "SUBJECT" && module.subject) {
+    return moduleFromSubject(module, module.subject, index);
+  }
+  if (module.type === "DIAGNOSTIC_TEST" && module.diagnosticTest) {
+    return moduleFromDiagnostic(module, index);
+  }
+  return null;
+}
+
+function moduleFromSubject(
+  module: GsCourseModule,
+  subject: GsCourseModuleSubject,
+  index: number,
+): IModuleView {
+  const steps: IFlatStep[] = [];
+
+  if (subject.subjectFileUrl) {
+    steps.push({
+      id: `${module.id}-pdf`,
+      moduleId: module.id,
+      moduleTitle: subject.subjectName,
+      kind: "PDF",
+      typeLabel: "Materi",
+      title: subject.subjectName,
+      url: toEmbedUrl(subject.subjectFileUrl, "pdf"),
+      rawUrl: subject.subjectFileUrl,
+      state: index === 0 ? "active" : "upcoming",
+    });
+  }
+
+  if (subject.videoUrl) {
+    steps.push({
+      id: `${module.id}-video`,
+      moduleId: module.id,
+      moduleTitle: subject.subjectName,
+      kind: "VIDEO",
+      typeLabel: "Video",
+      title: `Video: ${subject.subjectName}`,
+      url: toEmbedUrl(subject.videoUrl, "video"),
+      rawUrl: subject.videoUrl,
+      state: "upcoming",
+    });
+  }
+
+  for (const elkpd of subject.eLKPDs ?? []) {
+    steps.push({
+      id: `${module.id}-elkpd-${elkpd.id}`,
+      moduleId: module.id,
+      moduleTitle: subject.subjectName,
+      kind: "ELKPD",
+      typeLabel: "E-LKPD",
+      title: elkpd.title,
+      url: toEmbedUrl(elkpd.fileUrl, "elkpd"),
+      rawUrl: elkpd.fileUrl,
+      state: "upcoming",
+    });
+  }
+
+  return {
+    id: module.id,
+    title: subject.subjectName,
+    description: subject.description ?? "",
+    steps,
+  };
+}
+
+function moduleFromDiagnostic(
+  module: GsCourseModule,
+  index: number,
+): IModuleView {
+  const test = module.diagnosticTest!;
+  const title = test.testName || `Tes Diagnostik ${module.order ?? index + 1}`;
+  return {
+    id: module.id,
+    title,
+    description: test.description ?? "",
     steps: [
       {
-        id: "step-1",
-        typeLabel: "Materi",
-        title: "Pengantar Persamaan Kuadrat",
-        state: "lock",
-      },
-      {
-        id: "step-2",
-        typeLabel: "Video",
-        title: "Konsep Persamaan Kuadrat",
-        state: "lock",
-      },
-      {
-        id: "step-3",
-        typeLabel: "E-LKPD",
-        title: "Pemfaktoran",
-        state: "lock",
-      },
-      {
-        id: "step-4",
+        id: `${module.id}-diagnostic`,
+        moduleId: module.id,
+        moduleTitle: title,
+        kind: "DIAGNOSTIC",
         typeLabel: "Test Diagnosis",
-        title: "Test",
-        state: "lock",
+        title,
+        url: null,
+        rawUrl: null,
+        state: index === 0 ? "active" : "upcoming",
       },
     ],
-  },
-];
+  };
+}
 
 /* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
+/*  Step icon helpers                                                  */
 /* ------------------------------------------------------------------ */
-function getActiveContentIcon(typeLabel: string) {
-  if (typeLabel === "Video") return VideoIcon;
-  if (typeLabel === "E-LKPD") return DocumentIcon;
-  if (typeLabel === "Tes" || typeLabel === "Test Diagnosis")
-    return CheckCircleIcon;
-  return PDFIcon;
+function getStepIcon(kind: StepKind) {
+  switch (kind) {
+    case "VIDEO":
+      return VideoIcon;
+    case "ELKPD":
+      return DocumentIcon;
+    case "DIAGNOSTIC":
+      return CheckCircleIcon;
+    case "PDF":
+    default:
+      return PDFIcon;
+  }
+}
+
+function getStepTone(kind: StepKind): { bg: string; fg: string } {
+  switch (kind) {
+    case "VIDEO":
+      return { bg: "bg-[#FEF3C7]", fg: "text-[#D97706]" };
+    case "ELKPD":
+      return { bg: "bg-[#D1FAE5]", fg: "text-[#059669]" };
+    case "DIAGNOSTIC":
+      return { bg: "bg-[#FEE2E2]", fg: "text-[#DC2626]" };
+    case "PDF":
+    default:
+      return { bg: "bg-[#DBEAFE]", fg: "text-[#2563EB]" };
+  }
 }
 
 function ContentBadge({
@@ -106,27 +196,35 @@ function ContentBadge({
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 export default function ClassMaterialContentPageTemplate({
-  slug,
+  courseId,
   contentId,
-  totalPages = 16,
+  slug,
 }: IClassMaterialContentPageTemplateProps) {
   const pathname = usePathname();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [zoomLevel, setZoomLevel] = useState(100);
+  const { data: courseModules, isLoading } = useGsModulesByCourse(courseId);
+
+  const modules = useMemo<IModuleView[]>(() => {
+    return (courseModules ?? [])
+      .filter((m) => m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST")
+      .map((m, i) => buildModuleView(m, i))
+      .filter((m): m is IModuleView => m !== null);
+  }, [courseModules]);
+
+  const flatSteps = useMemo<IFlatStep[]>(
+    () => modules.flatMap((m) => m.steps),
+    [modules],
+  );
+
   const [openModuleId, setOpenModuleId] = useState<string | null>(null);
-  const [selectedStepId, setSelectedStepId] = useState<string | null>(
-    MATERIAL_MODULES.find((m) => m.steps)?.steps?.[0]?.id ?? null,
-  );
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
 
-  const paginationItems = useMemo(
-    () => getPaginationItems(currentPage, totalPages),
-    [currentPage, totalPages],
-  );
-
-  /* ---------- Handlers ---------- */
-  const handleZoomChange = (delta: number) => {
-    setZoomLevel((cur) => Math.min(200, Math.max(10, cur + delta)));
-  };
+  // Set default selectedStep dari modul yang dibuka via contentId.
+  useEffect(() => {
+    if (modules.length === 0 || selectedStepId !== null) return;
+    const target = modules.find((m) => m.id === contentId) ?? modules[0];
+    setOpenModuleId(target.id);
+    if (target.steps[0]) setSelectedStepId(target.steps[0].id);
+  }, [modules, contentId, selectedStepId]);
 
   const toggleModule = (moduleId: string) => {
     setOpenModuleId((cur) => (cur === moduleId ? null : moduleId));
@@ -141,7 +239,11 @@ export default function ClassMaterialContentPageTemplate({
     const items = segments
       .map((segment) => {
         currentPath += `/${segment}`;
-        const label = formatBreadcrumbLabel(segment, slug, contentTitle);
+        const label = formatBreadcrumbLabel(
+          segment,
+          slug ?? "",
+          contentTitle,
+        );
         if (!label) return null;
         return { label, href: currentPath };
       })
@@ -154,71 +256,67 @@ export default function ClassMaterialContentPageTemplate({
   }, [pathname, slug, contentTitle]);
 
   /* ---------- Active step ---------- */
-  const activeStep = useMemo(() => {
-    const steps = MATERIAL_MODULES.flatMap(
-      (m) =>
-        m.steps?.map((s) => ({ ...s, moduleTitle: m.title })) ?? [],
-    );
+  const activeStep = useMemo<IFlatStep | null>(() => {
     return (
-      steps.find((s) => s.id === selectedStepId) ??
-      steps.find((s) => s.state === "active") ??
-      steps[0] ??
+      flatSteps.find((s) => s.id === selectedStepId) ??
+      flatSteps.find((s) => s.moduleId === contentId) ??
+      flatSteps[0] ??
       null
     );
-  }, [selectedStepId]);
+  }, [flatSteps, selectedStepId, contentId]);
 
-  const moduleSteps =
-    MATERIAL_MODULES.find((m) => m.steps)?.steps ?? [];
-  const selectedStepIndex = moduleSteps.findIndex(
-    (s) => s.id === selectedStepId,
-  );
-  const stepCount = moduleSteps.length;
-  const nextStep = moduleSteps[selectedStepIndex + 1];
-  const isPdfMode = activeStep?.typeLabel === "Materi";
-  const isVideoMode = activeStep?.typeLabel === "Video";
-  const isELKPDMode = activeStep?.typeLabel === "E-LKPD";
-  const isTestDiagnosisMode =
-    activeStep?.typeLabel === "Tes" ||
-    activeStep?.typeLabel === "Test Diagnosis";
+  const activeIndex = activeStep
+    ? flatSteps.findIndex((s) => s.id === activeStep.id)
+    : -1;
+  const prevStep = activeIndex > 0 ? flatSteps[activeIndex - 1] : null;
+  const nextStep =
+    activeIndex >= 0 && activeIndex < flatSteps.length - 1
+      ? flatSteps[activeIndex + 1]
+      : null;
 
-  const getNavLabel = (direction: "prev" | "next") => {
-    const step =
-      direction === "prev"
-        ? moduleSteps[selectedStepIndex - 1]
-        : nextStep;
-    if (!step) return direction === "prev" ? "Sebelumnya" : "Selanjutnya";
-    return direction === "prev"
-      ? `Sebelumnya ke ${step.typeLabel}`
-      : `Selanjutnya ke ${step.typeLabel}`;
-  };
-
-  const handlePageChange = (page: number) =>
-    setCurrentPage(Math.max(1, Math.min(totalPages, page)));
-
-  const handlePdfNext = () => {
-    if (currentPage < totalPages) {
-      handlePageChange(currentPage + 1);
-      return;
-    }
-    if (nextStep) setSelectedStepId(nextStep.id);
-  };
-
-  const handleStepNavigation = (direction: "prev" | "next") => {
-    if (selectedStepIndex < 0) return;
-    const idx =
-      direction === "prev" ? selectedStepIndex - 1 : selectedStepIndex + 1;
-    if (idx >= 0 && idx < stepCount) setSelectedStepId(moduleSteps[idx].id);
+  const goTo = (step: IFlatStep | null) => {
+    if (!step) return;
+    setSelectedStepId(step.id);
+    setOpenModuleId(step.moduleId);
   };
 
   /* ================================================================ */
   /*  RENDER                                                           */
   /* ================================================================ */
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center text-sm text-[#9CA3AF]">
+        Memuat materi...
+      </div>
+    );
+  }
+
+  if (modules.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-8 text-center">
+        <p className="text-sm text-[#64748B]">
+          Belum ada modul tersedia di kelas ini.
+        </p>
+      </div>
+    );
+  }
+
+  const ActiveIcon = getStepIcon(activeStep?.kind ?? "PDF");
+  const activeKind = activeStep?.kind ?? "PDF";
+  const isPdf = activeKind === "PDF";
+  const isVideo = activeKind === "VIDEO";
+  const isElkpd = activeKind === "ELKPD";
+  const isDiagnostic = activeKind === "DIAGNOSTIC";
+
   return (
     <section className="min-h-screen rounded-3xl sm:p-3 lg:p-0">
       {/* ---- Breadcrumb ---- */}
       <nav className="mb-3 flex flex-wrap items-center gap-2 text-sm text-[#64748B]">
         {breadcrumbItems.map((item, i) => (
-          <span key={`${item.label}-${i}`} className="inline-flex items-center gap-2">
+          <span
+            key={`${item.label}-${i}`}
+            className="inline-flex items-center gap-2"
+          >
             {i > 0 && <span className="text-[#94A3B8]">›</span>}
             {item.isCurrent ? (
               <span className="font-medium text-[#3F76EC]">{item.label}</span>
@@ -235,299 +333,151 @@ export default function ClassMaterialContentPageTemplate({
       </nav>
 
       {/* ---- Grid: Content + Sidebar ---- */}
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
         {/* ==================== LEFT COLUMN ==================== */}
         <div>
-          {/* ------- Dark header bar ------- */}
+          {/* ------- Header ------- */}
           <div className="overflow-hidden rounded-t-2xl">
             <div className="flex flex-wrap items-center justify-between gap-3 bg-[#1F2E46] px-4 py-3 text-xs text-white/90">
               <div className="inline-flex items-center gap-3">
-                {(() => {
-                  const Icon = getActiveContentIcon(
-                    activeStep?.typeLabel ?? "Materi",
-                  );
-                  return <Icon className="h-4 w-4 text-white/80" />;
-                })()}
+                <ActiveIcon className="h-4 w-4 text-white/80" />
                 <div>
                   <p className="text-sm font-semibold text-white">
-                    {activeStep?.title ?? `${contentTitle}.pdf`}
+                    {activeStep?.title ?? "Pilih materi"}
                   </p>
                   <p className="text-[11px] text-white/70">
-                    {isPdfMode
-                      ? `Halaman ${currentPage} / ${totalPages}`
-                      : `Langkah ${selectedStepIndex + 1} / ${stepCount}`}
+                    {activeStep?.moduleTitle ?? ""}
                   </p>
                 </div>
               </div>
 
-              {/* PDF controls */}
-              {isPdfMode && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleZoomChange(-10)}
-                    disabled={zoomLevel === 10}
-                    className={cn(
-                      "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition hover:bg-white/15",
-                      zoomLevel === 10 && "cursor-not-allowed opacity-50",
-                    )}
-                    aria-label="Zoom keluar"
-                  >
-                    <MinusIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleZoomChange(10)}
-                    disabled={zoomLevel === 200}
-                    className={cn(
-                      "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white transition hover:bg-white/15",
-                      zoomLevel === 200 && "cursor-not-allowed opacity-50",
-                    )}
-                    aria-label="Zoom masuk"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/15"
-                    aria-label="Download PDF"
-                  >
-                    <DownloadIcon className="h-4 w-4" />
-                    Unduh
-                  </button>
-                </div>
+              {activeStep?.rawUrl && (
+                <a
+                  href={activeStep.rawUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/15"
+                >
+                  Buka di tab baru
+                </a>
               )}
             </div>
           </div>
 
           {/* ------- Content area ------- */}
           <div className="rounded-b-2xl bg-[#F8FAFC] p-4 sm:p-6">
-            {/* ---------- VIDEO MODE ---------- */}
-            {isVideoMode && (
+            {isVideo && activeStep?.url && (
               <>
                 <ContentBadge icon={VideoIcon} label="Video Pembelajaran" />
-
-                <div className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#0F172A_0%,#172554_50%,#0B193F_100%)] p-5 shadow-lg">
-                  <div className="absolute right-4 top-4 rounded-full bg-black/40 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
-                    00:00 / 12:45
-                  </div>
-                  <div className="flex h-80 items-center justify-center">
-                    <button
-                      type="button"
-                      className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#2563EB] text-white shadow-[0_20px_40px_rgba(37,99,235,0.25)] transition hover:bg-[#1D4ED8]"
-                      aria-label="Play video"
-                    >
-                      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Info card */}
-                <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-[#0F172A]">
-                    Video Penjelasan: {activeStep?.title}
-                  </h2>
-                  <p className="mt-2 text-sm text-[#64748B]">
-                    Durasi: 12:45 · Pak Budi
-                  </p>
-                  <p className="mt-4 text-sm leading-6 text-[#475569]">
-                    Tonton video ini untuk mendapatkan pemahaman visual tentang
-                    konsep variabel dan bagaimana menyelesaikan persamaan
-                    kuadrat.
-                  </p>
-                  <div className="mt-6 h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
-                    <div className="h-full w-0 rounded-full bg-[#2563EB]" />
-                  </div>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
-                    0% ditonton
-                  </p>
-                </div>
-
-                {/* Hint box */}
-                <div className="mt-4 rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] p-4 text-sm text-[#1E293B]">
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#DBEAFE] text-[#2563EB]">
-                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
-                        <path d="M4 5h16v14H4z" opacity="0.2" />
-                        <path d="M6 7h12v2H6V7zm0 4h8v2H6v-2zm0 4h6v2H6v-2z" />
-                      </svg>
-                    </span>
-                    <p className="leading-6">
-                      Silakan tonton video ini sampai selesai, lalu klik
-                      <span className="font-semibold"> {getNavLabel("next")} </span>
-                      untuk mengerjakan {nextStep?.typeLabel ?? "langkah berikutnya"}.
-                    </p>
-                  </div>
+                <div className="aspect-video overflow-hidden rounded-2xl border border-[#E2E8F0] bg-black">
+                  <iframe
+                    key={activeStep.id}
+                    src={activeStep.url}
+                    title={activeStep.title}
+                    className="h-full w-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                    allowFullScreen
+                  />
                 </div>
               </>
             )}
 
-            {/* ---------- E-LKPD MODE ---------- */}
-            {isELKPDMode && (
+            {isPdf && activeStep?.url && (
+              <>
+                <ContentBadge icon={PDFIcon} label="Materi (PDF)" />
+                <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white">
+                  <iframe
+                    key={activeStep.id}
+                    src={activeStep.url}
+                    title={activeStep.title}
+                    className="h-full w-full border-0"
+                    allow="fullscreen"
+                    allowFullScreen
+                  />
+                </div>
+              </>
+            )}
+
+            {isElkpd && activeStep?.url && (
               <>
                 <ContentBadge icon={DocumentIcon} label="E-LKPD" />
-                <ELKPDForm
-                  title="Elektronik Lembar Kerja Peserta Didik (E-LKPD)"
-                  topic={`Topik: Aljabar Dasar – ${activeStep?.title ?? "Persamaan Linier"}`}
-                />
+                <div className="h-[80vh] min-h-[520px] overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white">
+                  <iframe
+                    key={activeStep.id}
+                    src={activeStep.url}
+                    title={activeStep.title}
+                    className="h-full w-full border-0"
+                    allow="clipboard-write; fullscreen"
+                    allowFullScreen
+                  />
+                </div>
               </>
             )}
 
-            {/* ---------- TEST DIAGNOSIS MODE ---------- */}
-            {isTestDiagnosisMode && (
+            {isDiagnostic && (
               <>
                 <ContentBadge icon={CheckCircleIcon} label="Tes Diagnostik" />
-
                 <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
                   <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#94A3B8]">
                     Tes Diagnostik
                   </p>
                   <h1 className="mt-1 text-xl font-bold text-[#0F172A] sm:text-2xl">
-                    {activeStep?.title ?? contentTitle}
+                    {activeStep?.title}
                   </h1>
-                  <p className="mt-1 text-sm text-[#64748B]">
-                    Uji pemahamanmu dengan soal diagnosis yang disesuaikan untuk
-                    langkah ini.
-                  </p>
+                  {activeStep?.moduleTitle && (
+                    <p className="mt-1 text-sm text-[#64748B]">
+                      Modul: {activeStep.moduleTitle}
+                    </p>
+                  )}
 
-                  <Link
-                    href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(contentId)}/diagnostic`}
-                    className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
-                  >
-                    Mulai Tes Diagnostik
-                  </Link>
+                  {slug && (
+                    <Link
+                      href={`/student/dashboard/class/${encodeURIComponent(
+                        slug,
+                      )}/materi/${encodeURIComponent(
+                        activeStep?.moduleId ?? contentId,
+                      )}/diagnostic`}
+                      className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                    >
+                      Mulai Tes Diagnostik
+                    </Link>
+                  )}
                 </div>
               </>
             )}
 
-            {/* ---------- PDF / MATERI MODE ---------- */}
-            {isPdfMode && (
-              <>
-                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#94A3B8]">
-                    Konten Materi
-                  </p>
-                  <h1 className="mt-1 text-xl font-bold text-[#0F172A] sm:text-2xl">
-                    {activeStep?.title ?? contentTitle}
-                  </h1>
-                  <p className="mt-1 text-sm text-[#64748B]">
-                    Konten ID: {contentId} · Mode{" "}
-                    {getActiveContentMode(activeStep?.typeLabel ?? "Materi")}
-                  </p>
-                </div>
-
-                {/* PDF placeholder */}
-                <div
-                  className="mt-4 flex min-h-[420px] items-center justify-center rounded-2xl border border-dashed border-[#CBD5E1] bg-white"
-                  style={{ zoom: `${zoomLevel}%` }}
-                >
-                  <p className="text-sm text-[#94A3B8]">
-                    Konten PDF halaman {currentPage} akan ditampilkan di sini
-                  </p>
-                </div>
-              </>
-            )}
-
-            {/* ---------- FALLBACK ---------- */}
-            {!isPdfMode && !isVideoMode && !isELKPDMode && !isTestDiagnosisMode && (
+            {!activeStep?.url && !isDiagnostic && (
               <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-white p-5">
                 <p className="text-sm text-[#64748B]">
-                  Konten awal untuk step ini sudah disiapkan.
+                  Materi ini belum memiliki tautan yang dapat ditampilkan.
                 </p>
               </div>
             )}
           </div>
 
-          {/* ------- Bottom navigation ------- */}
+          {/* ------- Step navigation ------- */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-[#64748B]">
-              {isPdfMode && (
-                <>
-                  Halaman{" "}
-                  <span className="font-semibold text-[#1E293B]">{currentPage}</span>{" "}
-                  dari{" "}
-                  <span className="font-semibold text-[#1E293B]">{totalPages}</span>
-                </>
-              )}
-            </p>
-
-            <div className={cn("flex items-center gap-1.5", !isPdfMode && "w-full justify-center")}>
-              {isPdfMode ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#CBD5E1] bg-white text-[#475569] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
-                    aria-label="Halaman sebelumnya"
-                  >
-                    <ChevronLeftIcon className="h-4 w-4" />
-                  </button>
-
-                  {paginationItems.map((item, idx) =>
-                    item === "..." ? (
-                      <span key={`ellipsis-${idx}`} className="px-2 text-sm text-[#94A3B8]">
-                        ...
-                      </span>
-                    ) : (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() => handlePageChange(item)}
-                        className={cn(
-                          "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-sm transition",
-                          currentPage === item
-                            ? "border-[#2563EB] bg-[#E9EEFF] font-semibold text-[#1D4ED8]"
-                            : "border-[#CBD5E1] bg-white text-[#475569] hover:bg-[#F8FAFC]",
-                        )}
-                      >
-                        {item}
-                      </button>
-                    ),
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handlePdfNext}
-                    disabled={currentPage === totalPages && !nextStep}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#CBD5E1] bg-white text-[#475569] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
-                    aria-label={
-                      currentPage === totalPages && nextStep
-                        ? "Langkah berikutnya"
-                        : "Halaman berikutnya"
-                    }
-                  >
-                    <ChevronLeftIcon className="h-4 w-4 rotate-180" />
-                  </button>
-                </>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleStepNavigation("prev")}
-                    disabled={selectedStepIndex <= 0}
-                    className="inline-flex h-11 items-center justify-center rounded-full border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#475569] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
-                    aria-label="Langkah sebelumnya"
-                  >
-                    ← Sebelumnya
-                  </button>
-                  <span className="text-sm font-semibold text-[#475569]">
-                    {selectedStepIndex + 1} / {stepCount}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleStepNavigation("next")}
-                    disabled={selectedStepIndex >= stepCount - 1}
-                    className="inline-flex h-11 items-center justify-center rounded-full bg-[#2563EB] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)] transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
-                    aria-label="Langkah berikutnya"
-                  >
-                    Selanjutnya →
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => goTo(prevStep)}
+              disabled={!prevStep}
+              className="inline-flex h-11 items-center justify-center rounded-full border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#475569] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              ← {prevStep ? `Sebelumnya: ${prevStep.typeLabel}` : "Sebelumnya"}
+            </button>
+            {activeIndex >= 0 && (
+              <span className="text-sm font-semibold text-[#475569]">
+                {activeIndex + 1} / {flatSteps.length}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => goTo(nextStep)}
+              disabled={!nextStep}
+              className="inline-flex h-11 items-center justify-center rounded-full bg-[#2563EB] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)] transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {nextStep ? `Selanjutnya: ${nextStep.typeLabel}` : "Selesai"} →
+            </button>
           </div>
         </div>
 
@@ -537,22 +487,106 @@ export default function ClassMaterialContentPageTemplate({
             Daftar Modul
           </p>
 
-          <div className="mt-3 space-y-3">
-            {MATERIAL_MODULES.map((module) =>
-              module.progressEntries ? (
-                <ModulMateriCard key={module.id} module={module} />
-              ) : (
-                <PersamaanKuadratCard
+          <ul className="mt-3 space-y-2">
+            {modules.map((module, moduleIndex) => {
+              const isOpen = openModuleId === module.id;
+              const containsActive = module.steps.some(
+                (s) => s.id === activeStep?.id,
+              );
+
+              return (
+                <li
                   key={module.id}
-                  module={module}
-                  openModuleId={openModuleId}
-                  selectedStepId={selectedStepId}
-                  toggleModule={toggleModule}
-                  setSelectedStepId={setSelectedStepId}
-                />
-              ),
-            )}
-          </div>
+                  className={cn(
+                    "rounded-2xl border bg-white transition",
+                    isOpen || containsActive
+                      ? "border-[#BFDBFE] shadow-[0_8px_24px_rgba(59,130,246,0.08)]"
+                      : "border-[#E2E8F0]",
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleModule(module.id)}
+                    className="flex w-full items-start gap-3 p-3 text-left"
+                  >
+                    <span
+                      className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold",
+                        containsActive
+                          ? "bg-[#DBEAFE] text-[#2563EB]"
+                          : "bg-[#F1F5F9] text-[#475569]",
+                      )}
+                    >
+                      {moduleIndex + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-[#0F172A]">
+                        {module.title}
+                      </p>
+                      <p className="truncate text-xs text-[#64748B]">
+                        {module.steps.length} langkah
+                      </p>
+                    </div>
+                    <ChevronLeftIcon
+                      className={cn(
+                        "h-4 w-4 shrink-0 text-[#94A3B8] transition-transform",
+                        isOpen ? "-rotate-90" : "rotate-90",
+                      )}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <ul className="space-y-1 border-t border-[#E2E8F0] bg-[#FAFBFD] p-2">
+                      {module.steps.map((step, stepIndex) => {
+                        const StepIcon = getStepIcon(step.kind);
+                        const tone = getStepTone(step.kind);
+                        const isActive = activeStep?.id === step.id;
+
+                        return (
+                          <li key={step.id}>
+                            <button
+                              type="button"
+                              onClick={() => goTo(step)}
+                              className={cn(
+                                "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition",
+                                isActive
+                                  ? "border-[#BFDBFE] bg-[#EFF6FF]"
+                                  : "border-transparent hover:border-[#E2E8F0] hover:bg-white",
+                              )}
+                            >
+                              <span
+                                className={cn(
+                                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                                  tone.bg,
+                                )}
+                              >
+                                <StepIcon className={cn("h-4 w-4", tone.fg)} />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className={cn(
+                                    "truncate text-sm font-medium",
+                                    isActive
+                                      ? "text-[#1D4ED8]"
+                                      : "text-[#0F172A]",
+                                  )}
+                                >
+                                  {step.title}
+                                </p>
+                                <p className="text-xs text-[#64748B]">
+                                  {step.typeLabel} · Langkah {stepIndex + 1}
+                                </p>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </aside>
       </div>
     </section>

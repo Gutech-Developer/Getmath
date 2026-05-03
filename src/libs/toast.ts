@@ -1,12 +1,9 @@
-import { toast, ToastOptions } from "react-toastify";
+import { toast, type ExternalToast } from "sonner";
+
+export type ToastOptions = ExternalToast;
 
 const defaultOptions: ToastOptions = {
-  position: "top-right",
-  autoClose: 4000,
-  hideProgressBar: false,
-  closeOnClick: true,
-  pauseOnHover: true,
-  draggable: true,
+  duration: 4000,
 };
 
 export const showToast = {
@@ -32,7 +29,6 @@ export const showToast = {
  * Auth errors are handled by auto-refresh token logic
  */
 export const isAuthError = (error: unknown): boolean => {
-  // Check error message for common auth error patterns
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     return (
@@ -62,7 +58,6 @@ export const getErrorMessage = (error: unknown): string => {
  * Will NOT show toast for authentication errors (handled by auto-refresh)
  */
 export const showErrorToast = (error: unknown, options?: ToastOptions) => {
-  // Skip toast for auth errors - these are handled by auto-refresh logic
   if (isAuthError(error)) {
     return;
   }

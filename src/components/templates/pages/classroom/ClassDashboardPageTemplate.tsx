@@ -17,6 +17,7 @@ import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
 import { useGsCourseBySlug, useGsModulesByCourse } from "@/services";
+import { useGsCurrentUser } from "@/services";
 
 interface IClassDashboardPageTemplateProps {
   slug: string;
@@ -40,7 +41,7 @@ export default function ClassDashboardPageTemplate({
   const moduleItems = getClassSidebarRoutes(slug).filter(
     (item) => item.key !== "overview",
   );
-
+  const auth = useGsCurrentUser();
   const { data: course } = useGsCourseBySlug(slug);
   const { data: modules } = useGsModulesByCourse(course?.id ?? "");
 
@@ -171,25 +172,27 @@ export default function ClassDashboardPageTemplate({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.14)]">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-bold text-[#0F172A]">
-            Daftar Siswa Kelas
-          </h2>
-          <p className="text-xs text-[#94A3B8]">
-            {totalStudents} siswa terdaftar
-          </p>
-        </div>
+      {!auth.isPending && auth.data?.role === "TEACHER" && (
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.14)]">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-bold text-[#0F172A]">
+              Daftar Siswa Kelas
+            </h2>
+            <p className="text-xs text-[#94A3B8]">
+              {totalStudents} siswa terdaftar
+            </p>
+          </div>
 
-        <div className="mt-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-5 text-center">
-          <p className="text-sm font-medium text-[#0F172A]">
-            {totalStudents} siswa terdaftar di kelas ini.
-          </p>
-          <p className="mt-1 text-xs text-[#64748B]">
-            Daftar siswa lengkap hanya tersedia untuk role guru.
-          </p>
-        </div>
-      </section>
+          <div className="mt-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-5 text-center">
+            <p className="text-sm font-medium text-[#0F172A]">
+              {totalStudents} siswa terdaftar di kelas ini.
+            </p>
+            <p className="mt-1 text-xs text-[#64748B]">
+              Daftar siswa lengkap hanya tersedia untuk role guru.
+            </p>
+          </div>
+        </section>
+      )}
     </ClassPageShellTemplate>
   );
 }
