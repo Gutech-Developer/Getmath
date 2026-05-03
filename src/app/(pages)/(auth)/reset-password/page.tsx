@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useGsResetPassword } from "@/services";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { BodySmallMedium, Heading3 } from "@/components/atoms/Typography";
 import PasswordInput from "@/components/atoms/inputs/PasswordInput";
 import { SubmitButton } from "@/components/atoms/buttons/SubmitButton";

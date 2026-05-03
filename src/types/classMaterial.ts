@@ -1,8 +1,15 @@
 export type ModuleStepState = "completed" | "active" | "upcoming" | "lock";
 
 export interface IClassMaterialContentPageTemplateProps {
-  slug: string;
+  /** Course ID — dipakai untuk fetch modul lewat `useGsModulesByCourse(courseId)`. */
+  courseId: string;
+  /**
+   * Module ID yang sedang dibuka. Sidebar tetap menampilkan semua modul dari course;
+   * konten utama default ke step pertama dari modul ini.
+   */
   contentId: string;
+  /** Slug kelas — opsional, dipakai hanya untuk breadcrumb / back link. */
+  slug?: string;
   totalPages?: number;
 }
 

@@ -4,8 +4,7 @@ import { QueryProvider } from "@/providers/QueryProvider";
 import { SidebarProvider } from "@/providers/SidebarProvider";
 import NextTopLoader from "nextjs-toploader";
 import MainLayout from "@/components/templates/layouts/MainLayout";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "GetMath",
@@ -34,17 +33,12 @@ export default function RootLayout({
           zIndex={99999}
         />
         <QueryProvider>{children}</QueryProvider>
-        <ToastContainer
+        <Toaster
           position="top-right"
-          autoClose={4000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
+          richColors
+          closeButton
           theme="light"
+          duration={4000}
         />
       </body>
     </html>

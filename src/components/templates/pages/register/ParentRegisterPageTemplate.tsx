@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { useGsRegister } from "@/services";
 import { GsRegisterInput } from "@/types/gs-auth";
 
