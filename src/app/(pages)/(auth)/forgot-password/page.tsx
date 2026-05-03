@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useGsForgotPassword } from "@/services";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { BodySmallMedium, Heading3 } from "@/components/atoms/Typography";
 import EmailInput from "@/components/atoms/inputs/EmailInput";
 import { SubmitButton } from "@/components/atoms/buttons/SubmitButton";

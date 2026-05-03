@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/atoms/buttons/SubmitButton";
 import EmailInput from "@/components/atoms/inputs/EmailInput";
 import PasswordInput from "@/components/atoms/inputs/PasswordInput";
 import { useGsLogin } from "@/services";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";

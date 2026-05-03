@@ -6,6 +6,7 @@ import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import { MATERIAL_BADGE_CLASS_BY_TYPE } from "@/constant/materialManagement";
 import { cn } from "@/libs/utils";
 import { showToast } from "@/libs/toast";
+import { toEmbedUrl, type EmbedType } from "@/libs/embed";
 import { useEffect, useState } from "react";
 import {
   useGsMySubjects,
@@ -44,32 +45,12 @@ function createEmptyForm(): ISubjectForm {
   };
 }
 
-// ─── URL helpers ──────────────────────────────────────────────────────────────
-
-/** Konversi berbagai format URL YouTube ke format embed */
-function toYouTubeEmbed(url: string): string {
-  try {
-    const u = new URL(url);
-    // youtube.com/watch?v=ID
-    const v = u.searchParams.get("v");
-    if (v) return `https://www.youtube.com/embed/${v}`;
-    // youtu.be/ID
-    if (u.hostname === "youtu.be")
-      return `https://www.youtube.com/embed${u.pathname}`;
-    // sudah embed
-    if (u.pathname.startsWith("/embed/")) return url;
-  } catch {
-    // bukan URL valid, kembalikan apa adanya
-  }
-  return url;
-}
-
 // ─── Preview Modal ────────────────────────────────────────────────────────────
 
 interface IPreview {
   title: string;
   url: string;
-  type: "pdf" | "video" | "elkpd";
+  type: EmbedType;
 }
 
 function PreviewModal({
@@ -95,8 +76,7 @@ function PreviewModal({
 
   if (!preview) return null;
 
-  const iframeSrc =
-    preview.type === "video" ? toYouTubeEmbed(preview.url) : preview.url;
+  const embedSrc = toEmbedUrl(preview.url, preview.type);
 
   const typeLabel =
     preview.type === "pdf"
@@ -122,27 +102,37 @@ function PreviewModal({
               {preview.title}
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl p-2 text-[#6B7280] transition hover:bg-[#F3F4F6]"
-            aria-label="Tutup preview"
-          >
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M6 6L18 18M18 6L6 18"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href={preview.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl bg-[#EFF6FF] px-3 py-1.5 text-xs font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+            >
+              Buka di tab baru
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl p-2 text-[#6B7280] transition hover:bg-[#F3F4F6]"
+              aria-label="Tutup preview"
+            >
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6 6L18 18M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* iframe */}
+        {/* embed */}
         <div className="flex-1 bg-[#F3F4F6]">
           <iframe
-            src={iframeSrc}
+            src={embedSrc}
             className="h-full w-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
             allowFullScreen
