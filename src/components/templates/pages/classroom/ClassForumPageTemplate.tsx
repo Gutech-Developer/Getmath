@@ -9,7 +9,12 @@ import {
   FORUM_OWNERSHIP_FILTER_OPTIONS,
   FORUM_SORT_OPTIONS,
 } from "@/constant/classForum";
-import { useClassForum } from "@/services";
+import {
+  useGsCourseBySlug,
+  useListDiscussionsByCourse,
+  useCreateDiscussion,
+  useLikeDiscussion,
+} from "@/services";
 import type {
   IClassForumPageTemplateProps,
   IForumFilterState,
@@ -50,17 +55,51 @@ export default function ClassForumPageTemplate({
   slug,
 }: IClassForumPageTemplateProps) {
   const classTitle = formatClassTitleFromSlug(slug);
+
+  // ── Resolve courseId from slug ──────────────────────────────────────────
+  const { data: course } = useGsCourseBySlug(slug);
+  const courseId = course?.id ?? "";
+
+  // ── API hooks ──────────────────────────────────────────────────────────
   const {
-    discussions,
-    createDiscussion,
-    toggleDiscussionLike,
-    resetDiscussions,
-  } = useClassForum(slug);
+    data: apiDiscussionsData,
+    isLoading: isApiLoading,
+    isError: isApiError,
+    error: apiErrorObj,
+  } = useListDiscussionsByCourse(courseId, { page: 1, limit: 50 }, { enabled: !!courseId });
+
+  const createDiscussionMutation = useCreateDiscussion(courseId);
+  const likeDiscussionMutation = useLikeDiscussion(courseId);
+
+  // ── Transform API data to UI format ─────────────────────────────────────
+  const discussions = useMemo(() => {
+    if (!apiDiscussionsData?.discussions?.length) return [];
+    return apiDiscussionsData.discussions.map((d) => ({
+      id: d.id,
+      content: d.content,
+      materialId: d.courseModuleId ?? "umum",
+      status: "active" as const,
+      isPinned: false,
+      createdAt: new Date(d.createdAt).getTime(),
+      likesCount: d.likeCount,
+      isLiked: d.isLiked ?? false,
+      author: {
+        id: d.author?.id ?? "unknown",
+        name: d.author?.fullName ?? "Pengguna",
+        role: "student" as const,
+        tone: "slate" as const,
+        isCurrentUser: false,
+      },
+      replies: [],
+    }));
+  }, [apiDiscussionsData]);
+
   const [filters, setFilters] = useState<IForumFilterState>(
     DEFAULT_FORUM_FILTERS,
   );
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const filteredDiscussions = useMemo(
     () => filterForumDiscussions(discussions, filters),
@@ -77,12 +116,29 @@ export default function ClassForumPageTemplate({
     filters.materialId !== DEFAULT_FORUM_FILTERS.materialId ||
     filters.sortBy !== DEFAULT_FORUM_FILTERS.sortBy;
 
-  const handleCreateDiscussion = (content: {
+  const handleCreateDiscussion = async (content: {
     content: string;
     materialId: string;
   }) => {
-    createDiscussion(content);
-    setIsCreateModalOpen(false);
+    setCreateError(null);
+    if (!courseId) {
+      setCreateError("Kelas tidak ditemukan. Silakan refresh halaman.");
+      return;
+    }
+    try {
+      await createDiscussionMutation.mutateAsync({
+        content: content.content,
+        courseModuleId: content.materialId !== "umum" ? content.materialId : undefined,
+      });
+      setIsCreateModalOpen(false);
+    } catch (error: any) {
+      const errorMessage = error?.message || "Gagal membuat diskusi. Silakan coba lagi.";
+      setCreateError(errorMessage);
+    }
+  };
+
+  const handleToggleLike = (discussionId: string) => {
+    likeDiscussionMutation.mutate(discussionId);
   };
 
   return (
@@ -101,15 +157,24 @@ export default function ClassForumPageTemplate({
               <h1 className="mt-3 text-xl font-bold text-[#0F172A]">
                 Forum Diskusi
               </h1>
-              <p className="mt-2 text-sm text-[#64748B]">
-                {activeDiscussions} diskusi aktif . {totalDiscussions} total
-              </p>
+              {isApiLoading ? (
+                <p className="mt-2 text-sm text-[#94A3B8]">Memuat diskusi...</p>
+              ) : isApiError ? (
+                <p className="mt-2 text-sm text-[#DC2626]">
+                  Gagal memuat diskusi. {apiErrorObj?.message}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-[#64748B]">
+                  {activeDiscussions} diskusi aktif . {totalDiscussions} total
+                </p>
+              )}
             </div>
 
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#1F2375] px-6 text-base font-semibold text-white duration-300 hover:shadow-[0px_18px_30px_rgba(31, 35, 117,0.5)] transition hover:bg-[#1F2375]/90"
+              disabled={isApiLoading}
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#1F2375] px-6 text-base font-semibold text-white duration-300 hover:shadow-[0px_18px_30px_rgba(31, 35, 117,0.5)] transition hover:bg-[#1F2375]/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <PlusIcon className="h-5 w-5" />
               Buat Diskusi
@@ -266,7 +331,7 @@ export default function ClassForumPageTemplate({
                   key={discussion.id}
                   discussion={discussion}
                   slug={slug}
-                  onLike={toggleDiscussionLike}
+                  onLike={handleToggleLike}
                 />
               ))
             ) : (
@@ -291,8 +356,13 @@ export default function ClassForumPageTemplate({
       <CreateDiscussionModal
         isOpen={isCreateModalOpen}
         materials={CLASS_FORUM_MATERIALS}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setCreateError(null);
+        }}
         onSubmit={handleCreateDiscussion}
+        isLoading={createDiscussionMutation.isPending}
+        error={createError}
       />
     </ClassPageShellTemplate>
   );

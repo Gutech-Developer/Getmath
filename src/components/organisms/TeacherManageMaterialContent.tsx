@@ -13,8 +13,6 @@ import {
   useGsCreateSubject,
   useGsUpdateSubject,
   useGsDeleteSubject,
-  useGsAddELKPD,
-  useGsUpdateELKPD,
 } from "@/services";
 
 interface ITeacherManageMaterialContentProps {
@@ -399,8 +397,6 @@ export default function TeacherManageMaterialContent({
   const createSubject = useGsCreateSubject();
   const updateSubject = useGsUpdateSubject();
   const deleteSubject = useGsDeleteSubject();
-  const addELKPD = useGsAddELKPD();
-  const updateELKPD = useGsUpdateELKPD();
 
   const subjects = subjectsData?.subjects ?? [];
 
@@ -426,9 +422,9 @@ export default function TeacherManageMaterialContent({
       description: s.description ?? "",
       subjectFileUrl: s.subjectFileUrl,
       videoUrl: s.videoUrl ?? "",
-      elkpdTitle: s.eLKPDs?.[0]?.title ?? "",
-      elkpdDescription: s.eLKPDs?.[0]?.description ?? "",
-      elkpdFileUrl: s.eLKPDs?.[0]?.fileUrl ?? "",
+      elkpdTitle: s.eLKPDTitle ?? "",
+      elkpdDescription: s.eLKPDDescription ?? "",
+      elkpdFileUrl: s.eLKPDFileUrl ?? "",
     });
     setIsModalOpen(true);
   };
@@ -457,9 +453,9 @@ export default function TeacherManageMaterialContent({
     }
 
     const elkpdData = {
-      title: form.elkpdTitle.trim(),
-      description: form.elkpdDescription.trim() || undefined,
-      fileUrl: form.elkpdFileUrl.trim(),
+      eLKPDTitle: form.elkpdTitle.trim(),
+      eLKPDDescription: form.elkpdDescription.trim() || undefined,
+      eLKPDFileUrl: form.elkpdFileUrl.trim(),
     };
 
     if (editingSubjectId) {
@@ -468,46 +464,15 @@ export default function TeacherManageMaterialContent({
         description: form.description.trim() || undefined,
         subjectFileUrl: form.subjectFileUrl.trim(),
         videoUrl: form.videoUrl.trim(),
+        ...elkpdData,
       };
-
-      // Temukan subject yang sedang diedit untuk cek apakah sudah punya ELKPD
-      const existing = subjects.find((x) => x.id === editingSubjectId);
-      const existingElkpd = existing?.eLKPDs?.[0];
 
       updateSubject.mutate(
         { id: editingSubjectId, data: subjectData },
         {
           onSuccess: () => {
-            // Setelah subject berhasil diupdate, handle ELKPD
-            if (existingElkpd) {
-              updateELKPD.mutate(
-                {
-                  subjectId: editingSubjectId,
-                  elkpdId: existingElkpd.id,
-                  data: elkpdData,
-                },
-                {
-                  onSuccess: () => {
-                    showToast.success("Materi berhasil diperbarui");
-                    closeModal();
-                  },
-                  onError: (err) =>
-                    showToast.error(err.message ?? "Gagal memperbarui E-LKPD"),
-                },
-              );
-            } else {
-              addELKPD.mutate(
-                { subjectId: editingSubjectId, data: elkpdData },
-                {
-                  onSuccess: () => {
-                    showToast.success("Materi berhasil diperbarui");
-                    closeModal();
-                  },
-                  onError: (err) =>
-                    showToast.error(err.message ?? "Gagal menambahkan E-LKPD"),
-                },
-              );
-            }
+            showToast.success("Materi berhasil diperbarui");
+            closeModal();
           },
           onError: (err) =>
             showToast.error(err.message ?? "Gagal memperbarui materi"),
@@ -520,7 +485,7 @@ export default function TeacherManageMaterialContent({
           description: form.description.trim() || undefined,
           subjectFileUrl: form.subjectFileUrl.trim(),
           videoUrl: form.videoUrl.trim(),
-          eLKPD: elkpdData,
+          ...elkpdData,
         },
         {
           onSuccess: () => {
@@ -543,11 +508,7 @@ export default function TeacherManageMaterialContent({
     });
   };
 
-  const isSaving =
-    createSubject.isPending ||
-    updateSubject.isPending ||
-    addELKPD.isPending ||
-    updateELKPD.isPending;
+  const isSaving = createSubject.isPending || updateSubject.isPending;
 
   return (
     <>
@@ -588,7 +549,7 @@ export default function TeacherManageMaterialContent({
           <ul className="space-y-3">
             {subjects.map((subject) => {
               const hasVideo = !!subject.videoUrl;
-              const hasElkpd = !!subject.eLKPDs?.[0];
+              const hasElkpd = !!subject.eLKPDTitle;
               const isExpanded = expandedIds.has(subject.id);
               const dateLabel = new Date(subject.createdAt).toLocaleDateString(
                 "id-ID",
@@ -801,12 +762,12 @@ export default function TeacherManageMaterialContent({
                             </svg>
                           }
                           label="E-LKPD"
-                          title={subject.eLKPDs![0].title}
+                          title={subject.eLKPDTitle!}
                           badgeClass="border-[#A7F3D0] bg-[#D1FAE5] text-[#065F46]"
                           onPreview={() =>
                             setPreview({
-                              title: subject.eLKPDs![0].title,
-                              url: subject.eLKPDs![0].fileUrl,
+                              title: subject.eLKPDTitle!,
+                              url: subject.eLKPDFileUrl!,
                               type: "elkpd",
                             })
                           }

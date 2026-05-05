@@ -1,6 +1,10 @@
+"use client";
+
 import LearningAnalyticsELKPDScoreContent from "@/components/organisms/LearningAnalyticsELKPDScoreContent";
 import { LEARNING_ANALYTICS_CLASS_DATA } from "@/components/templates/pages/dashboard/AdminLearningAnalyticsClassTemplate";
+import { useGsCourseBySlug, useELKPDGradesByModule } from "@/services";
 import type { IClassLearningAnalyticsDetail } from "@/types/learningAnalytics";
+import { useMemo } from "react";
 
 type AnalyticsRole = "admin" | "teacher";
 
@@ -89,15 +93,65 @@ export default function LearningAnalyticsELKPDScoreTemplate({
   slug,
   elkpdId,
 }: ILearningAnalyticsELKPDScoreTemplateProps) {
-  const classDetail = LEARNING_ANALYTICS_CLASS_DATA.find(
-    (item) => item.slug === slug,
+  // ── Resolve course from slug ─────────────────────────────────────────
+  const { data: course } = useGsCourseBySlug(slug);
+
+  // ── Fetch ELKPD submissions from API ─────────────────────────────────
+  const { data: submissionsData } = useELKPDGradesByModule(
+    elkpdId,
+    { enabled: !!elkpdId },
   );
+
+  // ── Build class detail from API data or fallback ─────────────────────
+  const classDetail = useMemo<IClassLearningAnalyticsDetail>(() => {
+    const staticDetail = LEARNING_ANALYTICS_CLASS_DATA.find(
+      (item) => item.slug === slug,
+    );
+    const fallback = staticDetail ?? createFallbackClassDetail(slug, elkpdId);
+
+    // If we have API submissions, enrich student data with real scores
+    if (submissionsData?.grades?.length) {
+      const apiStudents = submissionsData.grades.map((sub, index) => {
+        const score = sub.score ?? 0;
+        return {
+          id: sub.studentId,
+          fullname: sub.studentName ?? `Siswa ${index + 1}`,
+          nis: sub.studentId.slice(0, 7) ?? "-",
+          score,
+          status: (score >= 75 ? "Lulus" : "Remedial") as "Lulus" | "Remedial",
+        };
+      });
+
+      if (apiStudents.length > 0) {
+        const passedCount = apiStudents.filter(
+          (s) => s.status === "Lulus",
+        ).length;
+        const avgScore =
+          apiStudents.reduce((sum, s) => sum + s.score, 0) /
+          apiStudents.length;
+
+        return {
+          ...fallback,
+          className: course?.courseName ?? fallback.className,
+          classCode: course?.courseCode ?? fallback.classCode,
+          students: apiStudents,
+          studentCount: apiStudents.length,
+          averageScore: Math.round(avgScore),
+          passedCount,
+          remedialCount: apiStudents.length - passedCount,
+        };
+      }
+    }
+
+    return fallback;
+  }, [slug, elkpdId, course, submissionsData]);
 
   return (
     <LearningAnalyticsELKPDScoreContent
       role={role}
-      classDetail={classDetail ?? createFallbackClassDetail(slug, elkpdId)}
+      classDetail={classDetail}
       elkpdId={elkpdId}
     />
   );
 }
+

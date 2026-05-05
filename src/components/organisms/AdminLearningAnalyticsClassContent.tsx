@@ -1,5 +1,7 @@
 "use client";
 
+import ForumSection from "@/components/organisms/ForumSection";
+
 import {
   BaseKelolaELKPDSection,
   BaseLaporanSection,
@@ -256,21 +258,49 @@ export default function AdminLearningAnalyticsClassContent({
     ),
   };
 
+  const [showForum, setShowForum] = useState(false);
+
   return (
     <div className="w-full space-y-4">
       <LearningAnalyticsClassHeaderCard data={headerData} />
 
-      <LearningAnalyticsViewSwitcher
-        activeType={activeViewType}
-        onChange={setActiveViewType}
-        badgeByType={{
-          Siswa: classDetail.studentCount,
-          Materi: materials.length,
-          "Kelola E-LKPD": elkpdItems.length,
-        }}
-      />
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <LearningAnalyticsViewSwitcher
+            activeType={activeViewType}
+            onChange={(key) => {
+              setShowForum(false);
+              setActiveViewType(key);
+            }}
+            badgeByType={{
+              Siswa: classDetail.studentCount,
+              Materi: materials.length,
+              "Kelola E-LKPD": elkpdItems.length,
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowForum((v) => !v)}
+          className={`shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+            showForum
+              ? "border-[#1F2375] bg-[#1F2375] text-white"
+              : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#1F2375]/40 hover:text-[#1F2375]"
+          }`}
+        >
+          💬 Forum
+        </button>
+      </div>
 
-      {renderedByType[activeViewType]}
+      {showForum ? (
+        <ForumSection
+          courseId={classDetail.id ?? classDetail.slug}
+          slug={classDetail.slug}
+          role="admin"
+        />
+      ) : (
+        renderedByType[activeViewType]
+      )}
     </div>
   );
 }

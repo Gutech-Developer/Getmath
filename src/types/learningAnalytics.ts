@@ -71,6 +71,7 @@ export interface ILearningAnalyticsClassDetail {
   classCode?: string;
   gradeLabel?: string;
   semesterLabel?: string;
+  subjectCount?: number;
   subjectLabel?: string;
   defaultViewType?: ClassAnalyticsViewType;
   students: ILearningAnalyticsStudentListItem[];

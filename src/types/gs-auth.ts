@@ -48,6 +48,11 @@ export interface GsLoginInput {
   password: string;
 }
 
+export interface GsGoogleLoginInput {
+  googleToken: string;
+  redirectUri?: string;
+}
+
 export interface GsRegisterInput {
   email: string;
   password: string;
@@ -58,6 +63,7 @@ export interface GsRegisterInput {
   NIP?: string;
   province?: string;
   city?: string;
+  schoolId?: string;
   schoolName?: string;
   address?: string;
 }

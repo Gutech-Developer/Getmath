@@ -130,8 +130,15 @@ export function useGsUpdateDiagnosticTest() {
     Error,
     { id: string; data: GsUpdateDiagnosticTestInput }
   >({
-    mutationFn: ({ id, data }) =>
-      gsPatch<GsDiagnosticTest>(`/diagnostic-tests/${id}`, data),
+    mutationFn: ({ id, data }) => {
+      if (!id) {
+        throw new Error("ID tes diagnostik tidak valid");
+      }
+      if (!data || Object.keys(data).length === 0) {
+        throw new Error("Data pembaruan tidak boleh kosong");
+      }
+      return gsPatch<GsDiagnosticTest>(`/diagnostic-tests/${id}`, data);
+    },
     onSuccess: async (_updated, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsDiagnosticTests.myList(),
@@ -142,6 +149,17 @@ export function useGsUpdateDiagnosticTest() {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.gsDiagnosticTests.detail(variables.id),
       });
+    },
+    retry: (failureCount, error: any) => {
+      // Retry max 3 times for transient 5xx errors only
+      if (failureCount < 3 && error?.status >= 500 && error?.status < 600) {
+        return true;
+      }
+      return false;
+    },
+    retryDelay: (attemptIndex) => {
+      // Exponential backoff: 1s, 2s, 4s
+      return Math.min(1000 * Math.pow(2, attemptIndex), 10000);
     },
   });
 }

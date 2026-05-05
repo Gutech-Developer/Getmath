@@ -1942,7 +1942,18 @@ export function BaseMateriSection({
         onClose={closeDetailModal}
         module={selectedModule}
         diagnosticTest={selectedDiagnosticTest}
-        elkpds={selectedModule?.subject?.eLKPDs ?? []}
+        elkpds={
+          selectedModule?.subject?.eLKPDTitle
+            ? [
+                {
+                  id: selectedModule.subject.id, // Using subject id as a fallback for elkpd id
+                  title: selectedModule.subject.eLKPDTitle,
+                  description: selectedModule.subject.eLKPDDescription,
+                  fileUrl: selectedModule.subject.eLKPDFileUrl || "",
+                },
+              ]
+            : []
+        }
         students={students}
         isLoading={isSelectedModuleLoading}
         isDiagnosticLoading={isSelectedDiagnosticTestLoading}
@@ -2403,7 +2414,7 @@ export function TeacherOverviewSection({
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-center">
           <p className="text-3xl font-extrabold leading-none text-[#2563EB]">
-            {activeStudents}/{classDetail.studentCount}
+            {activeStudents}
           </p>
           <p className="mt-1 text-xs text-[#94A3B8]">Siswa Aktif</p>
         </article>

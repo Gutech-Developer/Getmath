@@ -2,6 +2,10 @@
 
 /**
  * GetSmart API — Course Module Hooks
+ * 
+ * ⚠️ MIGRATED TO GO BACKEND
+ * All endpoints verified against Go routes in:
+ * getsmart_api_services_go/internal/routes/course_module_router.go
  *
  * Role breakdown:
  *  - TEACHER/ADMIN : POST (tambah modul), PATCH (update/reorder), DELETE
@@ -10,6 +14,17 @@
  * Module type:
  *  - SUBJECT         → subjectId wajib
  *  - DIAGNOSTIC_TEST → diagnosticTestId wajib
+ *
+ * Response Format (via utils.SendSuccess):
+ * ```json
+ * {
+ *   "success": true,
+ *   "status": 200|201,
+ *   "message": "...",
+ *   "data": object | array | null
+ * }
+ * ```
+ * The hooks extract only the `data` field via @tanstack/react-query
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

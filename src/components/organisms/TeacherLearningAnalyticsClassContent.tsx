@@ -26,8 +26,9 @@ import type {
   ITeacherStudentAnalyticsItem,
 } from "@/types/learningAnalytics";
 import type { ComponentType, ReactNode } from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import ForumSection from "@/components/organisms/ForumSection";
 
 export type {
   ITeacherClassLearningAnalyticsDetail,
@@ -162,6 +163,7 @@ export default function TeacherLearningAnalyticsClassContent({
   const { mutate: kickStudent, isPending: isKickingStudent } =
     useGsKickStudentFromCourse();
   const queryView = searchParams?.get("view");
+  const [showForum, setShowForum] = useState(false);
   const activeViewType =
     resolveTeacherViewType(queryView) ??
     classDetail.defaultViewType ??
@@ -271,20 +273,44 @@ export default function TeacherLearningAnalyticsClassContent({
   return (
     <div className="space-y-4">
       <LearningAnalyticsClassHeaderCard data={headerData} />
-      <LearningAnalyticsViewSwitcher
-        activeType={activeViewType}
-        onChange={(key) =>
-          router.push(
-            `${pathname.split("?")[0]}?view=${encodeURIComponent(key)}`,
-          )
-        }
-        badgeByType={{
-          Siswa: classDetail.studentCount,
-          Materi: materials.length,
-          "Kelola E-LKPD": elkpdItems.length,
-        }}
-      />
-      {renderedByType[activeViewType]}
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <LearningAnalyticsViewSwitcher
+            activeType={activeViewType}
+            onChange={(key) => {
+              setShowForum(false);
+              router.push(
+                `${pathname.split("?")[0]}?view=${encodeURIComponent(key)}`,
+              );
+            }}
+            badgeByType={{
+              Siswa: classDetail.studentCount,
+              Materi: materials.length,
+              "Kelola E-LKPD": elkpdItems.length,
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowForum((v) => !v)}
+          className={`shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+            showForum
+              ? "border-[#1F2375] bg-[#1F2375] text-white"
+              : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#1F2375]/40 hover:text-[#1F2375]"
+          }`}
+        >
+          💬 Forum
+        </button>
+      </div>
+      {showForum ? (
+        <ForumSection
+          courseId={classDetail.id ?? classDetail.slug}
+          slug={classDetail.slug}
+          role="teacher"
+        />
+      ) : (
+        renderedByType[activeViewType]
+      )}
     </div>
   );
 }

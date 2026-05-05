@@ -44,26 +44,36 @@ interface IClassMaterialListPageTemplateProps {
 /* ------------------------------------------------------------------ */
 /*  API mapper                                                         */
 /* ------------------------------------------------------------------ */
+function getModuleId(module: GsCourseModule): string {
+  return module.id || module.courseModuleId || "";
+}
+
 /**
  * Map GsCourseModule (type=SUBJECT) → IMaterialModule.
  * Module yang dikembalikan backend hanya berisi subset subject
- * (subjectName, subjectFileUrl, videoUrl) — tanpa eLKPDs.
- * eLKPDs dapat di-fetch terpisah via GET /subjects/:id jika diperlukan.
+ * (subjectName, subjectFileUrl, videoUrl, eLKPDTitle, dll).
  */
 function mapModuleToMaterial(
   module: GsCourseModule,
   index: number,
 ): IMaterialModule {
+  const moduleId = getModuleId(module);
+
   // Handle diagnostic test modules
-  if (module.type === "DIAGNOSTIC_TEST" && module.diagnosticTest) {
+  if (module.type === "DIAGNOSTIC_TEST") {
+    // Student list API returns testName at top level if not nested
     const test = module.diagnosticTest;
+    const fallback = module as { testName?: string; description?: string | null };
     const title =
-      test.testName ?? `Tes Diagnostik ${module.order ?? index + 1}`;
+      test?.testName ??
+      fallback.testName ??
+      `Tes Diagnostik ${module.order ?? index + 1}`;
+
     const steps: IMaterialStep[] = [
       {
-        id: `${module.id}-diagnostic`,
+        id: module.diagnosticTestId ?? test?.id ?? `${moduleId}-diagnostic`,
         typeLabel: "Test Diagnosis",
-        title: test.testName ?? title,
+        title,
         status: index === 0 ? "in-progress" : "locked",
       },
     ];
@@ -71,15 +81,13 @@ function mapModuleToMaterial(
     const completedSteps = index === 0 ? 1 : 0;
 
     return {
-      id: module.id,
+      id: moduleId,
       title,
-      description: test.description ?? "",
+      description: test?.description ?? fallback.description ?? "",
       totalSteps: steps.length,
       completedSteps,
       progressPercent:
-        steps.length > 0
-          ? Math.round((completedSteps / steps.length) * 100)
-          : 0,
+        steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0,
       status:
         completedSteps === steps.length
           ? "completed"
@@ -92,35 +100,39 @@ function mapModuleToMaterial(
 
   // Fallback: SUBJECT modules (existing behavior)
   const subject = module.subject;
-  const title = subject?.subjectName ?? `Modul ${module.order ?? index + 1}`;
+  const flat = module as Partial<GsCourseModuleSubject> & {
+    subjectName?: string;
+    description?: string | null;
+  };
+  const title =
+    subject?.subjectName ??
+    flat.subjectName ??
+    `Modul ${module.order ?? index + 1}`;
   const steps: IMaterialStep[] = [];
 
   // Selalu ada materi PDF
   steps.push({
-    id: `${module.id}-materi`,
+    id: `${moduleId}-materi`,
     typeLabel: "Materi",
     title,
     status: "in-progress",
   });
 
-  if (subject?.videoUrl) {
+  if (subject?.videoUrl || (module as any).videoUrl) {
     steps.push({
-      id: `${module.id}-video`,
+      id: `${moduleId}-video`,
       typeLabel: "Video",
       title: `Video: ${title}`,
       status: "locked",
     });
   }
 
-  // E-LKPD tidak tersedia di data modul (perlu fetch /subjects/:id terpisah)
-  // akan ditampilkan jika backend sudah menyertakan data tersebut
-
   const completedSteps = index === 0 ? 1 : 0;
 
   return {
-    id: module.id,
+    id: moduleId,
     title,
-    description: subject?.description ?? "",
+    description: subject?.description ?? flat.description ?? "",
     totalSteps: steps.length,
     completedSteps,
     progressPercent:

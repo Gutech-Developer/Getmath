@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
@@ -10,11 +10,12 @@ import PDFIcon from "@/components/atoms/icons/PDFIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { cn } from "@/libs/utils";
 import { toEmbedUrl } from "@/libs/embed";
-import { useGsModulesByCourse } from "@/services";
-import type {
-  GsCourseModule,
-  GsCourseModuleSubject,
-} from "@/types/gs-course";
+import {
+  useGsModulesByCourse,
+  useMarkFileRead,
+  useMarkVideoWatched,
+} from "@/services";
+import type { GsCourseModule, GsCourseModuleSubject } from "@/types/gs-course";
 import type {
   IClassMaterialContentPageTemplateProps,
   ModuleStepState,
@@ -29,6 +30,7 @@ type StepKind = "PDF" | "VIDEO" | "ELKPD" | "DIAGNOSTIC";
 interface IFlatStep {
   id: string;
   moduleId: string;
+  diagnosticTestId?: string;
   moduleTitle: string;
   kind: StepKind;
   typeLabel: string;
@@ -54,13 +56,55 @@ function buildModuleView(
   module: GsCourseModule,
   index: number,
 ): IModuleView | null {
-  if (module.type === "SUBJECT" && module.subject) {
-    return moduleFromSubject(module, module.subject, index);
+  const moduleType = module.type;
+  const subject = getSubjectFromModule(module);
+
+  if (moduleType === "SUBJECT" && subject) {
+    return moduleFromSubject(module, subject, index);
   }
-  if (module.type === "DIAGNOSTIC_TEST" && module.diagnosticTest) {
+  if (moduleType === "DIAGNOSTIC_TEST") {
     return moduleFromDiagnostic(module, index);
   }
   return null;
+}
+
+function getModuleId(module: GsCourseModule): string {
+  const fallbackId = (module as GsCourseModule & { courseModuleId?: string })
+    .courseModuleId;
+  return module.id ?? fallbackId ?? "";
+}
+
+function getSubjectFromModule(
+  module: GsCourseModule,
+): GsCourseModuleSubject | null {
+  if (module.subject) {
+    return module.subject;
+  }
+
+  const flat = module as Partial<GsCourseModuleSubject> & {
+    subjectName?: string;
+    description?: string | null;
+    subjectFileUrl?: string;
+    eLKPDTitle?: string | null;
+    eLKPDDescription?: string | null;
+    eLKPDFileUrl?: string | null;
+    videoUrl?: string | null;
+  };
+
+  if (!flat.subjectName) {
+    return null;
+  }
+
+  return {
+    id: module.subjectId ?? getModuleId(module),
+    subjectName: flat.subjectName,
+    description: flat.description ?? null,
+    subjectFileUrl: flat.subjectFileUrl ?? "",
+    eLKPDTitle: flat.eLKPDTitle ?? null,
+    eLKPDDescription: flat.eLKPDDescription ?? null,
+    eLKPDFileUrl: flat.eLKPDFileUrl ?? null,
+    videoUrl: flat.videoUrl ?? null,
+  };
 }
 
 function moduleFromSubject(
@@ -68,12 +112,13 @@ function moduleFromSubject(
   subject: GsCourseModuleSubject,
   index: number,
 ): IModuleView {
+  const moduleId = getModuleId(module);
   const steps: IFlatStep[] = [];
 
   if (subject.subjectFileUrl) {
     steps.push({
-      id: `${module.id}-pdf`,
-      moduleId: module.id,
+      id: `${moduleId}-pdf`,
+      moduleId,
       moduleTitle: subject.subjectName,
       kind: "PDF",
       typeLabel: "Materi",
@@ -86,8 +131,8 @@ function moduleFromSubject(
 
   if (subject.videoUrl) {
     steps.push({
-      id: `${module.id}-video`,
-      moduleId: module.id,
+      id: `${moduleId}-video`,
+      moduleId,
       moduleTitle: subject.subjectName,
       kind: "VIDEO",
       typeLabel: "Video",
@@ -98,22 +143,22 @@ function moduleFromSubject(
     });
   }
 
-  for (const elkpd of subject.eLKPDs ?? []) {
+  if (subject.eLKPDTitle && subject.eLKPDFileUrl) {
     steps.push({
-      id: `${module.id}-elkpd-${elkpd.id}`,
-      moduleId: module.id,
+      id: `${moduleId}-elkpd-${subject.id}`,
+      moduleId,
       moduleTitle: subject.subjectName,
       kind: "ELKPD",
       typeLabel: "E-LKPD",
-      title: elkpd.title,
-      url: toEmbedUrl(elkpd.fileUrl, "elkpd"),
-      rawUrl: elkpd.fileUrl,
+      title: subject.eLKPDTitle,
+      url: toEmbedUrl(subject.eLKPDFileUrl, "elkpd"),
+      rawUrl: subject.eLKPDFileUrl,
       state: "upcoming",
     });
   }
 
   return {
-    id: module.id,
+    id: moduleId,
     title: subject.subjectName,
     description: subject.description ?? "",
     steps,
@@ -124,16 +169,24 @@ function moduleFromDiagnostic(
   module: GsCourseModule,
   index: number,
 ): IModuleView {
-  const test = module.diagnosticTest!;
-  const title = test.testName || `Tes Diagnostik ${module.order ?? index + 1}`;
+  const moduleId = getModuleId(module);
+  const test = module.diagnosticTest;
+  const fallback = module as { testName?: string; description?: string | null };
+  const title =
+    test?.testName ??
+    fallback.testName ??
+    `Tes Diagnostik ${module.order ?? index + 1}`;
+  const diagnosticTestId = module.diagnosticTestId ?? test?.id ?? "";
+
   return {
-    id: module.id,
+    id: moduleId,
     title,
-    description: test.description ?? "",
+    description: test?.description ?? fallback.description ?? "",
     steps: [
       {
-        id: `${module.id}-diagnostic`,
-        moduleId: module.id,
+        id: `${moduleId}-diagnostic`,
+        moduleId,
+        diagnosticTestId,
         moduleTitle: title,
         kind: "DIAGNOSTIC",
         typeLabel: "Test Diagnosis",
@@ -203,6 +256,12 @@ export default function ClassMaterialContentPageTemplate({
   const pathname = usePathname();
   const { data: courseModules, isLoading } = useGsModulesByCourse(courseId);
 
+  // ── Progress tracking hooks ──────────────────────────────────────────
+  // @deprecated: useModuleProgress endpoint [UNREADY] - removed
+  // Mutations still track progress on backend, but visual state not available
+  const markFileRead = useMarkFileRead(contentId);
+  const markVideoWatched = useMarkVideoWatched(contentId);
+
   const modules = useMemo<IModuleView[]>(() => {
     return (courseModules ?? [])
       .filter((m) => m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST")
@@ -210,10 +269,12 @@ export default function ClassMaterialContentPageTemplate({
       .filter((m): m is IModuleView => m !== null);
   }, [courseModules]);
 
-  const flatSteps = useMemo<IFlatStep[]>(
-    () => modules.flatMap((m) => m.steps),
-    [modules],
-  );
+  // ── Reflect progress state on steps ──────────────────────────────────
+  // @deprecated: progressData tracking [UNREADY] - removed
+  // All steps render as "in-progress" until endpoint is available
+  const flatSteps = useMemo<IFlatStep[]>(() => {
+    return modules.flatMap((m) => m.steps);
+  }, [modules]);
 
   const [openModuleId, setOpenModuleId] = useState<string | null>(null);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
@@ -239,11 +300,7 @@ export default function ClassMaterialContentPageTemplate({
     const items = segments
       .map((segment) => {
         currentPath += `/${segment}`;
-        const label = formatBreadcrumbLabel(
-          segment,
-          slug ?? "",
-          contentTitle,
-        );
+        const label = formatBreadcrumbLabel(segment, slug ?? "", contentTitle);
         if (!label) return null;
         return { label, href: currentPath };
       })
@@ -274,11 +331,26 @@ export default function ClassMaterialContentPageTemplate({
       ? flatSteps[activeIndex + 1]
       : null;
 
-  const goTo = (step: IFlatStep | null) => {
-    if (!step) return;
-    setSelectedStepId(step.id);
-    setOpenModuleId(step.moduleId);
-  };
+  const goTo = useCallback(
+    (step: IFlatStep | null) => {
+      if (!step) return;
+      setSelectedStepId(step.id);
+      setOpenModuleId(step.moduleId);
+
+      // ── Auto-track progress when navigating ──────────────────────────
+      // @deprecated: Conditional tracking based on progressData [UNREADY] - removed
+      // Now always tracks to ensure backend state is updated
+      if (step.moduleId === contentId) {
+        if (step.kind === "PDF") {
+          markFileRead.mutate();
+        }
+        if (step.kind === "VIDEO") {
+          markVideoWatched.mutate();
+        }
+      }
+    },
+    [contentId, markFileRead, markVideoWatched],
+  );
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -430,17 +502,24 @@ export default function ClassMaterialContentPageTemplate({
                     </p>
                   )}
 
-                  {slug && (
+                  {slug && activeStep?.diagnosticTestId && (
                     <Link
                       href={`/student/dashboard/class/${encodeURIComponent(
                         slug,
                       )}/materi/${encodeURIComponent(
                         activeStep?.moduleId ?? contentId,
-                      )}/diagnostic`}
+                      )}/${encodeURIComponent(activeStep.diagnosticTestId)}`}
                       className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
                     >
                       Mulai Tes Diagnostik
                     </Link>
+                  )}
+
+                  {slug && !activeStep?.diagnosticTestId && (
+                    <p className="mt-4 text-sm font-medium text-[#DC2626]">
+                      Tes diagnostik belum bisa dibuka karena ID diagnostik
+                      tidak ditemukan.
+                    </p>
                   )}
                 </div>
               </>
