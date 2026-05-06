@@ -4,6 +4,7 @@ import {
   LearningAnalyticsClassHeaderCard,
   LearningAnalyticsViewSwitcher,
 } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
+import { showToast, showErrorToast } from "@/libs/toast";
 import { cn } from "@/libs/utils";
 import type {
   ClassAnalyticsViewType,
@@ -12,7 +13,12 @@ import type {
 } from "@/types/learningAnalytics";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import {
+  useELKPDGradesByModule,
+  useGradeELKPD,
+} from "@/services/hooks/useGsProgress";
+import { useGsModulesByCourse } from "@/services/hooks/useGsCourseModule";
 
 type AnalyticsRole = "admin" | "teacher";
 
@@ -20,6 +26,7 @@ interface ILearningAnalyticsELKPDScoreContentProps {
   role: AnalyticsRole;
   classDetail: IClassLearningAnalyticsDetail;
   elkpdId: string;
+  courseId?: string;
 }
 
 interface IELKPDScoreRow {
@@ -31,6 +38,9 @@ interface IELKPDScoreRow {
   isOnline: boolean;
   scoreLabel: string;
   isScored: boolean;
+  scoreValue: number | null;
+  submissionUrl?: string;
+  teacherNote?: string | null;
 }
 
 const ELKPD_AVATAR_ACCENTS = [
@@ -50,35 +60,136 @@ function buildClassHref(role: AnalyticsRole, slug: string): string {
   return `/teacher/dashboard/class-list/${slug}`;
 }
 
-function buildScoreRows(
-  classDetail: IClassLearningAnalyticsDetail,
-  elkpdId: string,
-): IELKPDScoreRow[] {
-  return classDetail.students.map((student, index) => {
-    const scoreSeed = elkpdId.length + student.fullname.length + index;
-    const isScored = scoreSeed % 4 === 0;
-    const scoreValue = Math.max(
-      55,
-      Math.min(100, student.score + ((index % 3) - 1) * 4),
-    );
+function GradeInputCell({
+  elkpdId,
+  studentId,
+  initialScore,
+  isScored,
+}: {
+  elkpdId: string;
+  studentId: string;
+  initialScore: number | null;
+  isScored: boolean;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [scoreValue, setScoreValue] = useState(
+    initialScore !== null ? String(initialScore) : "",
+  );
+  const { mutate: gradeELKPD, isPending } = useGradeELKPD(elkpdId);
 
-    return {
-      id: student.id,
-      fullname: student.fullname,
-      nis: student.nis,
-      initial: student.fullname.trim().charAt(0).toUpperCase() || "?",
-      avatarTone: ELKPD_AVATAR_ACCENTS[index % ELKPD_AVATAR_ACCENTS.length],
-      isOnline: scoreSeed % 3 !== 1,
-      isScored,
-      scoreLabel: isScored ? `${scoreValue}/100` : "-/100",
-    };
-  });
+  const handleSave = () => {
+    const numScore = parseInt(scoreValue, 10);
+    if (!isNaN(numScore) && numScore >= 0 && numScore <= 100) {
+      gradeELKPD(
+        { studentId, input: { score: numScore } },
+        {
+          onSuccess: () => {
+            showToast.success("Nilai berhasil diperbarui");
+            setIsEditing(false);
+          },
+          onError: (error) => {
+            showErrorToast(error);
+          },
+        },
+      );
+    } else {
+      showToast.error("Nilai harus antara 0 - 100");
+    }
+  };
+
+  const handleCancel = () => {
+    setScoreValue(initialScore !== null ? String(initialScore) : "");
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center justify-end gap-1.5">
+        <div className="relative flex items-center">
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={scoreValue}
+            onChange={(e) => setScoreValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSave();
+              if (e.key === "Escape") handleCancel();
+            }}
+            disabled={isPending}
+            autoFocus
+            className="w-16 rounded border border-[#E5E7EB] px-2 py-1 text-right text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+          />
+          <span className="ml-1 text-[10px] text-[#94A3B8]">/100</span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleSave}
+            disabled={isPending}
+            className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2563EB] text-white transition hover:bg-[#1D4ED8] disabled:opacity-50"
+            title="Simpan"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={handleCancel}
+            disabled={isPending}
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#E5E7EB] text-[#94A3B8] transition hover:bg-[#F8FAFC] disabled:opacity-50"
+            title="Batal"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "cursor-pointer rounded px-2 py-1 transition hover:bg-[#F1F5F9]",
+        isScored ? "text-[#16A34A]" : "text-[#94A3B8]",
+      )}
+      onClick={() => setIsEditing(true)}
+      title="Klik untuk mengubah nilai"
+    >
+      {initialScore !== null ? `${initialScore}/100` : "-/100"}
+    </div>
+  );
 }
+
+
 
 export default function LearningAnalyticsELKPDScoreContent({
   role,
   classDetail,
   elkpdId,
+  courseId,
 }: ILearningAnalyticsELKPDScoreContentProps) {
   const router = useRouter();
   const baseClassHref = buildClassHref(role, classDetail.slug);
@@ -89,10 +200,59 @@ export default function LearningAnalyticsELKPDScoreContent({
     [classDetail.elkpdItems, elkpdId],
   );
 
-  const scoreRows = useMemo(
-    () => buildScoreRows(classDetail, elkpdId),
-    [classDetail, elkpdId],
-  );
+  const activeCourseId = courseId || classDetail.id || "";
+
+  // 1. Fetch Grades & Students for this ELKPD module
+  const { data: gradesData } = useELKPDGradesByModule(elkpdId);
+
+  // 2. Fetch Modules (for Materi and ELKPD counts)
+  const { data: modulesData } = useGsModulesByCourse(activeCourseId);
+
+  const scoreRows = useMemo(() => {
+    // Primary source is gradesData from the specific ELKPD module endpoint
+    const apiGrades = gradesData?.eLKPDs?.[0]?.grades;
+
+    if (apiGrades && apiGrades.length > 0) {
+      return apiGrades.map((grade, index) => {
+        const isScored = grade.score !== null;
+        return {
+          id: grade.studentId,
+          fullname: grade.fullName || `Siswa ${index + 1}`,
+          nis: grade.NIS || grade.studentId.substring(0, 7),
+          initial: (grade.fullName || "?").trim().charAt(0).toUpperCase(),
+          avatarTone: ELKPD_AVATAR_ACCENTS[index % ELKPD_AVATAR_ACCENTS.length],
+          isOnline: true,
+          isScored,
+          scoreValue: grade.score,
+          scoreLabel: isScored ? `${grade.score}/100` : "-/100",
+          submissionUrl: grade.submissionId ? "#" : undefined, // Link if submission exists
+          teacherNote: grade.teacherNote,
+        };
+      });
+    }
+
+    // Fallback to classDetail students if no API data yet
+    return classDetail.students.map((student, index) => {
+      const scoreSeed = elkpdId.length + student.fullname.length + index;
+      const isScored = scoreSeed % 4 === 0;
+      const scoreValue = Math.max(
+        55,
+        Math.min(100, (student.score || 70) + ((index % 3) - 1) * 4),
+      );
+
+      return {
+        id: student.id,
+        fullname: student.fullname,
+        nis: student.nis,
+        initial: student.fullname.trim().charAt(0).toUpperCase() || "?",
+        avatarTone: ELKPD_AVATAR_ACCENTS[index % ELKPD_AVATAR_ACCENTS.length],
+        isOnline: (elkpdId.length + student.fullname.length + index) % 3 !== 1,
+        isScored,
+        scoreValue: isScored ? scoreValue : null,
+        scoreLabel: isScored ? `${scoreValue}/100` : "-/100",
+      };
+    });
+  }, [classDetail.students, elkpdId, gradesData]);
 
   const headerData: ILearningAnalyticsHeaderCardData = {
     className: classDetail.className,
@@ -106,9 +266,12 @@ export default function LearningAnalyticsELKPDScoreContent({
   };
 
   const badgeByType: Partial<Record<ClassAnalyticsViewType, number>> = {
-    Siswa: classDetail.studentCount,
-    Materi: classDetail.materials?.length ?? 0,
-    "Kelola E-LKPD": classDetail.elkpdItems?.length ?? 0,
+    Siswa: scoreRows.length,
+    Materi: modulesData?.length ?? classDetail.materials?.length ?? 0,
+    "Kelola E-LKPD":
+      modulesData?.filter((m) => m.subject?.eLKPDTitle).length ??
+      classDetail.elkpdItems?.length ??
+      0,
   };
 
   return (
@@ -208,13 +371,15 @@ export default function LearningAnalyticsELKPDScoreContent({
                         {row.nis}
                       </td>
 
-                      <td
-                        className={cn(
-                          "px-4 py-3 text-right text-sm font-semibold",
-                          row.isScored ? "text-[#16A34A]" : "text-[#94A3B8]",
-                        )}
-                      >
-                        {row.scoreLabel}
+                      
+
+                      <td className="px-4 py-3 text-right text-sm font-semibold">
+                        <GradeInputCell
+                          elkpdId={elkpdId}
+                          studentId={row.id}
+                          initialScore={row.scoreValue}
+                          isScored={row.isScored}
+                        />
                       </td>
                     </tr>
                   ))

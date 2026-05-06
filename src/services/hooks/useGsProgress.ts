@@ -76,20 +76,27 @@ export interface SubmitTestAttemptInput {
 // ─── ELKPD Grading Types ──────────────────────────────────────────────────
 
 export interface ELKPDGradeEntry {
-  id: string;
   studentId: string;
-  studentName: string;
-  eLKPDId: string;
-  submissionFileUrl: string;
+  fullName: string;
+  NIS: string;
+  graded: boolean;
+  submissionId: string | null;
   score: number | null;
   teacherNote: string | null;
-  submittedAt: string;
   gradedAt: string | null;
 }
 
-export interface ELKPDGradesByModuleResponse {
+export interface IELKPDDetail {
+  eLKPDId: string;
+  title: string;
+  fileUrl: string;
   grades: ELKPDGradeEntry[];
+}
+
+export interface ELKPDGradesByModuleResponse {
   courseModuleId: string;
+  subjectId: string;
+  eLKPDs: IELKPDDetail[];
 }
 
 export interface GradeELKPDInput {

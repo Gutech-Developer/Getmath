@@ -110,13 +110,14 @@ export default function LearningAnalyticsELKPDScoreTemplate({
     const fallback = staticDetail ?? createFallbackClassDetail(slug, elkpdId);
 
     // If we have API submissions, enrich student data with real scores
-    if (submissionsData?.grades?.length) {
-      const apiStudents = submissionsData.grades.map((sub, index) => {
+    const apiGrades = submissionsData?.eLKPDs?.[0]?.grades;
+    if (apiGrades?.length) {
+      const apiStudents = apiGrades.map((sub, index) => {
         const score = sub.score ?? 0;
         return {
           id: sub.studentId,
-          fullname: sub.studentName ?? `Siswa ${index + 1}`,
-          nis: sub.studentId.slice(0, 7) ?? "-",
+          fullname: sub.fullName || `Siswa ${index + 1}`,
+          nis: sub.NIS || sub.studentId.slice(0, 7) || "-",
           score,
           status: (score >= 75 ? "Lulus" : "Remedial") as "Lulus" | "Remedial",
         };
@@ -151,6 +152,7 @@ export default function LearningAnalyticsELKPDScoreTemplate({
       role={role}
       classDetail={classDetail}
       elkpdId={elkpdId}
+      courseId={course?.id}
     />
   );
 }
