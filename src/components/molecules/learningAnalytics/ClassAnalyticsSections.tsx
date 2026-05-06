@@ -1103,6 +1103,10 @@ export function BaseMateriSection({
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailModuleId, setDetailModuleId] = useState("");
+  const [moduleToDelete, setModuleToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [deadlineDraft, setDeadlineDraft] = useState("");
   const [moduleTitle, setModuleTitle] = useState("");
   const [moduleDescription, setModuleDescription] = useState("");
@@ -1428,7 +1432,17 @@ export function BaseMateriSection({
     });
   };
 
-  const deleteSequenceItem = async (itemId: string) => {
+  const handleTriggerDelete = (itemId: string) => {
+    const item = sequenceItems.find((i) => i.id === itemId);
+    if (item) {
+      setModuleToDelete({ id: itemId, title: item.title });
+    }
+  };
+
+  const deleteSequenceItem = async () => {
+    if (!moduleToDelete) return;
+    const itemId = moduleToDelete.id;
+
     if (isApiMode && courseId) {
       try {
         await deleteCourseModuleMutation.mutateAsync({
@@ -1436,6 +1450,8 @@ export function BaseMateriSection({
           courseId,
         });
         showToast.success("Modul berhasil dihapus");
+        setModuleToDelete(null);
+        if (isDetailModalOpen) setIsDetailModalOpen(false);
       } catch (error) {
         showErrorToast(error);
       }
@@ -1445,12 +1461,14 @@ export function BaseMateriSection({
 
     if (onDeleteSequenceItemProp) {
       onDeleteSequenceItemProp(itemId);
+      setModuleToDelete(null);
       return;
     }
 
     setLocalSequenceItems((previousItems) =>
       previousItems.filter((item) => item.id !== itemId),
     );
+    setModuleToDelete(null);
   };
 
   const saveNewModule = async () => {
@@ -1649,7 +1667,7 @@ export function BaseMateriSection({
                 isMutating={isMutatingCourseModules}
                 onMove={moveSequenceItem}
                 onView={openSequenceItemDetail}
-                onDelete={(itemId) => void deleteSequenceItem(itemId)}
+                onDelete={handleTriggerDelete}
               />
             ))
           )}
@@ -2005,7 +2023,48 @@ export function BaseMateriSection({
         onDeadlineChange={setDeadlineDraft}
         onSaveDeadline={() => void saveModuleDeadline()}
         isSaving={updateCourseModuleMutation.isPending}
+        onDelete={() => handleTriggerDelete(detailModuleId)}
+        isDeleting={deleteCourseModuleMutation.isPending}
       />
+
+      <Modal
+        isOpen={!!moduleToDelete}
+        onClose={() => setModuleToDelete(null)}
+        title="Hapus Modul"
+        size="md"
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
+            <p className="text-sm font-semibold text-[#991B1B]">
+              Yakin ingin menghapus modul ini?
+            </p>
+            <p className="mt-1 text-sm text-[#B91C1C]">
+              {moduleToDelete?.title} · Seluruh data progres siswa pada modul
+              ini akan hilang permanen.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setModuleToDelete(null)}
+              className="h-12 flex-1 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 text-sm font-semibold text-[#64748B] transition hover:bg-[#F1F5F9]"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={deleteSequenceItem}
+              disabled={deleteCourseModuleMutation.isPending}
+              className="h-12 flex-1 rounded-2xl bg-[#DC2626] px-5 text-sm font-semibold text-white transition hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {deleteCourseModuleMutation.isPending
+                ? "Menghapus..."
+                : "Hapus Modul"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }

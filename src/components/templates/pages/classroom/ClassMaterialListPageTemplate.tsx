@@ -12,7 +12,7 @@ import SearchIcon from "@/components/atoms/icons/SearchIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { cn } from "@/libs/utils";
 import { useGsCourseBySlug, useGsModulesByCourse } from "@/services";
-import type { GsCourseModule } from "@/types/gs-course";
+import type { GsCourseModule, GsCourseModuleSubject } from "@/types/gs-course";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -45,7 +45,7 @@ interface IClassMaterialListPageTemplateProps {
 /*  API mapper                                                         */
 /* ------------------------------------------------------------------ */
 function getModuleId(module: GsCourseModule): string {
-  return module.id || module.courseModuleId || "";
+  return module.id || (module as any).courseModuleId || "";
 }
 
 /**
@@ -58,15 +58,14 @@ function mapModuleToMaterial(
   index: number,
 ): IMaterialModule {
   const moduleId = getModuleId(module);
+  const flat = module as any;
 
   // Handle diagnostic test modules
   if (module.type === "DIAGNOSTIC_TEST") {
-    // Student list API returns testName at top level if not nested
     const test = module.diagnosticTest;
-    const fallback = module as { testName?: string; description?: string | null };
     const title =
+      flat.testName ??
       test?.testName ??
-      fallback.testName ??
       `Tes Diagnostik ${module.order ?? index + 1}`;
 
     const steps: IMaterialStep[] = [
@@ -74,75 +73,99 @@ function mapModuleToMaterial(
         id: module.diagnosticTestId ?? test?.id ?? `${moduleId}-diagnostic`,
         typeLabel: "Test Diagnosis",
         title,
-        status: index === 0 ? "in-progress" : "locked",
+        status: flat.completed
+          ? "completed"
+          : flat.accessible
+            ? "in-progress"
+            : "locked",
       },
     ];
 
-    const completedSteps = index === 0 ? 1 : 0;
+    const completedSteps = flat.completed ? 1 : 0;
 
     return {
       id: moduleId,
       title,
-      description: test?.description ?? fallback.description ?? "",
+      description: test?.description ?? flat.description ?? "",
       totalSteps: steps.length,
       completedSteps,
       progressPercent:
         steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0,
-      status:
-        completedSteps === steps.length
-          ? "completed"
-          : completedSteps > 0
-            ? "in-progress"
-            : "locked",
+      status: flat.completed
+        ? "completed"
+        : flat.accessible
+          ? "in-progress"
+          : "locked",
       steps,
     };
   }
 
-  // Fallback: SUBJECT modules (existing behavior)
+  // SUBJECT modules
   const subject = module.subject;
-  const flat = module as Partial<GsCourseModuleSubject> & {
-    subjectName?: string;
-    description?: string | null;
-  };
   const title =
-    subject?.subjectName ??
     flat.subjectName ??
+    subject?.subjectName ??
     `Modul ${module.order ?? index + 1}`;
+
   const steps: IMaterialStep[] = [];
 
-  // Selalu ada materi PDF
+  // 1. Materi (PDF) - Standard for SUBJECT
   steps.push({
     id: `${moduleId}-materi`,
     typeLabel: "Materi",
     title,
-    status: "in-progress",
+    status: flat.fileRead
+      ? "completed"
+      : flat.accessible
+        ? "in-progress"
+        : "locked",
   });
 
-  if (subject?.videoUrl || (module as any).videoUrl) {
+  // 2. Video
+  if (flat.hasVideo) {
     steps.push({
       id: `${moduleId}-video`,
       typeLabel: "Video",
       title: `Video: ${title}`,
-      status: "locked",
+      status: flat.videoWatched
+        ? "completed"
+        : flat.fileRead
+          ? "in-progress"
+          : "locked",
     });
   }
 
-  const completedSteps = index === 0 ? 1 : 0;
+  // 3. E-LKPD
+  if (flat.hasELKPD) {
+    const prevCompleted = flat.hasVideo ? flat.videoWatched : flat.fileRead;
+    steps.push({
+      id: `${moduleId}-elkpd`,
+      typeLabel: "E-LKPD",
+      title: `E-LKPD: ${title}`,
+      status: flat.eLKPDGraded
+        ? "completed"
+        : prevCompleted
+          ? "in-progress"
+          : "locked",
+    });
+  }
+
+  const totalSteps = steps.length;
+  const completedSteps = steps.filter((s) => s.status === "completed").length;
 
   return {
     id: moduleId,
     title,
     description: subject?.description ?? flat.description ?? "",
-    totalSteps: steps.length,
+    totalSteps,
     completedSteps,
     progressPercent:
-      steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0,
-    status:
-      completedSteps === steps.length
-        ? "completed"
-        : completedSteps > 0
-          ? "in-progress"
-          : "locked",
+      totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0,
+    status: flat.completed
+      ? "completed"
+      : flat.accessible
+        ? "in-progress"
+        : "locked",
     steps,
   };
 }
@@ -419,9 +442,15 @@ export default function ClassMaterialListPageTemplate({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-bold text-[#0F172A]">
-                      {module.title}
-                    </h3>
+                    <Link
+                      href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${module.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="group/title"
+                    >
+                      <h3 className="text-base font-bold text-[#0F172A] transition group-hover/title:text-[#2563EB]">
+                        {module.title}
+                      </h3>
+                    </Link>
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",

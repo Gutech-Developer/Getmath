@@ -111,10 +111,19 @@ export function useGsCreateDiagnosticTest() {
     mutationFn: (input) => gsPost<GsDiagnosticTest>("/diagnostic-tests", input),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.myList(),
+        queryKey: queryKeys.gsDiagnosticTests.all,
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.lists(),
+        queryKey: queryKeys.gsDashboard.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourses.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsRemediations.all,
       });
     },
   });
@@ -139,15 +148,21 @@ export function useGsUpdateDiagnosticTest() {
       }
       return gsPatch<GsDiagnosticTest>(`/diagnostic-tests/${id}`, data);
     },
-    onSuccess: async (_updated, variables) => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.myList(),
+        queryKey: queryKeys.gsDiagnosticTests.all,
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.lists(),
+        queryKey: queryKeys.gsDashboard.all,
       });
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.detail(variables.id),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourses.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsRemediations.all,
       });
     },
     retry: (failureCount, error: any) => {
@@ -171,15 +186,21 @@ export function useGsDeleteDiagnosticTest() {
 
   return useMutation<void, Error, string>({
     mutationFn: (id) => gsDel<void>(`/diagnostic-tests/${id}`),
-    onSuccess: (_, id) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.myList(),
+        queryKey: queryKeys.gsDiagnosticTests.all,
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.lists(),
+        queryKey: queryKeys.gsDashboard.all,
       });
-      queryClient.removeQueries({
-        queryKey: queryKeys.gsDiagnosticTests.detail(id),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourses.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsRemediations.all,
       });
     },
   });
