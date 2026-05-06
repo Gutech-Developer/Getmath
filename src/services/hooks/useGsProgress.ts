@@ -106,16 +106,16 @@ export function useMarkFileRead(courseModuleId: string) {
     mutationFn: async () => {
       gsLogger.request(
         "POST",
-        `/subjects/modules/${courseModuleId}/mark-file-read`,
+        `/progress/modules/${courseModuleId}/mark-file-read`,
         {}
       );
       const response = await gsPost(
-        `/subjects/modules/${courseModuleId}/mark-file-read`,
+        `/progress/modules/${courseModuleId}/mark-file-read`,
         {}
       );
       gsLogger.response(
         "POST",
-        `/subjects/modules/${courseModuleId}/mark-file-read`,
+        `/progress/modules/${courseModuleId}/mark-file-read`,
         200,
         response
       );
@@ -139,16 +139,16 @@ export function useMarkVideoWatched(courseModuleId: string) {
     mutationFn: async () => {
       gsLogger.request(
         "POST",
-        `/subjects/modules/${courseModuleId}/mark-video-watched`,
+        `/progress/modules/${courseModuleId}/mark-video-watched`,
         {}
       );
       const response = await gsPost(
-        `/subjects/modules/${courseModuleId}/mark-video-watched`,
+        `/progress/modules/${courseModuleId}/mark-video-watched`,
         {}
       );
       gsLogger.response(
         "POST",
-        `/subjects/modules/${courseModuleId}/mark-video-watched`,
+        `/progress/modules/${courseModuleId}/mark-video-watched`,
         200,
         response
       );

@@ -13,6 +13,7 @@ import AlertIcon from "@/components/atoms/icons/AlertIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
 import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
+import ChatIcon from "@/components/atoms/icons/ChatIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { MathSymbolAvatar } from "@/components/atoms/MathSymbolAvatar";
@@ -20,6 +21,7 @@ import { WelcomeBanner } from "@/components/molecules/cards/WelcomeBanner";
 import { DonutChart } from "@/components/molecules/charts/DonutChart";
 import { MateriModuleDetailModal } from "@/components/organisms/learningAnalytics/MateriModuleDetailModal";
 import { Modal } from "@/components/molecules/Modal";
+import { TablePagination } from "@/components/molecules/table";
 import {
   DiagnosticPreviewBody,
   MateriSequenceItemCard,
@@ -147,6 +149,7 @@ const VIEW_ITEMS: Array<{
   { type: "Materi", icon: NotebookIcon },
   { type: "Kelola E-LKPD", icon: ClipboardIcon },
   { type: "Laporan", icon: TrendUpIcon },
+  { type: "Forum", icon: ChatIcon },
 ];
 
 const REPORT_MODES = ["Analisis Nilai & Emosi", "Word Cloud Forum"] as const;
@@ -411,12 +414,14 @@ const DIAGNOSTIC_TEST_OPTIONS: ILearningAnalyticsDiagnosticOption[] = [
     title: "Tes Diagnostik 1 - Persamaan Kuadrat",
     questionCount: 2,
     durationMinutes: 60,
+    totalQuestions: 0,
   },
   {
     id: "diagnostic-2",
     title: "Tes Diagnostik 2 - Fungsi Kuadrat",
     questionCount: 1,
     durationMinutes: 45,
+    totalQuestions: 0,
   },
 ];
 
@@ -1102,6 +1107,8 @@ export function BaseMateriSection({
   const [moduleTitle, setModuleTitle] = useState("");
   const [moduleDescription, setModuleDescription] = useState("");
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [diagnosticPage, setDiagnosticPage] = useState(1);
+  const [diagnosticItemsPerPage, setDiagnosticItemsPerPage] = useState(10);
 
   const {
     data: courseModules = [],
@@ -1113,7 +1120,10 @@ export function BaseMateriSection({
     { enabled: isApiMode },
   );
   const { data: diagnosticTestsData, isLoading: isDiagnosticTestsLoading } =
-    useGsMyDiagnosticTests({ limit: 200 }, { enabled: isApiMode });
+    useGsMyDiagnosticTests(
+      { page: diagnosticPage, limit: diagnosticItemsPerPage },
+      { enabled: isApiMode },
+    );
   const createCourseModuleMutation = useGsCreateCourseModule();
   const updateCourseModuleMutation = useGsUpdateCourseModule();
   const reorderCourseModulesMutation = useGsReorderCourseModules();
@@ -1158,16 +1168,15 @@ export function BaseMateriSection({
       (diagnosticTestsData?.diagnosticTests ?? []).map((test) => ({
         id: test.id,
         title: test.testName,
-        questionCount:
-          test.packages?.reduce(
-            (count, diagnosticPackage) =>
-              count + diagnosticPackage.questions.length,
-            0,
-          ) ?? 0,
+        questionCount: test.totalQuestions ?? 0,
+        totalQuestions: test.totalQuestions ?? 0,
         durationMinutes: test.durationMinutes,
       })),
     [diagnosticTestsData],
   );
+
+  const diagnosticPagination = diagnosticTestsData?.pagination;
+  const diagnosticTotalPages = diagnosticPagination?.totalPages ?? 1;
 
   const usedSubjectIds = useMemo(
     () =>
@@ -1213,6 +1222,24 @@ export function BaseMateriSection({
     deleteCourseModuleMutation.isPending;
 
   const hasOpenPopup = isModuleModalOpen || isDiagnosticModalOpen;
+
+  useEffect(() => {
+    if (!isDiagnosticModalOpen) {
+      return;
+    }
+
+    setDiagnosticPage(1);
+  }, [isDiagnosticModalOpen]);
+
+  useEffect(() => {
+    if (!diagnosticPagination) {
+      return;
+    }
+
+    if (diagnosticPage > diagnosticPagination.totalPages) {
+      setDiagnosticPage(diagnosticPagination.totalPages || 1);
+    }
+  }, [diagnosticPage, diagnosticPagination]);
 
   useEffect(() => {
     if (!hasOpenPopup) {
@@ -1854,7 +1881,7 @@ export function BaseMateriSection({
 
           <section className="relative z-10 w-full max-w-[670px] rounded-3xl bg-white p-4 shadow-[0_24px_48px_rgba(15,23,42,0.24)] md:p-5">
             <div className="mb-3 flex items-center justify-between gap-4 px-1">
-              <h3 className="text-4xl font-bold leading-none text-[#1F2937]">
+              <h3 className="text-2xl font-bold leading-none text-[#1F2937]">
                 Pilih Tes Diagnostik
               </h3>
               <button
@@ -1917,7 +1944,8 @@ export function BaseMateriSection({
                             {option.title}
                           </p>
                           <p className="text-sm text-[#94A3B8]">
-                            {option.questionCount} soal ·{" "}
+                            {/* error */}
+                            {option.totalQuestions} soal ·
                             {option.durationMinutes} menit
                           </p>
                         </div>
@@ -1933,6 +1961,22 @@ export function BaseMateriSection({
                 })
               )}
             </div>
+
+            {isApiMode && diagnosticTotalPages > 1 && (
+              <div className="mt-4 border-t border-[#E5E7EB] pt-3">
+                <TablePagination
+                  currentPage={diagnosticPage}
+                  totalPages={diagnosticTotalPages}
+                  itemsPerPage={diagnosticItemsPerPage}
+                  onPageChange={setDiagnosticPage}
+                  onItemsPerPageChange={(items) => {
+                    setDiagnosticItemsPerPage(items);
+                    setDiagnosticPage(1);
+                  }}
+                  className="py-0"
+                />
+              </div>
+            )}
           </section>
         </div>
       )}

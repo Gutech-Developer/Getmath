@@ -3,7 +3,8 @@ export type ClassAnalyticsViewType =
   | "Siswa"
   | "Materi"
   | "Kelola E-LKPD"
-  | "Laporan";
+  | "Laporan"
+  | "Forum";
 
 export type LearningAnalyticsStudentStatus = "Lulus" | "Remedial";
 
@@ -113,4 +114,5 @@ export interface ILearningAnalyticsDiagnosticOption {
   title: string;
   questionCount: number;
   durationMinutes: number;
+  totalQuestions: number;
 }

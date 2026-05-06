@@ -38,6 +38,7 @@ export interface PaginationParams {
   limit?: number;
   sortBy?: string;
   courseModuleId?: string;
+  search?: string;
 }
 
 export interface ListDiscussionsResponse {
@@ -62,6 +63,9 @@ export function useListDiscussionsByCourse(
     sortBy: params?.sortBy ?? "latest",
     ...(params?.courseModuleId && {
       courseModuleId: params.courseModuleId,
+    }),
+    ...(params?.search && {
+      search: params.search,
     }),
   }).toString();
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
@@ -12,6 +12,7 @@ import { cn } from "@/libs/utils";
 import { toEmbedUrl } from "@/libs/embed";
 import {
   useGsModulesByCourse,
+  useGsModuleById,
   useMarkFileRead,
   useMarkVideoWatched,
 } from "@/services";
@@ -89,6 +90,8 @@ function getSubjectFromModule(
     eLKPDDescription?: string | null;
     eLKPDFileUrl?: string | null;
     videoUrl?: string | null;
+    hasVideo?: boolean;
+    hasELKPD?: boolean;
   };
 
   if (!flat.subjectName) {
@@ -104,7 +107,9 @@ function getSubjectFromModule(
     eLKPDDescription: flat.eLKPDDescription ?? null,
     eLKPDFileUrl: flat.eLKPDFileUrl ?? null,
     videoUrl: flat.videoUrl ?? null,
-  };
+    _hasVideo: flat.hasVideo,
+    _hasELKPD: flat.hasELKPD,
+  } as GsCourseModuleSubject & { _hasVideo?: boolean; _hasELKPD?: boolean };
 }
 
 function moduleFromSubject(
@@ -115,7 +120,7 @@ function moduleFromSubject(
   const moduleId = getModuleId(module);
   const steps: IFlatStep[] = [];
 
-  if (subject.subjectFileUrl) {
+  if (subject.subjectFileUrl || true) {
     steps.push({
       id: `${moduleId}-pdf`,
       moduleId,
@@ -123,13 +128,13 @@ function moduleFromSubject(
       kind: "PDF",
       typeLabel: "Materi",
       title: subject.subjectName,
-      url: toEmbedUrl(subject.subjectFileUrl, "pdf"),
-      rawUrl: subject.subjectFileUrl,
+      url: subject.subjectFileUrl ? toEmbedUrl(subject.subjectFileUrl, "pdf") : null,
+      rawUrl: subject.subjectFileUrl || null,
       state: index === 0 ? "active" : "upcoming",
     });
   }
 
-  if (subject.videoUrl) {
+  if (subject.videoUrl || (subject as any)._hasVideo) {
     steps.push({
       id: `${moduleId}-video`,
       moduleId,
@@ -137,22 +142,22 @@ function moduleFromSubject(
       kind: "VIDEO",
       typeLabel: "Video",
       title: `Video: ${subject.subjectName}`,
-      url: toEmbedUrl(subject.videoUrl, "video"),
-      rawUrl: subject.videoUrl,
+      url: subject.videoUrl ? toEmbedUrl(subject.videoUrl, "video") : null,
+      rawUrl: subject.videoUrl || null,
       state: "upcoming",
     });
   }
 
-  if (subject.eLKPDTitle && subject.eLKPDFileUrl) {
+  if ((subject.eLKPDTitle && subject.eLKPDFileUrl) || (subject as any)._hasELKPD) {
     steps.push({
-      id: `${moduleId}-elkpd-${subject.id}`,
+      id: `${moduleId}-elkpd-${subject.id || moduleId}`,
       moduleId,
       moduleTitle: subject.subjectName,
       kind: "ELKPD",
       typeLabel: "E-LKPD",
-      title: subject.eLKPDTitle,
-      url: toEmbedUrl(subject.eLKPDFileUrl, "elkpd"),
-      rawUrl: subject.eLKPDFileUrl,
+      title: subject.eLKPDTitle || "E-LKPD",
+      url: subject.eLKPDFileUrl ? toEmbedUrl(subject.eLKPDFileUrl, "elkpd") : null,
+      rawUrl: subject.eLKPDFileUrl || null,
       state: "upcoming",
     });
   }
@@ -262,12 +267,26 @@ export default function ClassMaterialContentPageTemplate({
   const markFileRead = useMarkFileRead(contentId);
   const markVideoWatched = useMarkVideoWatched(contentId);
 
+  const [openModuleId, setOpenModuleId] = useState<string | null>(contentId ?? null);
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [videoFinished, setVideoFinished] = useState<Record<string, boolean>>({});
+  const [elkpdFinished, setElkpdFinished] = useState<Record<string, boolean>>({});
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [maxUnlockedIndex, setMaxUnlockedIndex] = useState<number>(-1);
+
+  const { data: detailModule } = useGsModuleById(openModuleId ?? "");
+
   const modules = useMemo<IModuleView[]>(() => {
     return (courseModules ?? [])
       .filter((m) => m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST")
-      .map((m, i) => buildModuleView(m, i))
+      .map((m, i) => {
+        const mId = m.id ?? (m as any).courseModuleId;
+        const dId = detailModule?.id ?? (detailModule as any)?.courseModuleId;
+        const moduleToUse = (dId && mId === dId) ? detailModule : m;
+        return buildModuleView(moduleToUse as GsCourseModule, i);
+      })
       .filter((m): m is IModuleView => m !== null);
-  }, [courseModules]);
+  }, [courseModules, detailModule]);
 
   // ── Reflect progress state on steps ──────────────────────────────────
   // @deprecated: progressData tracking [UNREADY] - removed
@@ -276,8 +295,7 @@ export default function ClassMaterialContentPageTemplate({
     return modules.flatMap((m) => m.steps);
   }, [modules]);
 
-  const [openModuleId, setOpenModuleId] = useState<string | null>(null);
-  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+
 
   // Set default selectedStep dari modul yang dibuka via contentId.
   useEffect(() => {
@@ -322,6 +340,15 @@ export default function ClassMaterialContentPageTemplate({
     );
   }, [flatSteps, selectedStepId, contentId]);
 
+  const { data: activeDiagnosticModule } = useGsModuleById(
+    activeStep?.kind === "DIAGNOSTIC" ? activeStep.moduleId : "",
+  );
+  const resolvedDiagnosticTestId =
+    activeStep?.diagnosticTestId ??
+    activeDiagnosticModule?.diagnosticTestId ??
+    activeDiagnosticModule?.diagnosticTest?.id ??
+    "";
+
   const activeIndex = activeStep
     ? flatSteps.findIndex((s) => s.id === activeStep.id)
     : -1;
@@ -330,6 +357,12 @@ export default function ClassMaterialContentPageTemplate({
     activeIndex >= 0 && activeIndex < flatSteps.length - 1
       ? flatSteps[activeIndex + 1]
       : null;
+
+  useEffect(() => {
+    if (activeIndex > maxUnlockedIndex) {
+      setMaxUnlockedIndex(activeIndex);
+    }
+  }, [activeIndex, maxUnlockedIndex]);
 
   const goTo = useCallback(
     (step: IFlatStep | null) => {
@@ -344,13 +377,82 @@ export default function ClassMaterialContentPageTemplate({
         if (step.kind === "PDF") {
           markFileRead.mutate();
         }
-        if (step.kind === "VIDEO") {
-          markVideoWatched.mutate();
-        }
+        // VIDEO is now marked when YT player ends
       }
     },
-    [contentId, markFileRead, markVideoWatched],
+    [contentId, markFileRead],
   );
+
+  useEffect(() => {
+    if (activeStep?.kind !== "VIDEO") return;
+    if (!activeStep.url) return;
+    if (videoFinished[activeStep.id]) return;
+
+    if (!activeStep.url.includes("youtube.com/embed")) {
+      setVideoFinished((prev) => ({ ...prev, [activeStep.id]: true }));
+      markVideoWatched.mutate();
+      return;
+    }
+
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName("script")[0];
+    if (firstScriptTag && firstScriptTag.parentNode) {
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+
+    let player: any;
+    const iframeId = `youtube-player-${activeStep.id}`;
+
+    const initPlayer = () => {
+      // Check if iframe exists in DOM
+      if (!document.getElementById(iframeId)) return;
+      player = new (window as any).YT.Player(iframeId, {
+        events: {
+          onStateChange: (event: any) => {
+            if (event.data === (window as any).YT.PlayerState.ENDED) {
+              setVideoFinished((prev) => ({ ...prev, [activeStep.id]: true }));
+              markVideoWatched.mutate();
+            }
+          },
+        },
+      });
+    };
+
+    if (!(window as any).YT) {
+      (window as any).onYouTubeIframeAPIReady = initPlayer;
+    } else if ((window as any).YT.Player) {
+      // Use setTimeout to ensure iframe is rendered before initializing
+      setTimeout(initPlayer, 500);
+    }
+
+    return () => {
+      if (player && player.destroy) {
+        player.destroy();
+      }
+    };
+  }, [activeStep?.id, activeStep?.kind, activeStep?.url, videoFinished, markVideoWatched]);
+
+  useEffect(() => {
+    if (activeStep?.kind !== "ELKPD") return;
+    if (!activeStep.id) return;
+    if (elkpdFinished[activeStep.id]) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setElkpdFinished((prev) => ({ ...prev, [activeStep.id]: true }));
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (bottomRef.current) {
+      observer.observe(bottomRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [activeStep?.id, activeStep?.kind, elkpdFinished]);
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -422,17 +524,6 @@ export default function ClassMaterialContentPageTemplate({
                   </p>
                 </div>
               </div>
-
-              {activeStep?.rawUrl && (
-                <a
-                  href={activeStep.rawUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/15"
-                >
-                  Buka di tab baru
-                </a>
-              )}
             </div>
           </div>
 
@@ -443,6 +534,7 @@ export default function ClassMaterialContentPageTemplate({
                 <ContentBadge icon={VideoIcon} label="Video Pembelajaran" />
                 <div className="aspect-video overflow-hidden rounded-2xl border border-[#E2E8F0] bg-black">
                   <iframe
+                    id={`youtube-player-${activeStep.id}`}
                     key={activeStep.id}
                     src={activeStep.url}
                     title={activeStep.title}
@@ -502,20 +594,20 @@ export default function ClassMaterialContentPageTemplate({
                     </p>
                   )}
 
-                  {slug && activeStep?.diagnosticTestId && (
+                  {slug && resolvedDiagnosticTestId && (
                     <Link
                       href={`/student/dashboard/class/${encodeURIComponent(
                         slug,
                       )}/materi/${encodeURIComponent(
                         activeStep?.moduleId ?? contentId,
-                      )}/${encodeURIComponent(activeStep.diagnosticTestId)}`}
+                      )}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
                       className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
                     >
                       Mulai Tes Diagnostik
                     </Link>
                   )}
 
-                  {slug && !activeStep?.diagnosticTestId && (
+                  {slug && !resolvedDiagnosticTestId && (
                     <p className="mt-4 text-sm font-medium text-[#DC2626]">
                       Tes diagnostik belum bisa dibuka karena ID diagnostik
                       tidak ditemukan.
@@ -532,6 +624,8 @@ export default function ClassMaterialContentPageTemplate({
                 </p>
               </div>
             )}
+            
+            <div ref={bottomRef} className="h-px w-full" />
           </div>
 
           {/* ------- Step navigation ------- */}
@@ -552,7 +646,11 @@ export default function ClassMaterialContentPageTemplate({
             <button
               type="button"
               onClick={() => goTo(nextStep)}
-              disabled={!nextStep}
+              disabled={
+                !nextStep ||
+                (isVideo && !videoFinished[activeStep?.id || ""]) ||
+                (isElkpd && !elkpdFinished[activeStep?.id || ""])
+              }
               className="inline-flex h-11 items-center justify-center rounded-full bg-[#2563EB] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)] transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {nextStep ? `Selanjutnya: ${nextStep.typeLabel}` : "Selesai"} →
@@ -617,6 +715,8 @@ export default function ClassMaterialContentPageTemplate({
                   {isOpen && (
                     <ul className="space-y-1 border-t border-[#E2E8F0] bg-[#FAFBFD] p-2">
                       {module.steps.map((step, stepIndex) => {
+                        const globalIndex = flatSteps.findIndex((s) => s.id === step.id);
+                        const isLocked = globalIndex > maxUnlockedIndex;
                         const StepIcon = getStepIcon(step.kind);
                         const tone = getStepTone(step.kind);
                         const isActive = activeStep?.id === step.id;
@@ -626,11 +726,14 @@ export default function ClassMaterialContentPageTemplate({
                             <button
                               type="button"
                               onClick={() => goTo(step)}
+                              disabled={isLocked}
                               className={cn(
                                 "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition",
                                 isActive
                                   ? "border-[#BFDBFE] bg-[#EFF6FF]"
-                                  : "border-transparent hover:border-[#E2E8F0] hover:bg-white",
+                                  : "border-transparent",
+                                !isLocked && !isActive && "hover:border-[#E2E8F0] hover:bg-white",
+                                isLocked && "cursor-not-allowed opacity-50"
                               )}
                             >
                               <span

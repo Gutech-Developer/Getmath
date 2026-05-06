@@ -256,9 +256,14 @@ export default function AdminLearningAnalyticsClassContent({
         buildStudentDetailHref={studentDetailHrefBuilder}
       />
     ),
+    Forum: (
+      <ForumSection
+        courseId={classDetail.id ?? classDetail.slug}
+        slug={classDetail.slug}
+        role="admin"
+      />
+    ),
   };
-
-  const [showForum, setShowForum] = useState(false);
 
   return (
     <div className="w-full space-y-4">
@@ -269,7 +274,6 @@ export default function AdminLearningAnalyticsClassContent({
           <LearningAnalyticsViewSwitcher
             activeType={activeViewType}
             onChange={(key) => {
-              setShowForum(false);
               setActiveViewType(key);
             }}
             badgeByType={{
@@ -279,28 +283,9 @@ export default function AdminLearningAnalyticsClassContent({
             }}
           />
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForum((v) => !v)}
-          className={`shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-            showForum
-              ? "border-[#1F2375] bg-[#1F2375] text-white"
-              : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#1F2375]/40 hover:text-[#1F2375]"
-          }`}
-        >
-          💬 Forum
-        </button>
       </div>
 
-      {showForum ? (
-        <ForumSection
-          courseId={classDetail.id ?? classDetail.slug}
-          slug={classDetail.slug}
-          role="admin"
-        />
-      ) : (
-        renderedByType[activeViewType]
-      )}
+      {renderedByType[activeViewType]}
     </div>
   );
 }

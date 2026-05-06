@@ -1,5 +1,6 @@
 "use client";
 
+import ChatIcon from "@/components/atoms/icons/ChatIcon";
 import ClipboardIcon from "@/components/atoms/icons/ClipboardIcon";
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
@@ -73,6 +74,11 @@ const TEACHER_VIEW_ITEMS: ITeacherSidebarItem[] = [
     type: "Laporan",
     label: "Laporan",
     icon: TrendUpIcon,
+  },
+  {
+    type: "Forum",
+    label: "Forum",
+    icon: ChatIcon,
   },
 ];
 
@@ -163,7 +169,6 @@ export default function TeacherLearningAnalyticsClassContent({
   const { mutate: kickStudent, isPending: isKickingStudent } =
     useGsKickStudentFromCourse();
   const queryView = searchParams?.get("view");
-  const [showForum, setShowForum] = useState(false);
   const activeViewType =
     resolveTeacherViewType(queryView) ??
     classDetail.defaultViewType ??
@@ -268,6 +273,14 @@ export default function TeacherLearningAnalyticsClassContent({
         students={classDetail.students}
       />
     ),
+    // seharusnya disini bukan di showforum 
+    Forum: (
+      <ForumSection
+        courseId={classDetail.id ?? classDetail.slug}
+        slug={classDetail.slug}
+        role="teacher"
+      />
+    ),  
   };
 
   return (
@@ -278,7 +291,6 @@ export default function TeacherLearningAnalyticsClassContent({
           <LearningAnalyticsViewSwitcher
             activeType={activeViewType}
             onChange={(key) => {
-              setShowForum(false);
               router.push(
                 `${pathname.split("?")[0]}?view=${encodeURIComponent(key)}`,
               );
@@ -290,27 +302,8 @@ export default function TeacherLearningAnalyticsClassContent({
             }}
           />
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForum((v) => !v)}
-          className={`shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-            showForum
-              ? "border-[#1F2375] bg-[#1F2375] text-white"
-              : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#1F2375]/40 hover:text-[#1F2375]"
-          }`}
-        >
-          💬 Forum
-        </button>
       </div>
-      {showForum ? (
-        <ForumSection
-          courseId={classDetail.id ?? classDetail.slug}
-          slug={classDetail.slug}
-          role="teacher"
-        />
-      ) : (
-        renderedByType[activeViewType]
-      )}
+      {renderedByType[activeViewType]}
     </div>
   );
 }

@@ -60,13 +60,27 @@ export default function ClassForumPageTemplate({
   const { data: course } = useGsCourseBySlug(slug);
   const courseId = course?.id ?? "";
 
+  const [filters, setFilters] = useState<IForumFilterState>(
+    DEFAULT_FORUM_FILTERS,
+  );
+
   // ── API hooks ──────────────────────────────────────────────────────────
   const {
     data: apiDiscussionsData,
     isLoading: isApiLoading,
     isError: isApiError,
     error: apiErrorObj,
-  } = useListDiscussionsByCourse(courseId, { page: 1, limit: 50 }, { enabled: !!courseId });
+  } = useListDiscussionsByCourse(
+    courseId,
+    {
+      page: 1,
+      limit: 50,
+      sortBy: filters.sortBy,
+      courseModuleId: filters.materialId !== "all" ? filters.materialId : undefined,
+      search: filters.searchQuery || undefined,
+    },
+    { enabled: !!courseId }
+  );
 
   const createDiscussionMutation = useCreateDiscussion(courseId);
   const likeDiscussionMutation = useLikeDiscussion(courseId);
@@ -94,9 +108,6 @@ export default function ClassForumPageTemplate({
     }));
   }, [apiDiscussionsData]);
 
-  const [filters, setFilters] = useState<IForumFilterState>(
-    DEFAULT_FORUM_FILTERS,
-  );
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
