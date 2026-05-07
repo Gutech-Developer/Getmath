@@ -16,6 +16,8 @@ interface ICreateDiscussionModalProps {
   materials: IForumMaterial[];
   onClose: () => void;
   onSubmit: (value: ICreateForumDiscussionInput) => void;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 export default function CreateDiscussionModal({
@@ -23,6 +25,8 @@ export default function CreateDiscussionModal({
   materials,
   onClose,
   onSubmit,
+  isLoading = false,
+  error = null,
 }: ICreateDiscussionModalProps) {
   const [content, setContent] = useState("");
   const [materialId, setMaterialId] = useState(materials[0]?.id ?? "umum");
@@ -43,7 +47,7 @@ export default function CreateDiscussionModal({
     [materials],
   );
 
-  const isSubmitDisabled = !content.trim() || !materialId;
+  const isSubmitDisabled = !content.trim() || !materialId || isLoading;
 
   const handleSubmit = () => {
     if (isSubmitDisabled) {
@@ -64,6 +68,20 @@ export default function CreateDiscussionModal({
       size="md"
     >
       <div className="space-y-5">
+        {error && (
+          <div className="rounded-[24px] border border-[#FEE2E2] bg-[#FEF2F2] p-4">
+            <div className="flex items-start gap-3">
+              <AlertIcon className="mt-0.5 h-5 w-5 shrink-0 text-[#EF4444]" />
+              <div>
+                <p className="text-sm font-medium text-[#DC2626]">
+                  Gagal membuat diskusi
+                </p>
+                <p className="text-xs text-[#991B1B] mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#64748B]">
             Pertanyaan / Topik Diskusi
@@ -90,6 +108,7 @@ export default function CreateDiscussionModal({
             value={materialId}
             onChange={setMaterialId}
             options={materialOptions}
+            disabled={isLoading}
           />
         </div>
 
@@ -108,7 +127,8 @@ export default function CreateDiscussionModal({
           <button
             type="button"
             onClick={onClose}
-            className="h-14 flex-1 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 text-base font-semibold text-[#64748B] transition hover:bg-[#F1F5F9]"
+            disabled={isLoading}
+            className="h-14 flex-1 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 text-base font-semibold text-[#64748B] transition hover:bg-[#F1F5F9] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Batal
           </button>
@@ -116,9 +136,27 @@ export default function CreateDiscussionModal({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitDisabled}
-            className="h-14 flex-1 rounded-2xl bg-[#1F2375] px-5 text-base font-semibold text-white  transition hover:bg-[#1F2375]/90 disabled:cursor-not-allowed disabled:bg-[#1F2375]/70 disabled:shadow-none"
+            className="h-14 flex-1 rounded-2xl bg-[#1F2375] px-5 text-base font-semibold text-white transition hover:bg-[#1F2375]/90 disabled:cursor-not-allowed disabled:bg-[#1F2375]/70 disabled:shadow-none flex items-center justify-center gap-2"
           >
-            Publikasikan Diskusi
+            {isLoading && (
+              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+            )}
+            {isLoading ? "Memproses..." : "Publikasikan Diskusi"}
           </button>
         </div>
       </div>

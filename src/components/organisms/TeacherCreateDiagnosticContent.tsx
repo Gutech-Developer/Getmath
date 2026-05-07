@@ -300,6 +300,11 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
         pembahasan:
           tiptapHtmlToLatexText(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
         videoUrl: q.videoUrl,
+        discussion: {
+          textDiscussion:
+            tiptapHtmlToLatexText(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
+          videoUrl: q.videoUrl || undefined,
+        },
         options: CHOICE_KEYS.map((key) => ({
           option: key,
           textAnswer: tiptapHtmlToLatexText(q.options[key].text),
@@ -348,7 +353,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
             description: description || undefined,
             durationMinutes: Number(durationMinutes) || 60,
             passingScore: kkm,
-            packages: buildPayload(true),
+            packages: buildPayload(false),
           },
         },
         {

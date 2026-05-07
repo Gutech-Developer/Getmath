@@ -1,21 +1,13 @@
 import {
   CLASS_FORUM_MATERIALS,
-  CURRENT_CLASS_FORUM_USER,
 } from "@/constant/classForum";
 import { buildClassRoute } from "@/constant/classSidebarRoutes";
 import type {
   ForumSortOption,
-  ICreateForumDiscussionInput,
-  IForumAuthor,
   IForumDiscussion,
   IForumFilterState,
   IForumMaterial,
-  IForumReply,
 } from "@/types";
-
-function cloneForumAuthor(author: IForumAuthor): IForumAuthor {
-  return { ...author };
-}
 
 function normalizeSearchValue(value: string): string {
   return value.trim().toLowerCase();
@@ -43,23 +35,6 @@ function compareBySortOption(
   }
 
   return right.createdAt - left.createdAt;
-}
-
-export function cloneForumDiscussions(
-  discussions: IForumDiscussion[],
-): IForumDiscussion[] {
-  return discussions.map((discussion) => ({
-    ...discussion,
-    author: cloneForumAuthor(discussion.author),
-    replies: discussion.replies.map((reply) => ({
-      ...reply,
-      author: cloneForumAuthor(reply.author),
-    })),
-  }));
-}
-
-export function getClassForumStorageKey(slug: string): string {
-  return `getmath:class-forum:${encodeURIComponent(slug)}`;
 }
 
 export function buildClassForumDiscussionRoute(
@@ -178,48 +153,6 @@ export function filterForumDiscussions(
   });
 
   return sortForumDiscussions(filteredDiscussions, filters.sortBy);
-}
-
-export function buildForumDiscussionId(content: string): string {
-  const slug = content
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  if (!slug) {
-    return `discussion-${Date.now()}`;
-  }
-
-  return `${slug}-${Date.now()}`;
-}
-
-export function createForumDiscussion(
-  input: ICreateForumDiscussionInput,
-): IForumDiscussion {
-  return {
-    id: buildForumDiscussionId(input.content),
-    content: input.content.trim(),
-    materialId: input.materialId,
-    status: "active",
-    isPinned: false,
-    createdAt: Date.now(),
-    likesCount: 0,
-    isLiked: false,
-    author: { ...CURRENT_CLASS_FORUM_USER },
-    replies: [],
-  };
-}
-
-export function createForumReply(content: string): IForumReply {
-  return {
-    id: `reply-${Date.now()}`,
-    content: content.trim(),
-    createdAt: Date.now(),
-    likesCount: 0,
-    isLiked: false,
-    author: { ...CURRENT_CLASS_FORUM_USER },
-  };
 }
 
 export function getForumDiscussionById(

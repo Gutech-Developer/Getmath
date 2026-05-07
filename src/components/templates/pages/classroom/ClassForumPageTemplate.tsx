@@ -9,10 +9,21 @@ import {
   FORUM_OWNERSHIP_FILTER_OPTIONS,
   FORUM_SORT_OPTIONS,
 } from "@/constant/classForum";
-import { useClassForum } from "@/services";
+import {
+  useGsCourseBySlug,
+  useListDiscussionsByCourse,
+  useCreateDiscussion,
+  useLikeDiscussion,
+  useDeleteDiscussion,
+  useGsCurrentUser,
+  useGsModulesByCourse,
+} from "@/services";
+import { showToast } from "@/libs/toast";
+import { Modal } from "@/components/molecules/Modal";
 import type {
   IClassForumPageTemplateProps,
   IForumFilterState,
+  IForumMaterial,
   IForumOption,
 } from "@/types";
 import {
@@ -38,29 +49,111 @@ const DEFAULT_FORUM_FILTERS: IForumFilterState = {
   sortBy: "latest",
 };
 
-const forumMaterialFilterOptions: IForumOption<string>[] = [
-  { value: "all", label: "Semua Materi" },
-  ...CLASS_FORUM_MATERIALS.map((material) => ({
-    value: material.id,
-    label: material.label,
-  })),
-];
 
 export default function ClassForumPageTemplate({
   slug,
 }: IClassForumPageTemplateProps) {
   const classTitle = formatClassTitleFromSlug(slug);
-  const {
-    discussions,
-    createDiscussion,
-    toggleDiscussionLike,
-    resetDiscussions,
-  } = useClassForum(slug);
+  const [localLikes, setLocalLikes] = useState<Record<string, { isLiked: boolean; count: number }>>({});
+
+  // ── Resolve courseId from slug ──────────────────────────────────────────
+  const { data: course } = useGsCourseBySlug(slug);
+  const courseId = course?.id ?? "";
+
   const [filters, setFilters] = useState<IForumFilterState>(
     DEFAULT_FORUM_FILTERS,
   );
+
+  // ── API hooks ──────────────────────────────────────────────────────────
+  const {
+    data: apiDiscussionsData,
+    isLoading: isApiLoading,
+    isError: isApiError,
+    error: apiErrorObj,
+  } = useListDiscussionsByCourse(
+    courseId,
+    {
+      page: 1,
+      limit: 50,
+      sortBy: filters.sortBy,
+      courseModuleId: filters.materialId !== "all" ? filters.materialId : undefined,
+      search: filters.searchQuery || undefined,
+    },
+    { enabled: !!courseId }
+  );
+
+  const createDiscussionMutation = useCreateDiscussion(courseId);
+  const likeDiscussionMutation = useLikeDiscussion(courseId);
+  const deleteDiscussionMutation = useDeleteDiscussion(courseId);
+
+  const { data: currentUser } = useGsCurrentUser();
+  const isElevated = currentUser?.role === "TEACHER" || currentUser?.role === "ADMIN";
+
+  const { data: modulesData } = useGsModulesByCourse(courseId);
+
+  const dynamicMaterials = useMemo<IForumMaterial[]>(() => {
+    const mats: IForumMaterial[] = [
+      { id: "umum", label: "Umum", isGeneral: true },
+    ];
+
+    if (modulesData) {
+      modulesData.forEach((mod) => {
+        mats.push({
+          id: mod.id,
+          label: mod.subject?.subjectName ?? mod.diagnosticTest?.testName ?? "Materi",
+        });
+      });
+    }
+
+    return mats;
+  }, [modulesData]);
+
+  const forumMaterialFilterOptions = useMemo<IForumOption<string>[]>(() => {
+    return [
+      { value: "all", label: "Semua Materi" },
+      ...dynamicMaterials.map((m) => ({
+        value: m.id,
+        label: m.label,
+      })),
+    ];
+  }, [dynamicMaterials]);
+
+  // ── Transform API data to UI format ─────────────────────────────────────
+  const discussions = useMemo(() => {
+    if (!apiDiscussionsData?.discussions?.length) return [];
+    return apiDiscussionsData.discussions.map((d) => {
+      const matchedModule = (modulesData || []).find((m) => m.id === d.courseModuleId);
+      const materialName = matchedModule 
+        ? (matchedModule.subject?.subjectName ?? matchedModule.diagnosticTest?.testName) 
+        : undefined;
+
+      return {
+        id: d.id,
+        content: d.content,
+        materialId: d.courseModuleId ?? "umum",
+        materialName,
+        status: "active" as const,
+        isPinned: false,
+        createdAt: new Date(d.createdAt).getTime(),
+        isLiked: localLikes[d.id]?.isLiked ?? d.isLiked ?? false,
+        likesCount: localLikes[d.id]?.count ?? d.totalLikes ?? d.likeCount ?? 0,
+        author: {
+          id: d.author?.id ?? "unknown",
+          name: d.author?.teacher?.fullName ?? d.author?.student?.fullName ?? d.author?.fullName ?? "Pengguna",
+          role: (d.author?.teacher ? "teacher" : "student") as any,
+          tone: "slate" as const,
+          isCurrentUser: d.authorUserId === currentUser?.id,
+        },
+        replies: [],
+        commentCount: d.totalComments ?? d.commentCount ?? 0,
+      };
+    });
+  }, [apiDiscussionsData, localLikes, currentUser, modulesData]);
+
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const filteredDiscussions = useMemo(
     () => filterForumDiscussions(discussions, filters),
@@ -77,12 +170,66 @@ export default function ClassForumPageTemplate({
     filters.materialId !== DEFAULT_FORUM_FILTERS.materialId ||
     filters.sortBy !== DEFAULT_FORUM_FILTERS.sortBy;
 
-  const handleCreateDiscussion = (content: {
+  const handleCreateDiscussion = async (content: {
     content: string;
     materialId: string;
   }) => {
-    createDiscussion(content);
-    setIsCreateModalOpen(false);
+    setCreateError(null);
+    if (!courseId) {
+      setCreateError("Kelas tidak ditemukan. Silakan refresh halaman.");
+      return;
+    }
+    try {
+      await createDiscussionMutation.mutateAsync({
+        content: content.content,
+        courseModuleId: content.materialId !== "umum" ? content.materialId : undefined,
+      });
+      setIsCreateModalOpen(false);
+    } catch (error: any) {
+      const errorMessage = error?.message || "Gagal membuat diskusi. Silakan coba lagi.";
+      setCreateError(errorMessage);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    try {
+      await deleteDiscussionMutation.mutateAsync(deleteTargetId);
+      setDeleteTargetId(null);
+    } catch (error) {
+      // Handled by mutation
+    }
+  };
+
+
+  const handleToggleLike = (discussionId: string) => {
+    const d = discussions.find((item) => item.id === discussionId);
+    if (!d) return;
+
+    const currentLocal = localLikes[discussionId] || {
+      isLiked: d.isLiked,
+      count: d.likesCount,
+    };
+
+    const nextIsLiked = !currentLocal.isLiked;
+    const nextCount = nextIsLiked ? currentLocal.count + 1 : currentLocal.count - 1;
+
+    // Update UI immediately
+    setLocalLikes((prev) => ({
+      ...prev,
+      [discussionId]: { isLiked: nextIsLiked, count: nextCount },
+    }));
+
+    // Debounce the API call
+    // Note: In a real app, you'd use lodash.debounce or similar. 
+    // Here we use a simple timeout approach.
+    const timerId = (window as any)[`like_timer_${discussionId}`];
+    if (timerId) clearTimeout(timerId);
+
+    (window as any)[`like_timer_${discussionId}`] = setTimeout(() => {
+      likeDiscussionMutation.mutate(discussionId);
+      delete (window as any)[`like_timer_${discussionId}`];
+    }, 500);
   };
 
   return (
@@ -101,15 +248,24 @@ export default function ClassForumPageTemplate({
               <h1 className="mt-3 text-xl font-bold text-[#0F172A]">
                 Forum Diskusi
               </h1>
-              <p className="mt-2 text-sm text-[#64748B]">
-                {activeDiscussions} diskusi aktif . {totalDiscussions} total
-              </p>
+              {isApiLoading ? (
+                <p className="mt-2 text-sm text-[#94A3B8]">Memuat diskusi...</p>
+              ) : isApiError ? (
+                <p className="mt-2 text-sm text-[#DC2626]">
+                  Gagal memuat diskusi. {apiErrorObj?.message}
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-[#64748B]">
+                  {activeDiscussions} diskusi aktif . {totalDiscussions} total
+                </p>
+              )}
             </div>
 
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#1F2375] px-6 text-base font-semibold text-white duration-300 hover:shadow-[0px_18px_30px_rgba(31, 35, 117,0.5)] transition hover:bg-[#1F2375]/90"
+              disabled={isApiLoading}
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#1F2375] px-6 text-base font-semibold text-white duration-300 hover:shadow-[0px_18px_30px_rgba(31, 35, 117,0.5)] transition hover:bg-[#1F2375]/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <PlusIcon className="h-5 w-5" />
               Buat Diskusi
@@ -266,7 +422,12 @@ export default function ClassForumPageTemplate({
                   key={discussion.id}
                   discussion={discussion}
                   slug={slug}
-                  onLike={toggleDiscussionLike}
+                  onLike={handleToggleLike}
+                  onDelete={
+                    discussion.author.isCurrentUser || isElevated
+                      ? (id) => setDeleteTargetId(id)
+                      : undefined
+                  }
                 />
               ))
             ) : (
@@ -290,10 +451,43 @@ export default function ClassForumPageTemplate({
 
       <CreateDiscussionModal
         isOpen={isCreateModalOpen}
-        materials={CLASS_FORUM_MATERIALS}
-        onClose={() => setIsCreateModalOpen(false)}
+        materials={dynamicMaterials}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setCreateError(null);
+        }}
         onSubmit={handleCreateDiscussion}
+        isLoading={createDiscussionMutation.isPending}
+        error={createError}
       />
+
+      <Modal
+        isOpen={!!deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+        title="Konfirmasi Hapus"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[#475569]">
+            Apakah Anda yakin ingin menghapus diskusi ini? Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setDeleteTargetId(null)}
+              className="rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC]"
+            >
+              Batal
+            </button>
+            <button
+              onClick={confirmDelete}
+              disabled={deleteDiscussionMutation.isPending}
+              className="rounded-xl bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white hover:bg-[#DC2626] disabled:opacity-50"
+            >
+              {deleteDiscussionMutation.isPending ? "Menghapus..." : "Hapus"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </ClassPageShellTemplate>
   );
 }

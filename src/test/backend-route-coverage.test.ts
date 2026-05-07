@@ -12,17 +12,19 @@ type RouteDefinition = {
 
 const backendRoutesDir = path.resolve(
   process.cwd(),
-  "../getsmart_api_services/src/routes",
+  "../getsmart_api_services_go/internal/routes",
 );
 
 const routeDefinitions: RouteDefinition[] = [
-  { file: "AuthRouter.ts", basePath: "/auth" },
-  { file: "CourseEnrollmentRouter.ts", basePath: "/course-enrollments" },
-  { file: "CourseModuleRouter.ts", basePath: "/course-modules" },
-  { file: "CourseRouter.ts", basePath: "/courses" },
-  { file: "DiagnosticTestRouter.ts", basePath: "/diagnostic-tests" },
-  { file: "NotificationRouter.ts", basePath: "/notifications" },
-  { file: "SubjectRouter.ts", basePath: "/subjects" },
+  { file: "auth_router.go", basePath: "/auth" },
+  { file: "course_enrollment_router.go", basePath: "/course-enrollments" },
+  { file: "course_module_router.go", basePath: "/course-modules" },
+  { file: "course_router.go", basePath: "/courses" },
+  { file: "diagnostic_test_router.go", basePath: "/diagnostic-tests" },
+  { file: "notification_router.go", basePath: "/notifications" },
+  { file: "subject_router.go", basePath: "/subjects" },
+  { file: "forum_router.go", basePath: "/forum" },
+  { file: "progress_router.go", basePath: "/progress" },
 ];
 
 function normalizePath(basePath: string, routePath: string) {
@@ -40,7 +42,7 @@ function extractMethodPathPairs(file: string, basePath: string) {
     .join("\n");
 
   const routePattern =
-    /this\.\w+\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g;
+    /r\.(Get|Post|Put|Patch|Delete)\(\s*"([^"]+)"/g;
 
   return Array.from(source.matchAll(routePattern), ([, method, routePath]) => ({
     method: method.toUpperCase(),

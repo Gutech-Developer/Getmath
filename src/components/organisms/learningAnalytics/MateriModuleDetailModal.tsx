@@ -187,6 +187,15 @@ export const MateriModuleDetailModal: React.FC<
                           },
                         ]
                       : []),
+                    ...(module.subject.eLKPDTitle && module.subject.eLKPDFileUrl
+                      ? [
+                          {
+                            title: `E-LKPD: ${module.subject.eLKPDTitle}`,
+                            url: module.subject.eLKPDFileUrl,
+                            type: "elkpd" as const,
+                          },
+                        ]
+                      : []),
                   ]}
                 />
               ) : null}
@@ -195,7 +204,7 @@ export const MateriModuleDetailModal: React.FC<
               {elkpds.length > 0 && (
                 <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
                   <h3 className="mb-3 text-sm font-semibold text-[#1F2937]">
-                    E-LKPD Terlampir
+                    Nilai E-LKPD Siswa
                   </h3>
                   <ELKPDGradingPanel
                     elkpds={elkpds}

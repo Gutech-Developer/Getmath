@@ -30,7 +30,7 @@ export default function ClassModuleCard({ item }: IClassModuleCardProps) {
           <p className="truncate text-sm font-semibold text-[#0F172A]">
             {item.label}
           </p>
-          <p className="truncate text-xs text-[#64748B]">{item.description}</p>
+          <p className="truncate text-xs text-[#64748B]">{item.description} </p>
         </div>
       </div>
 

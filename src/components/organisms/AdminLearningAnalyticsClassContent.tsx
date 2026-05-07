@@ -1,5 +1,7 @@
 "use client";
 
+import ForumSection from "@/components/organisms/ForumSection";
+
 import {
   BaseKelolaELKPDSection,
   BaseLaporanSection,
@@ -254,21 +256,34 @@ export default function AdminLearningAnalyticsClassContent({
         buildStudentDetailHref={studentDetailHrefBuilder}
       />
     ),
+    Forum: (
+      <ForumSection
+        courseId={classDetail.id ?? classDetail.slug}
+        slug={classDetail.slug}
+        role="admin"
+      />
+    ),
   };
 
   return (
     <div className="w-full space-y-4">
       <LearningAnalyticsClassHeaderCard data={headerData} />
 
-      <LearningAnalyticsViewSwitcher
-        activeType={activeViewType}
-        onChange={setActiveViewType}
-        badgeByType={{
-          Siswa: classDetail.studentCount,
-          Materi: materials.length,
-          "Kelola E-LKPD": elkpdItems.length,
-        }}
-      />
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <LearningAnalyticsViewSwitcher
+            activeType={activeViewType}
+            onChange={(key) => {
+              setActiveViewType(key);
+            }}
+            badgeByType={{
+              Siswa: classDetail.studentCount,
+              Materi: materials.length,
+              "Kelola E-LKPD": elkpdItems.length,
+            }}
+          />
+        </div>
+      </div>
 
       {renderedByType[activeViewType]}
     </div>

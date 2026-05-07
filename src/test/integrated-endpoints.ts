@@ -7,7 +7,10 @@ export type ApiFeature =
   | "course-enrollments"
   | "notifications"
   | "subjects"
-  | "diagnostic-tests";
+  | "diagnostic-tests"
+  | "forum"
+  | "progress"
+  | "dashboard";
 export type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
 export interface IntegratedEndpointSchema {
@@ -21,6 +24,13 @@ export interface IntegratedEndpointSchema {
 
 export const integratedEndpoints: IntegratedEndpointSchema[] = [
   // Auth
+  {
+    id: "auth.login.google",
+    method: "POST",
+    path: "/auth/login/google",
+    feature: "auth",
+    roles: ["public"],
+  },
   {
     id: "auth.me",
     method: "GET",
@@ -486,5 +496,158 @@ export const integratedEndpoints: IntegratedEndpointSchema[] = [
     path: "/diagnostic-tests/:id",
     feature: "diagnostic-tests",
     roles: ["admin", "teacher"],
+  },
+
+  // Forum Discussions
+  {
+    id: "forum.discussions.list-by-course",
+    method: "GET",
+    path: "/forum/course/:courseId/discussions",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.discussions.detail",
+    method: "GET",
+    path: "/forum/discussions/:id",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.discussions.create",
+    method: "POST",
+    path: "/forum/course/:courseId/discussions",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.discussions.update",
+    method: "PATCH",
+    path: "/forum/discussions/:id",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.discussions.delete",
+    method: "DELETE",
+    path: "/forum/discussions/:id",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.discussions.like",
+    method: "POST",
+    path: "/forum/discussions/:id/like",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.comments.create",
+    method: "POST",
+    path: "/forum/discussions/:id/comments",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.comments.list",
+    method: "GET",
+    path: "/forum/discussions/:id/comments",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.comments.update",
+    method: "PATCH",
+    path: "/forum/comments/:commentId",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.comments.delete",
+    method: "DELETE",
+    path: "/forum/comments/:commentId",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+  {
+    id: "forum.comments.like",
+    method: "POST",
+    path: "/forum/comments/:commentId/like",
+    feature: "forum",
+    roles: ["admin", "teacher", "student"],
+  },
+
+  // Progress Tracking
+  {
+    id: "progress.mark-file-read",
+    method: "POST",
+    path: "/progress/modules/:courseModuleId/mark-file-read",
+    feature: "progress",
+    roles: ["student"],
+  },
+  {
+    id: "progress.mark-video-watched",
+    method: "POST",
+    path: "/progress/modules/:courseModuleId/mark-video-watched",
+    feature: "progress",
+    roles: ["student"],
+  },
+  {
+    id: "progress.module-detail",
+    method: "GET",
+    path: "/progress/modules/:courseModuleId/me",
+    feature: "progress",
+    roles: ["student"],
+  },
+  {
+    id: "progress.elkpd-grades",
+    method: "GET",
+    path: "/progress/modules/:courseModuleId/elkpd-grades",
+    feature: "progress",
+    roles: ["teacher"],
+  },
+  {
+    id: "progress.grade-elkpd",
+    method: "PUT",
+    path: "/progress/modules/:courseModuleId/elkpd/student/:studentId/grade",
+    feature: "progress",
+    roles: ["teacher"],
+  },
+  {
+    id: "progress.reset-elkpd-grade",
+    method: "DELETE",
+    path: "/progress/modules/:courseModuleId/elkpd/student/:studentId/grade",
+    feature: "progress",
+    roles: ["teacher"],
+  },
+  {
+    id: "progress.start-test-attempt",
+    method: "POST",
+    path: "/progress/modules/:courseModuleId/test-attempts/start",
+    feature: "progress",
+    roles: ["student"],
+  },
+  {
+    id: "progress.submit-test-attempt",
+    method: "POST",
+    path: "/progress/modules/:courseModuleId/test-attempts/:attemptId/submit",
+    feature: "progress",
+    roles: ["student"],
+  },
+  {
+    id: "progress.my-attempts",
+    method: "GET",
+    path: "/progress/modules/:courseModuleId/test-attempts/me",
+    feature: "progress",
+    roles: ["student"],
+  },
+
+  // Dashboard
+  {
+    id: "dashboard.student",
+    method: "GET",
+    path: "/courses/:id/dashboard/student",
+    feature: "dashboard",
+    roles: ["student"],
   },
 ];

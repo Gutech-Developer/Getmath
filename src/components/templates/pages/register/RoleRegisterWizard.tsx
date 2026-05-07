@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useGsRegister } from "@/services";
+import { useGsRegister, useSchoolSearch } from "@/services";
+import SearchableInput from "@/components/atoms/SearchableInput";
+import {
+  formatSchoolDisplay,
+  getSchoolLocationData,
+} from "@/utils/schoolSearch";
 import type { GsRegisterInput } from "@/types/gs-auth";
 
 type RegisterRole = "student" | "teacher";
@@ -20,9 +25,10 @@ interface IRoleRegisterForm {
   email: string;
   phone: string;
   identityNumber: string;
-  province: string;
-  city: string;
-  school: string;
+  schoolName: string;
+  schoolProvince: string;
+  schoolCity: string;
+  schoolId: string; // NPSN
   password: string;
   confirmPassword: string;
 }
@@ -172,19 +178,26 @@ function RegisterStepIndicator({
 export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
+  const [schoolSearch, setSchoolSearch] = useState("");
   const [form, setForm] = useState<IRoleRegisterForm>({
     fullname: "",
     email: "",
     phone: "",
     identityNumber: "",
-    province: "",
-    city: "",
-    school: "",
+    schoolName: "",
+    schoolProvince: "",
+    schoolCity: "",
+    schoolId: "",
     password: "",
     confirmPassword: "",
   });
 
   const register = useGsRegister();
+
+  const { schools, isLoading: loadingSchools } = useSchoolSearch({
+    searchTerm: schoolSearch,
+    debounceMs: 3000,
+  });
 
   const isSubmitting = register.isPending;
 
@@ -219,9 +232,9 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
 
   const validateStepTwo = () => {
     if (
-      !form.province ||
-      !form.city ||
-      !form.school ||
+      !form.schoolName ||
+      !form.schoolProvince ||
+      !form.schoolCity ||
       !form.password ||
       !form.confirmPassword
     ) {
@@ -262,9 +275,10 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
         ...(role === "student"
           ? { NIS: form.identityNumber }
           : { NIP: form.identityNumber }),
-        province: form.province,
-        city: form.city,
-        schoolName: form.school,
+        province: form.schoolProvince,
+        city: form.schoolCity,
+        schoolId: form.schoolId,
+        schoolName: form.schoolName,
       };
       await register.mutateAsync(payload);
 
@@ -496,47 +510,53 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#4b5563]">
-                      Provinsi<span className="text-[#dc2626]">*</span>
-                    </label>
-                    <select
-                      value={form.province}
-                      onChange={(e) => updateField("province", e.target.value)}
-                      className="w-full rounded-xl border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
-                    >
-                      <option value="">Pilih provinsi</option>
-                      {provinceOptions.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#4b5563]">
-                      Kota/Kabupaten<span className="text-[#dc2626]">*</span>
-                    </label>
-                    <input
-                      value={form.city}
-                      onChange={(e) => updateField("city", e.target.value)}
-                      placeholder="Masukkan kota/kabupaten"
-                      className="w-full rounded-xl border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-[#4b5563]">
-                      Nama Sekolah<span className="text-[#dc2626]">*</span>
-                    </label>
-                    <input
-                      value={form.school}
-                      onChange={(e) => updateField("school", e.target.value)}
-                      placeholder="Contoh: SMP Negeri 12 Banda Aceh"
-                      className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
-                    />
-                  </div>
+                  <SearchableInput
+                    label="Nama Sekolah"
+                    placeholder="Cari nama sekolah..."
+                    value={schoolSearch}
+                    onChange={(searchValue, selected) => {
+                      if (selected) {
+                        // Set input to selected school name to prevent redundant API calls
+                        setSchoolSearch(selected.metadata?.schoolName || selected.value);
+                        updateField(
+                          "schoolName",
+                          selected.metadata?.schoolName || selected.value,
+                        );
+                        updateField(
+                          "schoolId",
+                          selected.metadata?.schoolId || "",
+                        );
+                        updateField(
+                          "schoolProvince",
+                          selected.metadata?.province || "",
+                        );
+                        updateField(
+                          "schoolCity",
+                          selected.metadata?.city || "",
+                        );
+                      } else {
+                        // Only update search value if no selection was made
+                        setSchoolSearch(searchValue);
+                      }
+                    }}
+                    options={schools.map((school) => ({
+                      value: school.sekolah,
+                      label: formatSchoolDisplay(school),
+                      metadata: {
+                        schoolName: school.sekolah,
+                        schoolId: school.npsn,
+                        province: school.propinsi,
+                        city: school.kabupaten_kota,
+                      },
+                    }))}
+                    isLoading={loadingSchools}
+                    required
+                    emptyMessage={
+                      schoolSearch.length >= 2
+                        ? "Tidak ada sekolah yang ditemukan"
+                        : "Ketik minimal 2 karakter untuk mencari"
+                    }
+                  />
 
                   <PasswordField
                     label="Password"

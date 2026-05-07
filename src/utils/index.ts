@@ -7,6 +7,8 @@ export type {
   WithPassword,
 } from "./type-helpers";
 
+export type { ISchoolSearchResult, ISchoolSearchResponse } from "./schoolSearch";
+
 export {
   formatBreadcrumbLabel,
   formatContentTitle,
@@ -24,3 +26,10 @@ export {
   getForumDiscussionById,
   getForumMaterialLabel,
 } from "./classForum";
+
+export {
+  searchSchoolsByName,
+  formatSchoolDisplay,
+  getSchoolLocationData,
+} from "./schoolSearch";
+

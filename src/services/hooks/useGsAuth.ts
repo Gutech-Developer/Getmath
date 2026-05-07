@@ -35,6 +35,7 @@ import type {
   GsGoogleCallbackInput,
   GsGoogleCallbackResponse,
   GsGoogleCompleteProfileInput,
+  GsGoogleLoginInput,
   GsUser,
   GsMessageResponse,
 } from "@/types/gs-auth";
@@ -62,6 +63,32 @@ export function useGsLogin() {
 
   return useMutation<GsAuthResponse, Error, GsLoginInput>({
     mutationFn: (input) => gsPublicPost<GsAuthResponse>("/auth/login", input),
+    onSuccess: async (data) => {
+      // Simpan token ke httpOnly cookie via server action
+      await saveTokens(data.tokens);
+
+      // Simpan user ke cache TanStack Query
+      queryClient.setQueryData(queryKeys.gsAuth.me(), data.user);
+
+      // Decode JWT untuk menentukan dashboard berdasar role
+      const payload = decodeGsJWT(data.tokens.accessToken);
+      const path = getDashboardPath(payload?.role ?? data.user.role);
+
+      router.push(path);
+      router.refresh();
+    },
+  });
+}
+
+// ─── POST /api/auth/login/google ──────────────────────────────────────────────
+
+export function useGsGoogleLogin() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  return useMutation<GsAuthResponse, Error, GsGoogleLoginInput>({
+    mutationFn: (input) =>
+      gsPublicPost<GsAuthResponse>("/auth/login/google", input),
     onSuccess: async (data) => {
       // Simpan token ke httpOnly cookie via server action
       await saveTokens(data.tokens);

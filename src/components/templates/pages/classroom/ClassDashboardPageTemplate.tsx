@@ -16,8 +16,16 @@ import {
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
-import { useGsCourseBySlug, useGsModulesByCourse } from "@/services";
-import { useGsCurrentUser } from "@/services";
+import {
+  useGsCourseBySlug,
+  useGsModulesByCourse,
+  useGsCurrentUser,
+  useStudentDashboard,
+  useMyTestAttempts,
+} from "@/services";
+import { useMemo } from "react";
+import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
+import { cn } from "@/libs/utils";
 
 interface IClassDashboardPageTemplateProps {
   slug: string;
@@ -38,23 +46,48 @@ export default function ClassDashboardPageTemplate({
   slug,
 }: IClassDashboardPageTemplateProps) {
   const classTitle = formatClassTitleFromSlug(slug);
-  const moduleItems = getClassSidebarRoutes(slug).filter(
-    (item) => item.key !== "overview",
-  );
   const auth = useGsCurrentUser();
   const { data: course } = useGsCourseBySlug(slug);
   const { data: modules } = useGsModulesByCourse(course?.id ?? "");
 
+  // Fetch dashboard metrics
+  const { data: dashboardMetrics } = useStudentDashboard(course?.id ?? "", {
+    enabled: !!course?.id,
+  });
+
   const courseName = course?.courseName ?? classTitle;
   const courseCode = course?.courseCode ?? "–";
   const totalStudents = course?.enrolledCount ?? 0;
-  // Hitung hanya modul bertipe SUBJECT dari kelas ini (bukan semua materi system)
-  const totalSubjects = (modules ?? []).filter(
-    (m) => m.type === "SUBJECT",
-  ).length;
-  const totalDiagnosticTests = (modules ?? []).filter(
-    (m) => m.type === "DIAGNOSTIC_TEST",
-  ).length;
+  const studentMap = dashboardMetrics?.enrolledStudentNames;
+  // Hitung metric dari module API atau Dashboard API
+  const totalSubjects =
+    dashboardMetrics?.subjectModuleTotal ??
+    (modules ?? []).filter((m) => m.type === "SUBJECT").length;
+  const subjectsRead = dashboardMetrics?.subjectModuleRead ?? 0;
+
+  const totalDiagnosticTests =
+    dashboardMetrics?.diagnosticTestTotal ??
+    (modules ?? []).filter((m) => m.type === "DIAGNOSTIC_TEST").length;
+
+  const moduleItems = useMemo(() => {
+    return getClassSidebarRoutes(slug)
+      .filter((item) => item.key !== "overview")
+      .map((item) => {
+        if (item.key === "materi") {
+          return {
+            ...item,
+            description: `${totalSubjects} materi tersedia`,
+          };
+        }
+        if (item.key === "diagnosis") {
+          return {
+            ...item,
+            description: `${totalDiagnosticTests} tes tersedia`,
+          };
+        }
+        return item;
+      });
+  }, [slug, totalSubjects, totalDiagnosticTests]);
 
   const metricItems: {
     key: string;
@@ -65,7 +98,7 @@ export default function ClassDashboardPageTemplate({
   }[] = [
     {
       key: "metric-read-material",
-      value: `0/${totalSubjects}`,
+      value: `${subjectsRead}/${totalSubjects}`,
       label: "Materi Terbaca",
       hint: `${totalSubjects} materi tersedia`,
       routeKey: "materi",
@@ -79,7 +112,7 @@ export default function ClassDashboardPageTemplate({
     },
     {
       key: "metric-progress",
-      value: "–",
+      value: dashboardMetrics ? `${dashboardMetrics.progressPercent}%` : "–",
       label: "Rata-rata Nilai",
       hint: "Lihat LAD lengkapmu",
       routeKey: "lad",
@@ -92,6 +125,10 @@ export default function ClassDashboardPageTemplate({
       routeKey: "lad",
     },
   ];
+
+  const diagnosticModules = useMemo(() => {
+    return (modules ?? []).filter((m) => m.type === "DIAGNOSTIC_TEST");
+  }, [modules]);
 
   return (
     <ClassPageShellTemplate
@@ -119,10 +156,13 @@ export default function ClassDashboardPageTemplate({
         <div className="mt-5">
           <div className="flex items-center justify-between text-xs font-medium text-white/85">
             <span>Progres keseluruhan</span>
-            <span>0%</span>
+            <span>{dashboardMetrics?.progressPercent ?? 0}%</span>
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/20">
-            <div className="h-full w-0 rounded-full bg-[#DCE3FF]" />
+            <div
+              className="h-full rounded-full bg-[#DCE3FF] transition-all duration-500"
+              style={{ width: `${dashboardMetrics?.progressPercent ?? 0}%` }}
+            />
           </div>
         </div>
 
@@ -172,27 +212,38 @@ export default function ClassDashboardPageTemplate({
         </div>
       </section>
 
-      {!auth.isPending && auth.data?.role === "TEACHER" && (
-        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.14)]">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-bold text-[#0F172A]">
-              Daftar Siswa Kelas
-            </h2>
-            <p className="text-xs text-[#94A3B8]">
-              {totalStudents} siswa terdaftar
-            </p>
-          </div>
 
-          <div className="mt-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-5 text-center">
-            <p className="text-sm font-medium text-[#0F172A]">
-              {totalStudents} siswa terdaftar di kelas ini.
-            </p>
-            <p className="mt-1 text-xs text-[#64748B]">
-              Daftar siswa lengkap hanya tersedia untuk role guru.
-            </p>
-          </div>
-        </section>
-      )}
+      <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.14)]">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-base font-bold text-[#0F172A]">
+            Daftar Siswa Kelas
+          </h2>
+          <p className="text-xs text-[#94A3B8]">
+            {totalStudents} siswa terdaftar
+          </p>
+        </div>
+
+        <div className="grid  grid-cols-4 gap-2">
+          {studentMap?.map((item, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#F8FAFC] transition-colors"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0F172A] text-sm font-semibold text-white">
+                {item.fullName?.charAt(0).toUpperCase()}
+              </div>
+
+              <div className="flex flex-col">
+                <p className="text-sm font-medium text-[#0F172A]">
+                  {item.fullName}
+                </p>
+                <p className="text-xs text-[#94A3B8]">Siswa</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </ClassPageShellTemplate>
   );
 }
+

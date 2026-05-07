@@ -2,14 +2,26 @@
 
 import Link from "next/link";
 import { useMemo, useState, type KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import { buildClassRoute } from "@/constant/classSidebarRoutes";
 import ForumDiscussionCard from "@/components/molecules/classroom/forum/ForumDiscussionCard";
 import ForumEmptyState from "@/components/molecules/classroom/forum/ForumEmptyState";
 import ForumReplyCard from "@/components/molecules/classroom/forum/ForumReplyCard";
-import { useClassForum } from "@/services";
-import type { IClassForumDetailPageTemplateProps } from "@/types";
-import { getForumDiscussionById } from "@/utils/classForum";
+import {
+  useGsCourseBySlug,
+  useGetDiscussion,
+  useCreateComment,
+  useLikeDiscussion,
+  useLikeComment,
+  useDeleteComment,
+  useDeleteDiscussion,
+  useGsCurrentUser,
+  useListCommentsByDiscussion,
+} from "@/services";
+import { showToast } from "@/libs/toast";
+import { Modal } from "@/components/molecules/Modal";
+import type { IClassForumDetailPageTemplateProps, IForumDiscussion } from "@/types";
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
@@ -27,40 +39,181 @@ function ForumDetailSkeleton() {
 export default function ClassForumDetailPageTemplate({
   slug,
   discussionId,
-}: IClassForumDetailPageTemplateProps) {
+  backHref: customBackHref,
+}: IClassForumDetailPageTemplateProps & { backHref?: string }) {
   const classTitle = formatClassTitleFromSlug(slug);
-  const {
-    discussions,
-    isHydrated,
-    addReply,
-    toggleDiscussionLike,
-    toggleReplyLike,
-  } = useClassForum(slug);
-  const [replyContent, setReplyContent] = useState("");
+  const [localLikes, setLocalLikes] = useState<Record<string, { isLiked: boolean; count: number }>>({});
+  const router = useRouter();
 
-  const discussion = useMemo(
-    () => getForumDiscussionById(discussions, decodeURIComponent(discussionId)),
-    [discussionId, discussions],
+  const { data: course } = useGsCourseBySlug(slug);
+  const courseId = course?.id ?? "";
+  const { data: currentUser } = useGsCurrentUser();
+  const isElevated = currentUser?.role === "TEACHER" || currentUser?.role === "ADMIN";
+
+  const [commentPage, setCommentPage] = useState(1);
+  const [allComments, setAllComments] = useState<any[]>([]);
+
+  const { data: apiDiscussion, isLoading: isDiscussionLoading } = useGetDiscussion(
+    discussionId,
+    { enabled: !!discussionId }
+  );
+  
+  const { data: commentsData, isLoading: isCommentsLoading } = useListCommentsByDiscussion(
+    discussionId,
+    { page: commentPage, limit: 50, sortBy: "top" },
+    { enabled: !!discussionId }
   );
 
-  const backHref = buildClassRoute(slug, "forum");
+  const createCommentMutation = useCreateComment(discussionId);
+  const likeDiscussionMutation = useLikeDiscussion(courseId);
+  // Like comment mutation needs commentId, we'll use it inside the handler
+  const likeCommentMutation = useLikeComment(discussionId);
 
-  const handleSubmitReply = () => {
+  const [replyContent, setReplyContent] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: "discussion" | "comment" } | null>(null);
+
+  const deleteCommentMutation = useDeleteComment(discussionId);
+  const deleteDiscussionMutation = useDeleteDiscussion(courseId);
+
+
+  const discussion = useMemo<IForumDiscussion | null>(() => {
+    if (!apiDiscussion) return null;
+
+    const matchedModule = (course?.modules || []).find((m) => m.id === apiDiscussion.courseModuleId);
+    const materialName = matchedModule 
+      ? (matchedModule.subject?.subjectName ?? matchedModule.diagnosticTest?.testName) 
+      : undefined;
+
+    const replies = (commentsData?.comments ?? []).map((c) => {
+      const authorName = c.author?.teacher?.fullName ?? c.author?.student?.fullName ?? c.author?.fullName ?? "Pengguna";
+      const authorRole = c.author?.teacher ? "teacher" : "student";
+      const isCurrentUser = c.authorUserId === currentUser?.id;
+      
+      return {
+        id: c.id,
+        content: c.content,
+        author: {
+          id: c.author?.id ?? "unknown",
+          name: authorName,
+          role: authorRole as any,
+          tone: "slate" as const,
+          isCurrentUser: isCurrentUser,
+        },
+        createdAt: new Date(c.createdAt).getTime(),
+        likesCount: localLikes[c.id]?.count ?? c.totalLikes ?? 0,
+        isLiked: localLikes[c.id]?.isLiked ?? c.isLiked ?? false,
+        replyCount: c.totalReplies ?? 0,
+      };
+    });
+
+    return {
+      id: apiDiscussion.id,
+      content: apiDiscussion.content,
+      materialId: apiDiscussion.courseModuleId ?? "umum",
+      materialName,
+      status: "active" as const,
+      isPinned: false,
+      createdAt: new Date(apiDiscussion.createdAt).getTime(),
+      likesCount: localLikes[apiDiscussion.id]?.count ?? apiDiscussion.totalLikes ?? 0,
+      isLiked: localLikes[apiDiscussion.id]?.isLiked ?? apiDiscussion.isLiked ?? false,
+      author: {
+        id: apiDiscussion.author?.id ?? "unknown",
+        name: apiDiscussion.author?.teacher?.fullName ?? apiDiscussion.author?.student?.fullName ?? apiDiscussion.author?.fullName ?? "Pengguna",
+        role: (apiDiscussion.author?.teacher ? "teacher" : "student") as any,
+        tone: "slate" as const,
+        isCurrentUser: apiDiscussion.authorUserId === currentUser?.id,
+      },
+      replies: replies,
+    };
+  }, [apiDiscussion, commentsData, localLikes, currentUser, course?.modules]);
+
+  const backHref = customBackHref ?? buildClassRoute(slug, "forum");
+
+  const handleSubmitReply = async () => {
     if (!discussion || !replyContent.trim()) {
       return;
     }
 
-    addReply({
-      discussionId: discussion.id,
-      content: replyContent.trim(),
-    });
-    setReplyContent("");
+    try {
+      await createCommentMutation.mutateAsync({
+        content: replyContent.trim(),
+      });
+      setReplyContent("");
+    } catch (error) {
+      // Handled by logger/mutation
+    }
   };
 
   const handleReplyKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       handleSubmitReply();
+    }
+  };
+
+
+  const handleToggleDiscussionLike = () => {
+    if (!discussion) return;
+    
+    const currentLocal = localLikes[discussion.id] || {
+      isLiked: discussion.isLiked,
+      count: discussion.likesCount,
+    };
+
+    const nextIsLiked = !currentLocal.isLiked;
+    const nextCount = nextIsLiked ? currentLocal.count + 1 : currentLocal.count - 1;
+
+    setLocalLikes((prev) => ({
+      ...prev,
+      [discussion.id]: { isLiked: nextIsLiked, count: nextCount },
+    }));
+
+    const timerId = (window as any)[`like_timer_${discussion.id}`];
+    if (timerId) clearTimeout(timerId);
+    (window as any)[`like_timer_${discussion.id}`] = setTimeout(() => {
+      likeDiscussionMutation.mutate(discussion.id);
+      delete (window as any)[`like_timer_${discussion.id}`];
+    }, 500);
+  };
+
+  const handleToggleReplyLike = (discussionId: string, replyId: string) => {
+    if (!discussion) return;
+    const reply = discussion.replies.find((r) => r.id === replyId);
+    if (!reply) return;
+
+    const currentLocal = localLikes[replyId] || {
+      isLiked: reply.isLiked,
+      count: reply.likesCount,
+    };
+
+    const nextIsLiked = !currentLocal.isLiked;
+    const nextCount = nextIsLiked ? currentLocal.count + 1 : currentLocal.count - 1;
+
+    setLocalLikes((prev) => ({
+      ...prev,
+      [replyId]: { isLiked: nextIsLiked, count: nextCount },
+    }));
+
+    const timerId = (window as any)[`like_timer_${replyId}`];
+    if (timerId) clearTimeout(timerId);
+    (window as any)[`like_timer_${replyId}`] = setTimeout(() => {
+      likeCommentMutation.mutate(replyId);
+    }, 500);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      if (deleteTarget.type === "discussion") {
+        await deleteDiscussionMutation.mutateAsync(deleteTarget.id);
+        router.back();
+      } else {
+        await deleteCommentMutation.mutateAsync(deleteTarget.id);
+      }
+      setDeleteTarget(null);
+    } catch (error) {
+      // Handled by mutation
     }
   };
 
@@ -84,14 +237,19 @@ export default function ClassForumDetailPageTemplate({
           </p>
         </div>
 
-        {!discussion && !isHydrated ? <ForumDetailSkeleton /> : null}
+        {!discussion && isDiscussionLoading ? <ForumDetailSkeleton /> : null}
 
         {discussion ? (
           <>
             <ForumDiscussionCard
               discussion={discussion}
               variant="detail"
-              onLike={toggleDiscussionLike}
+              onLike={handleToggleDiscussionLike}
+              onDelete={
+                discussion.author.isCurrentUser || isElevated
+                  ? (id) => setDeleteTarget({ id, type: "discussion" })
+                  : undefined
+              }
             />
 
             <section className="space-y-4">
@@ -100,9 +258,23 @@ export default function ClassForumDetailPageTemplate({
                   key={reply.id}
                   discussionId={discussion.id}
                   reply={reply}
-                  onLike={toggleReplyLike}
+                  onLike={(discId, replyId) => handleToggleReplyLike(discId, replyId)}
+                  onDelete={
+                    reply.author.isCurrentUser || isElevated
+                      ? (id) => setDeleteTarget({ id, type: "comment" })
+                      : undefined
+                  }
                 />
               ))}
+
+              {commentsData?.pagination.hasNextPage && (
+                <button
+                  onClick={() => setCommentPage(prev => prev + 1)}
+                  className="w-full rounded-2xl border border-[#E2E8F0] py-3 text-sm font-semibold text-[#64748B] hover:bg-[#F8FAFC] transition"
+                >
+                  {isCommentsLoading ? "Memuat..." : "Muat Lebih Banyak Komentar"}
+                </button>
+              )}
             </section>
 
             <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-[0px_16px_32px_rgba(148,163,184,0.12)] sm:p-6">
@@ -137,7 +309,7 @@ export default function ClassForumDetailPageTemplate({
           </>
         ) : null}
 
-        {!discussion && isHydrated ? (
+        {!discussion && !isDiscussionLoading ? (
           <ForumEmptyState
             title="Diskusi tidak ditemukan"
             description="Thread yang kamu buka belum tersedia di forum kelas ini atau sudah tidak aktif. Kembali ke daftar forum untuk memilih diskusi lain."
@@ -151,6 +323,34 @@ export default function ClassForumDetailPageTemplate({
             }
           />
         ) : null}
+        {/* ── Delete Confirmation Modal ────────────────────────────── */}
+        <Modal
+          isOpen={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          title="Konfirmasi Hapus"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-[#475569]">
+              Apakah Anda yakin ingin menghapus {deleteTarget?.type === "discussion" ? "diskusi" : "komentar"} ini? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC]"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteDiscussionMutation.isPending || deleteCommentMutation.isPending}
+                className="rounded-xl bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white hover:bg-[#DC2626] disabled:opacity-50"
+              >
+                {deleteDiscussionMutation.isPending || deleteCommentMutation.isPending ? "Menghapus..." : "Hapus"}
+              </button>
+            </div>
+          </div>
+        </Modal>
       </section>
     </ClassPageShellTemplate>
   );

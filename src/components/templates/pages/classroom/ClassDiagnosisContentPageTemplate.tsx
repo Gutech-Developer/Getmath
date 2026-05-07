@@ -22,6 +22,14 @@ import type {
   IClassDiagnosisContentPageTemplateProps,
 } from "@/types";
 import { formatDiagnosticTime } from "@/utils";
+import { showToast } from "@/libs/toast";
+import {
+  useGsModuleById,
+  useGsDiagnosticTestById,
+  useStartTestAttempt,
+  useMyTestAttempts,
+  useSubmitTestAttempt,
+} from "@/services";
 
 export default function ClassDiagnosisContentPageTemplate({
   slug,
@@ -41,6 +49,40 @@ export default function ClassDiagnosisContentPageTemplate({
     DIAGNOSTIC_DURATION_SECONDS,
   );
 
+  const { data: apiModule, isLoading: isModuleLoading } = useGsModuleById(contentId);
+  const diagnosticTestId = apiModule?.diagnosticTestId ?? "";
+  const { data: apiTest, isLoading: isTestLoading } = useGsDiagnosticTestById(diagnosticTestId);
+
+  const diagnosticQuestions = useMemo(() => {
+    if (!apiTest?.packages?.[0]?.questions) return [];
+    return apiTest.packages[0].questions.map((q) => ({
+      id: q.id,
+      prompt: q.textQuestion ?? "",
+      topic: "Umum",
+      typeLabel: "Pilihan Ganda",
+      options: q.options.map((opt) => ({
+        id: opt.id,
+        label: opt.option,
+        text: opt.textAnswer ?? "",
+      })),
+      correctOptionId: q.options.find((opt) => opt.isCorrect)?.id ?? "",
+      discussion: q.pembahasan ?? "",
+    }));
+  }, [apiTest]);
+
+  const { data: attemptsData } = useMyTestAttempts(contentId);
+  const activeAttempt = useMemo(() => {
+    return attemptsData?.attempts
+      ?.filter((a) => !a.finishedAt)
+      .sort(
+        (a, b) =>
+          new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+      )[0];
+  }, [attemptsData]);
+
+  const startTestMutation = useStartTestAttempt(contentId);
+  const submitAttempt = useSubmitTestAttempt(contentId);
+
   const previewRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -50,19 +92,20 @@ export default function ClassDiagnosisContentPageTemplate({
   const materialHref = `/student/dashboard/class/${encodedSlug}/materi/${encodedContentId}`;
   const diagnosticHref = `${materialHref}/${encodedDiagnotisId}`;
 
-  const activeQuestion = DIAGNOSTIC_QUESTIONS[activeQuestionIndex] ?? null;
+  const activeQuestion = diagnosticQuestions[activeQuestionIndex] ?? null;
   const allRulesConfirmed = ruleChecklist.every(Boolean);
   const answeredCount = Object.keys(answers).length;
-  const correctCount = DIAGNOSTIC_QUESTIONS.filter(
+  const correctCount = diagnosticQuestions.filter(
     (question) => answers[question.id] === question.correctOptionId,
   ).length;
   const scorePercent = Math.round(
-    (correctCount / DIAGNOSTIC_QUESTIONS.length) * 100,
+    (correctCount / Math.max(1, diagnosticQuestions.length)) * 100,
   );
-  const isPassedKKM = scorePercent >= DIAGNOSTIC_KKM_MINIMUM_SCORE;
-  const allQuestionsAnswered = answeredCount === DIAGNOSTIC_QUESTIONS.length;
+  const kkmScore = apiModule?.passingScore ?? DIAGNOSTIC_KKM_MINIMUM_SCORE;
+  const isPassedKKM = scorePercent >= kkmScore;
+  const allQuestionsAnswered = answeredCount === diagnosticQuestions.length;
   const completionPercent = Math.round(
-    (answeredCount / DIAGNOSTIC_QUESTIONS.length) * 100,
+    (answeredCount / Math.max(1, diagnosticQuestions.length)) * 100,
   );
 
   const timeLabel = useMemo(
@@ -101,9 +144,27 @@ export default function ClassDiagnosisContentPageTemplate({
 
   useEffect(() => {
     if (flowStep === "quiz" && remainingSeconds <= 0) {
-      setFlowStep("completed");
+      handleCompleteTest();
     }
   }, [flowStep, remainingSeconds]);
+
+  const handleCompleteTest = async () => {
+    setFlowStep("completed");
+
+    if (activeAttempt?.id) {
+      const formattedAnswers = Object.entries(answers).map(
+        ([questionId, selectedOptionId]) => ({
+          questionId,
+          selectedOptionId,
+        }),
+      );
+
+      submitAttempt.mutate({
+        attemptId: activeAttempt.id,
+        input: { answers: formattedAnswers },
+      });
+    }
+  };
 
   const handleRequestCamera = async () => {
     setCameraError(null);
@@ -142,14 +203,29 @@ export default function ClassDiagnosisContentPageTemplate({
     );
   };
 
-  const handleStartQuiz = () => {
-    if (cameraState !== "granted" || !allRulesConfirmed) {
+  const handleStartDiagnostic = () => {
+    if (activeAttempt) {
+      setFlowStep("quiz");
       return;
     }
 
-    setRemainingSeconds(DIAGNOSTIC_DURATION_SECONDS);
-    setActiveQuestionIndex(0);
-    setFlowStep("quiz");
+    const packageId = apiModule?.nextPackage?.packageId;
+    if (!packageId) {
+      showToast.error("Paket soal tidak tersedia");
+      return;
+    }
+
+    startTestMutation.mutate(
+      { packageId },
+      {
+        onSuccess: () => {
+          setFlowStep("quiz");
+        },
+        onError: (err: any) => {
+          showToast.error(err.message || "Gagal memulai tes");
+        },
+      },
+    );
   };
 
   const handleSelectAnswer = (questionId: string, optionId: string) => {
@@ -168,8 +244,8 @@ export default function ClassDiagnosisContentPageTemplate({
       return;
     }
 
-    if (activeQuestionIndex >= DIAGNOSTIC_QUESTIONS.length - 1) {
-      setFlowStep("completed");
+    if (activeQuestionIndex >= diagnosticQuestions.length - 1) {
+      handleCompleteTest();
       return;
     }
 
@@ -258,7 +334,7 @@ export default function ClassDiagnosisContentPageTemplate({
                   <div>
                     <p className="text-[11px] text-white/75">Jumlah Soal</p>
                     <p className="text-sm font-semibold">
-                      {DIAGNOSTIC_QUESTIONS.length} Soal
+                      {apiModule?.nextPackage?.totalQuestions} Soal
                     </p>
                   </div>
                 </div>
@@ -269,8 +345,8 @@ export default function ClassDiagnosisContentPageTemplate({
                     <ClockIcon className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="text-[11px] text-white/75">Durasi</p>
-                    <p className="text-sm font-semibold">15 Menit</p>
+                    <p className="text-xs text-white/75">Durasi</p>
+                    <p className="text-sm font-semibold">{apiModule?.durationMinutes ?? 15} Menit</p>
                   </div>
                 </div>
               </div>
@@ -282,7 +358,7 @@ export default function ClassDiagnosisContentPageTemplate({
                   <div>
                     <p className="text-[11px] text-white/75">KKM / Passing</p>
                     <p className="text-sm font-semibold">
-                      {DIAGNOSTIC_KKM_MINIMUM_SCORE}
+                      {kkmScore}
                     </p>
                   </div>
                 </div>
@@ -332,7 +408,7 @@ export default function ClassDiagnosisContentPageTemplate({
 
             <button
               type="button"
-              onClick={handleStartQuiz}
+              onClick={handleStartDiagnostic}
               disabled={!allRulesConfirmed || cameraState !== "granted"}
               className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -345,13 +421,13 @@ export default function ClassDiagnosisContentPageTemplate({
               </h3>
               <ul className="mt-2 space-y-1.5 text-sm text-[#1E3A8A]">
                 <li>Nilai dihitung dari jumlah jawaban benar.</li>
-                <li>Rumus: (Benar / {DIAGNOSTIC_QUESTIONS.length}) x 100.</li>
+                <li>Rumus: (Benar / {diagnosticQuestions.length}) x 100.</li>
                 <li>
-                  Jika nilai &lt; {DIAGNOSTIC_KKM_MINIMUM_SCORE}: status tidak
+                  Jika nilai &lt; {kkmScore}: status tidak
                   tuntas (merah).
                 </li>
                 <li>
-                  Jika nilai &gt;= {DIAGNOSTIC_KKM_MINIMUM_SCORE}: status tuntas
+                  Jika nilai &gt;= {kkmScore}: status tuntas
                   (biru).
                 </li>
               </ul>
@@ -384,8 +460,8 @@ export default function ClassDiagnosisContentPageTemplate({
             <CheckCircleIcon className="h-6 w-6" />
           </div>
 
-          <h1 className="mt-4 text-2xl font-bold text-[#0F172A]">
-            Tes Diagnostik Selesai
+          <h1 className="mt-4 text-xl font-bold text-[#0F172A] sm:text-2xl">
+            {apiModule?.testName ?? "Tes Diagnostik Selesai"}
           </h1>
           <p
             className={cn(
@@ -408,7 +484,7 @@ export default function ClassDiagnosisContentPageTemplate({
           >
             <p className="text-sm text-[#475569]">Ringkasan Hasil</p>
             <p className="mt-1 text-xl font-semibold text-[#0F172A]">
-              {answeredCount}/{DIAGNOSTIC_QUESTIONS.length} soal terjawab
+              {answeredCount}/{diagnosticQuestions.length} soal terjawab
             </p>
             <p className="mt-1 text-sm text-[#334155]">
               Benar: {correctCount} soal • Nilai: {scorePercent}
@@ -422,8 +498,8 @@ export default function ClassDiagnosisContentPageTemplate({
               )}
             >
               {isPassedKKM
-                ? `Lulus KKM (${DIAGNOSTIC_KKM_MINIMUM_SCORE})`
-                : `Belum Lulus KKM (${DIAGNOSTIC_KKM_MINIMUM_SCORE})`}
+                ? `Lulus KKM (${kkmScore})`
+                : `Belum Lulus KKM (${kkmScore})`}
             </p>
           </div>
 
@@ -433,7 +509,7 @@ export default function ClassDiagnosisContentPageTemplate({
             </h2>
 
             <div className="mt-3 space-y-2.5">
-              {DIAGNOSTIC_QUESTIONS.map((question, index) => {
+              {diagnosticQuestions.map((question, index) => {
                 const selectedOption = question.options.find(
                   (option) => option.id === answers[question.id],
                 );
@@ -564,7 +640,7 @@ export default function ClassDiagnosisContentPageTemplate({
                 Soal Diagnostik
               </p>
               <span className="rounded-full border border-white/35 bg-white/15 px-3 py-1 text-xs font-semibold">
-                {activeQuestionIndex + 1}/{DIAGNOSTIC_QUESTIONS.length}
+                {activeQuestionIndex + 1}/{diagnosticQuestions.length}
               </span>
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">

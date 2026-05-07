@@ -7,8 +7,10 @@ import FilterIcon from "@/components/atoms/icons/FilterIcon";
 import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import SortIcon from "@/components/atoms/icons/SortIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
+import { Modal } from "@/components/molecules/Modal";
 import { showToast } from "@/libs/toast";
 import { cn } from "@/libs/utils";
+
 import type {
   AdminClassStatus,
   IAdminClassListItem,
@@ -204,6 +206,9 @@ export default function AdminClassListContent({
     className: "",
     teacherId: "",
   });
+  const [deleteTarget, setDeleteTarget] = useState<IAdminClassListItem | null>(
+    null,
+  );
   const pathname = usePathname();
   const isTeacherPage = pathname?.includes("/teacher") ?? false;
 
@@ -314,15 +319,13 @@ export default function AdminClassListContent({
   };
 
   const handleDeleteClass = (classItem: IAdminClassListItem) => {
-    const shouldDelete = window.confirm(
-      `Hapus kelas \"${classItem.name}\" dari daftar?`,
-    );
+    setDeleteTarget(classItem);
+  };
 
-    if (!shouldDelete) {
-      return;
-    }
-
-    onDeleteClass(classItem.id);
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    onDeleteClass(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   const handleCopyCode = async (code: string) => {
@@ -570,6 +573,42 @@ export default function AdminClassListContent({
         isTeacherPage={isTeacherPage}
         showTeacherSelection={showTeacherSelection}
       />
+
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Hapus Kelas"
+        size="md"
+      >
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
+            <p className="text-sm font-semibold text-[#991B1B]">
+              Yakin ingin menghapus kelas ini?
+            </p>
+            <p className="mt-1 text-sm text-[#B91C1C]">
+              {deleteTarget?.name} · Seluruh data kelas dan progres siswa akan
+              dihapus secara permanen.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              className="h-12 flex-1 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 text-sm font-semibold text-[#64748B] transition hover:bg-[#F1F5F9]"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              className="h-12 flex-1 rounded-2xl bg-[#DC2626] px-5 text-sm font-semibold text-white transition hover:bg-[#B91C1C]"
+            >
+              Hapus Kelas
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
