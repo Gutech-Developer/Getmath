@@ -1152,6 +1152,14 @@ export function BaseMateriSection({
     [courseModules],
   );
 
+  const nextOrder = useMemo(() => {
+    if (orderedCourseModules.length === 0) return 1;
+    const maxOrder = Math.max(
+      ...orderedCourseModules.map((m) => m.order ?? 0),
+    );
+    return maxOrder + 1;
+  }, [orderedCourseModules]);
+
   const apiSequenceItems = useMemo(
     () => buildCourseModuleSequenceItems(orderedCourseModules),
     [orderedCourseModules],
@@ -1481,7 +1489,7 @@ export function BaseMateriSection({
         await createCourseModuleMutation.mutateAsync({
           courseId,
           data: {
-            order: orderedCourseModules.length + 1,
+            order: nextOrder,
             type: "SUBJECT",
             subjectId: selectedAssetId,
           },
@@ -1545,7 +1553,7 @@ export function BaseMateriSection({
         await createCourseModuleMutation.mutateAsync({
           courseId,
           data: {
-            order: orderedCourseModules.length + 1,
+            order: nextOrder,
             type: "DIAGNOSTIC_TEST",
             diagnosticTestId: option.id,
           },

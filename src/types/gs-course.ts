@@ -102,6 +102,11 @@ export interface GsCourseModuleDiagnosticTest {
 
 export type GsModuleType = "SUBJECT" | "DIAGNOSTIC_TEST";
 
+export interface GsModuleNextPackage {
+  packageId: string;
+  totalQuestions: number;
+}
+
 export interface GsCourseModule {
   id: string;
   order: number | null;
@@ -111,6 +116,17 @@ export interface GsCourseModule {
   diagnosticTestId: string | null;
   /** ISO datetime string atau null */
   deadline: string | null;
+
+  // Diagnostic Test Extra Info (Expanded)
+  testName?: string;
+  description?: string | null;
+  durationMinutes?: number;
+  passingScore?: number;
+  canAttempt?: boolean;
+  attemptsUsed?: number;
+  maxAttempts?: number;
+  nextPackage?: GsModuleNextPackage | null;
+
   subject?: GsCourseModuleSubject;
   diagnosticTest?: GsCourseModuleDiagnosticTest;
 }

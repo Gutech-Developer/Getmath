@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
 import { gsGet, gsPost, gsPut, gsDel } from "@/libs/api/getsmart";
 import { gsLogger } from "@/utils/logger";
+import { showToast, showErrorToast } from "@/libs/toast";
 import type {
   GsForumDiscussion,
   GsForumComment,
@@ -26,6 +27,7 @@ export interface CreateDiscussionInput {
 export interface CreateCommentInput {
   content: string;
   imageUrl?: string;
+  parentCommentId?: string;
 }
 
 export interface CreateReplyInput {
@@ -44,9 +46,24 @@ export interface PaginationParams {
 export interface ListDiscussionsResponse {
   discussions: GsForumDiscussion[];
   pagination: {
-    page: number;
-    limit: number;
-    total: number;
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export interface ListCommentsResponse {
+  comments: GsForumComment[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
   };
 }
 
@@ -88,7 +105,6 @@ export function useListDiscussionsByCourse(
 // ─── GET /api/forum/course/:courseId/discussions/:id ──────────────────────────
 
 export function useGetDiscussion(
-  courseId: string,
   discussionId: string,
   options?: { enabled?: boolean }
 ) {
@@ -97,7 +113,7 @@ export function useGetDiscussion(
     queryFn: async () => {
       gsLogger.info(`Fetching discussion ${discussionId}`, {});
       const response = await gsGet<GsForumDiscussion>(
-        `/forum/course/${courseId}/discussions/${discussionId}`
+        `/forum/discussions/${discussionId}`
       );
       return response;
     },
@@ -128,9 +144,13 @@ export function useCreateDiscussion(courseId: string) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsForumDiscussions.byCourse(courseId),
+        queryKey: queryKeys.gsForumDiscussions.all,
       });
+      showToast.success("Diskusi berhasil dibuat!");
       gsLogger.info("Discussion created successfully", { discussionId: data?.id });
+    },
+    onError: (error) => {
+      showErrorToast(error);
     },
     retry: (failureCount, error: any) => {
       // Retry max 3 times for transient errors (5xx)
@@ -148,24 +168,24 @@ export function useCreateDiscussion(courseId: string) {
 
 // ─── PUT /api/forum/course/:courseId/discussions/:id ──────────────────────────
 
-export function useUpdateDiscussion(courseId: string, discussionId: string) {
+export function useUpdateDiscussion(discussionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: Partial<CreateDiscussionInput>) => {
       gsLogger.request(
         "PUT",
-        `/forum/course/${courseId}/discussions/${discussionId}`,
+        `/forum/discussions/${discussionId}`,
         {},
         input
       );
       const response = await gsPut<GsForumDiscussion>(
-        `/forum/course/${courseId}/discussions/${discussionId}`,
+        `/forum/discussions/${discussionId}`,
         input
       );
       gsLogger.response(
         "PUT",
-        `/forum/course/${courseId}/discussions/${discussionId}`,
+        `/forum/discussions/${discussionId}`,
         200,
         response
       );
@@ -176,31 +196,35 @@ export function useUpdateDiscussion(courseId: string, discussionId: string) {
         queryKey: queryKeys.gsForumDiscussions.detail(discussionId),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsForumDiscussions.byCourse(courseId),
+        queryKey: queryKeys.gsForumDiscussions.all,
       });
+      showToast.success("Diskusi berhasil diperbarui!");
       gsLogger.info("Discussion updated successfully", { discussionId });
+    },
+    onError: (error) => {
+      showErrorToast(error);
     },
   });
 }
 
 // ─── DELETE /api/forum/course/:courseId/discussions/:id ───────────────────────
 
-export function useDeleteDiscussion(courseId: string) {
+export function useDeleteDiscussion(courseId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (discussionId: string) => {
       gsLogger.request(
         "DELETE",
-        `/forum/course/${courseId}/discussions/${discussionId}`,
+        `/forum/discussions/${discussionId}`,
         {},
       );
       const response = await gsDel(
-        `/forum/course/${courseId}/discussions/${discussionId}`
+        `/forum/discussions/${discussionId}`
       );
       gsLogger.response(
         "DELETE",
-        `/forum/course/${courseId}/discussions/${discussionId}`,
+        `/forum/discussions/${discussionId}`,
         200,
         response
       );
@@ -208,12 +232,13 @@ export function useDeleteDiscussion(courseId: string) {
     },
     onSuccess: (_, discussionId) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsForumDiscussions.byCourse(courseId),
+        queryKey: queryKeys.gsForumDiscussions.all,
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.gsForumDiscussions.detail(discussionId),
-      });
+      showToast.success("Diskusi berhasil dihapus!");
       gsLogger.info("Discussion deleted successfully", { discussionId });
+    },
+    onError: (error) => {
+      showErrorToast(error);
     },
   });
 }
@@ -227,16 +252,16 @@ export function useLikeDiscussion(courseId: string) {
     mutationFn: async (discussionId: string) => {
       gsLogger.request(
         "POST",
-        `/forum/course/${courseId}/discussions/${discussionId}/like`,
+        `/forum/discussions/${discussionId}/like`,
         {}
       );
       const response = await gsPost(
-        `/forum/course/${courseId}/discussions/${discussionId}/like`,
+        `/forum/discussions/${discussionId}/like`,
         {}
       );
       gsLogger.response(
         "POST",
-        `/forum/course/${courseId}/discussions/${discussionId}/like`,
+        `/forum/discussions/${discussionId}/like`,
         200,
         response
       );
@@ -246,9 +271,8 @@ export function useLikeDiscussion(courseId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsForumDiscussions.detail(data.discussionId),
       });
-      // Invalidate the discussions list to update the like count there too
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsForumDiscussions.byCourse(courseId),
+        queryKey: queryKeys.gsForumDiscussions.all,
       });
       gsLogger.info("Discussion liked successfully", { discussionId: data.discussionId });
     },
@@ -257,25 +281,25 @@ export function useLikeDiscussion(courseId: string) {
 
 // ─── Comments & Replies ───────────────────────────────────────────────────────
 
-// POST /api/forum/course/:courseId/discussions/:id/comments
-export function useCreateComment(courseId: string, discussionId: string) {
+// POST /api/forum/discussions/:id/comments
+export function useCreateComment(discussionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: CreateCommentInput) => {
       gsLogger.request(
         "POST",
-        `/forum/course/${courseId}/discussions/${discussionId}/comments`,
+        `/forum/discussions/${discussionId}/comments`,
         {},
         input
       );
       const response = await gsPost<GsForumComment>(
-        `/forum/course/${courseId}/discussions/${discussionId}/comments`,
+        `/forum/discussions/${discussionId}/comments`,
         input
       );
       gsLogger.response(
         "POST",
-        `/forum/course/${courseId}/discussions/${discussionId}/comments`,
+        `/forum/discussions/${discussionId}/comments`,
         201,
         response
       );
@@ -285,32 +309,32 @@ export function useCreateComment(courseId: string, discussionId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsForumDiscussions.detail(discussionId),
       });
-      gsLogger.info("Comment created successfully", { commentId: data?.id });
+      showToast.success("Balasan berhasil dikirim!");
+      gsLogger.info("Comment/Reply created successfully", { commentId: data?.id });
+    },
+    onError: (error) => {
+      showErrorToast(error);
     },
   });
 }
 
-// DELETE /api/forum/course/:courseId/discussions/:id/comments/:commentId
-export function useDeleteComment(
-  courseId: string,
-  discussionId: string,
-  commentId: string
-) {
+// DELETE /api/forum/comments/:commentId
+export function useDeleteComment(discussionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (commentId: string) => {
       gsLogger.request(
         "DELETE",
-        `/forum/course/${courseId}/discussions/${discussionId}/comments/${commentId}`,
+        `/forum/comments/${commentId}`,
         {}
       );
       const response = await gsDel(
-        `/forum/course/${courseId}/discussions/${discussionId}/comments/${commentId}`
+        `/forum/comments/${commentId}`
       );
       gsLogger.response(
         "DELETE",
-        `/forum/course/${courseId}/discussions/${discussionId}/comments/${commentId}`,
+        `/forum/comments/${commentId}`,
         200,
         response
       );
@@ -320,43 +344,101 @@ export function useDeleteComment(
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsForumDiscussions.detail(discussionId),
       });
-      gsLogger.info("Comment deleted successfully", { commentId });
+      showToast.success("Komentar berhasil dihapus!");
+      gsLogger.info("Comment deleted successfully");
+    },
+    onError: (error) => {
+      showErrorToast(error);
     },
   });
 }
 
-// POST /api/forum/course/:courseId/discussions/:id/comments/:commentId/like
-export function useLikeComment(
-  courseId: string,
-  discussionId: string,
-  commentId: string
-) {
+// POST /api/forum/comments/:commentId/like
+export function useLikeComment(discussionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (commentId: string) => {
       gsLogger.request(
         "POST",
-        `/forum/course/${courseId}/discussions/${discussionId}/comments/${commentId}/like`,
-        {}
+        `/forum/comments/${commentId}/like`,
+        {},
       );
       const response = await gsPost(
-        `/forum/course/${courseId}/discussions/${discussionId}/comments/${commentId}/like`,
-        {}
+        `/forum/comments/${commentId}/like`,
+        {},
       );
       gsLogger.response(
         "POST",
-        `/forum/course/${courseId}/discussions/${discussionId}/comments/${commentId}/like`,
+        `/forum/comments/${commentId}/like`,
         200,
-        response
+        response,
       );
-      return response;
+      return { response, commentId };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsForumDiscussions.detail(discussionId),
       });
-      gsLogger.info("Comment liked successfully", { commentId });
+      // Also invalidate comments list if it exists
+      queryClient.invalidateQueries({
+        queryKey: ["forum", "comments", discussionId],
+      });
+      gsLogger.info("Comment liked successfully", { commentId: data.commentId });
     },
+  });
+}
+
+// ─── List Comments & Replies ──────────────────────────────────────────────────
+
+export function useListCommentsByDiscussion(
+  discussionId: string,
+  params?: PaginationParams,
+  options?: { enabled?: boolean }
+) {
+  const queryString = new URLSearchParams({
+    page: String(params?.page ?? 1),
+    limit: String(params?.limit ?? 10),
+    sortBy: params?.sortBy ?? "top",
+  }).toString();
+
+  return useQuery({
+    queryKey: ["forum", "comments", discussionId, params],
+    queryFn: async () => {
+      gsLogger.info(`Fetching comments for discussion ${discussionId}`, { params });
+      const response = await gsGet<ListCommentsResponse>(
+        `/forum/discussions/${discussionId}/comments?${queryString}`
+      );
+      return response;
+    },
+    staleTime: 1 * 60 * 1000,
+    ...options,
+  });
+}
+
+export function useListRepliesByComment(
+  discussionId: string,
+  commentId: string,
+  params?: PaginationParams,
+  options?: { enabled?: boolean }
+) {
+  const queryString = new URLSearchParams({
+    page: String(params?.page ?? 1),
+    limit: String(params?.limit ?? 10),
+    sortBy: params?.sortBy ?? "oldest",
+    parentCommentId: commentId,
+  }).toString();
+
+  return useQuery({
+    queryKey: ["forum", "replies", commentId, params],
+    queryFn: async () => {
+      gsLogger.info(`Fetching replies for comment ${commentId}`, { params });
+      const response = await gsGet<ListCommentsResponse>(
+        `/forum/discussions/${discussionId}/comments?${queryString}`
+      );
+      return response;
+    },
+    staleTime: 1 * 60 * 1000,
+    ...options,
   });
 }

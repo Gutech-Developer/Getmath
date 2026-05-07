@@ -4,6 +4,12 @@ import type { ClassSidebarRouteKey } from "@/constant/classSidebarRoutes";
 import { getClassSidebarRoutes } from "@/constant/classSidebarRoutes";
 import { cn } from "@/libs/utils";
 import { classRouteIconMap, classRouteToneMap } from "./classroomMaps";
+import {
+  useGsCourseBySlug,
+  useGsModulesByCourse,
+  useStudentDashboard,
+} from "@/services";
+import { useMemo } from "react";
 
 interface IClassSidebarNavProps {
   slug: string;
@@ -20,7 +26,37 @@ export default function ClassSidebarNav({
   teacherName,
   onNavigate,
 }: IClassSidebarNavProps) {
-  const menuItems = getClassSidebarRoutes(slug);
+  const { data: course } = useGsCourseBySlug(slug);
+  const { data: modules } = useGsModulesByCourse(course?.id ?? "");
+  const { data: dashboardMetrics } = useStudentDashboard(course?.id ?? "", {
+    enabled: !!course?.id,
+  });
+
+  const totalSubjects =
+    dashboardMetrics?.subjectModuleTotal ??
+    (modules ?? []).filter((m) => m.type === "SUBJECT").length;
+
+  const totalDiagnosticTests =
+    dashboardMetrics?.diagnosticTestTotal ??
+    (modules ?? []).filter((m) => m.type === "DIAGNOSTIC_TEST").length;
+
+  const menuItems = useMemo(() => {
+    return getClassSidebarRoutes(slug).map((item) => {
+      if (item.key === "materi") {
+        return {
+          ...item,
+          description: `${totalSubjects} materi tersedia`,
+        };
+      }
+      if (item.key === "diagnosis") {
+        return {
+          ...item,
+          description: `${totalDiagnosticTests} tes tersedia`,
+        };
+      }
+      return item;
+    });
+  }, [slug, totalSubjects, totalDiagnosticTests]);
 
   return (
     <aside className="h-full rounded-[20px]  bg-white  shadow-[0px_10px_32px_rgba(17,24,39,0.06)] xl:sticky xl:top-[92px] xl:h-full">

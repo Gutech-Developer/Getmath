@@ -114,17 +114,17 @@ export function useMarkFileRead(courseModuleId: string) {
       gsLogger.request(
         "POST",
         `/progress/modules/${courseModuleId}/mark-file-read`,
-        {}
+        {},
       );
       const response = await gsPost(
         `/progress/modules/${courseModuleId}/mark-file-read`,
-        {}
+        {},
       );
       gsLogger.response(
         "POST",
         `/progress/modules/${courseModuleId}/mark-file-read`,
         200,
-        response
+        response,
       );
       return response;
     },
@@ -147,17 +147,17 @@ export function useMarkVideoWatched(courseModuleId: string) {
       gsLogger.request(
         "POST",
         `/progress/modules/${courseModuleId}/mark-video-watched`,
-        {}
+        {},
       );
       const response = await gsPost(
         `/progress/modules/${courseModuleId}/mark-video-watched`,
-        {}
+        {},
       );
       gsLogger.response(
         "POST",
         `/progress/modules/${courseModuleId}/mark-video-watched`,
         200,
-        response
+        response,
       );
       return response;
     },
@@ -181,17 +181,17 @@ export function useStartTestAttempt(courseModuleId: string) {
         "POST",
         `/progress/modules/${courseModuleId}/test-attempts/start`,
         {},
-        input
+        input,
       );
       const response = await gsPost<TestAttemptResult>(
         `/progress/modules/${courseModuleId}/test-attempts/start`,
-        input
+        input,
       );
       gsLogger.response(
         "POST",
         `/progress/modules/${courseModuleId}/test-attempts/start`,
         201,
-        response
+        response,
       );
       return response;
     },
@@ -224,17 +224,17 @@ export function useSubmitTestAttempt(courseModuleId: string) {
         "POST",
         `/progress/modules/${courseModuleId}/test-attempts/${attemptId}/submit`,
         {},
-        input
+        input,
       );
       const response = await gsPost<TestAttemptResult>(
         `/progress/modules/${courseModuleId}/test-attempts/${attemptId}/submit`,
-        input
+        input,
       );
       gsLogger.response(
         "POST",
         `/progress/modules/${courseModuleId}/test-attempts/${attemptId}/submit`,
         200,
-        response
+        response,
       );
       return response;
     },
@@ -261,20 +261,20 @@ export function useSubmitTestAttempt(courseModuleId: string) {
 
 export function useMyTestAttempts(
   courseModuleId: string,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: queryKeys.gsProgress.testAttempts(courseModuleId),
     queryFn: async () => {
       gsLogger.info(`Fetching my test attempts for ${courseModuleId}`, {});
       const response = await gsGet<{ attempts: TestAttemptResult[] }>(
-        `/progress/modules/${courseModuleId}/test-attempts/me`
+        `/progress/modules/${courseModuleId}/test-attempts/me`,
       );
       gsLogger.response(
         "GET",
         `/progress/modules/${courseModuleId}/test-attempts/me`,
         200,
-        response
+        response,
       );
       return response;
     },
@@ -288,20 +288,20 @@ export function useMyTestAttempts(
 
 export function useELKPDGradesByModule(
   courseModuleId: string,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: queryKeys.gsProgress.elkpdGrades(courseModuleId),
     queryFn: async () => {
       gsLogger.info(`Fetching ELKPD grades for module ${courseModuleId}`, {});
       const response = await gsGet<ELKPDGradesByModuleResponse>(
-        `/progress/modules/${courseModuleId}/elkpd-grades`
+        `/progress/modules/${courseModuleId}/elkpd-grades`,
       );
       gsLogger.response(
         "GET",
         `/progress/modules/${courseModuleId}/elkpd-grades`,
         200,
-        response
+        response,
       );
       return response;
     },
@@ -328,17 +328,17 @@ export function useGradeELKPD(courseModuleId: string) {
         "PUT",
         `/progress/modules/${courseModuleId}/elkpd/student/${studentId}/grade`,
         {},
-        input
+        input,
       );
       const response = await gsPut<ELKPDGradeEntry>(
         `/progress/modules/${courseModuleId}/elkpd/student/${studentId}/grade`,
-        input
+        input,
       );
       gsLogger.response(
         "PUT",
         `/progress/modules/${courseModuleId}/elkpd/student/${studentId}/grade`,
         200,
-        response
+        response,
       );
       return response;
     },
@@ -364,16 +364,16 @@ export function useResetELKPDGrade(courseModuleId: string) {
       gsLogger.request(
         "DELETE",
         `/progress/modules/${courseModuleId}/elkpd/student/${studentId}/grade`,
-        {}
+        {},
       );
       const response = await gsDel(
-        `/progress/modules/${courseModuleId}/elkpd/student/${studentId}/grade`
+        `/progress/modules/${courseModuleId}/elkpd/student/${studentId}/grade`,
       );
       gsLogger.response(
         "DELETE",
         `/progress/modules/${courseModuleId}/elkpd/student/${studentId}/grade`,
         200,
-        response
+        response,
       );
       return response;
     },

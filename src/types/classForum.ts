@@ -40,6 +40,7 @@ export interface IForumReply {
   createdAt: number;
   likesCount: number;
   isLiked: boolean;
+  replyCount?: number;
 }
 
 export interface IForumDiscussion {
@@ -53,6 +54,8 @@ export interface IForumDiscussion {
   isLiked: boolean;
   author: IForumAuthor;
   replies: IForumReply[];
+  commentCount?: number;
+  materialName?: string;
 }
 
 export interface IForumFilterState {

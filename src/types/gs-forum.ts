@@ -4,9 +4,17 @@
 
 export interface GsForumUser {
   id: string;
-  fullName: string;
+  fullName?: string;
   email: string;
   avatarUrl?: string;
+  teacher?: {
+    id: string;
+    fullName: string;
+  };
+  student?: {
+    id: string;
+    fullName: string;
+  };
 }
 
 export interface GsForumDiscussion {
@@ -17,9 +25,11 @@ export interface GsForumDiscussion {
   author?: GsForumUser;
   content: string;
   imageUrl?: string;
-  likeCount: number;
+  likeCount?: number;
+  totalLikes?: number;
   isLiked?: boolean;
-  commentCount: number;
+  commentCount?: number;
+  totalComments?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,25 +37,30 @@ export interface GsForumDiscussion {
 export interface GsForumComment {
   id: string;
   discussionId: string;
+  parentCommentId?: string;
   authorUserId: string;
   author?: GsForumUser;
   content: string;
   imageUrl?: string;
-  likeCount: number;
+  isEdited?: boolean;
+  totalLikes: number;
+  totalReplies?: number;
   isLiked?: boolean;
-  replyCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface GsForumReply {
   id: string;
-  commentId: string;
+  commentId?: string; // Legacy
+  discussionId: string;
+  parentCommentId: string;
   authorUserId: string;
   author?: GsForumUser;
   content: string;
   imageUrl?: string;
-  likeCount: number;
+  isEdited?: boolean;
+  totalLikes: number;
   isLiked?: boolean;
   createdAt: string;
   updatedAt: string;

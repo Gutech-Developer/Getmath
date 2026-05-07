@@ -21,7 +21,11 @@ import {
   useGsModulesByCourse,
   useGsCurrentUser,
   useStudentDashboard,
+  useMyTestAttempts,
 } from "@/services";
+import { useMemo } from "react";
+import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
+import { cn } from "@/libs/utils";
 
 interface IClassDashboardPageTemplateProps {
   slug: string;
@@ -42,9 +46,6 @@ export default function ClassDashboardPageTemplate({
   slug,
 }: IClassDashboardPageTemplateProps) {
   const classTitle = formatClassTitleFromSlug(slug);
-  const moduleItems = getClassSidebarRoutes(slug).filter(
-    (item) => item.key !== "overview",
-  );
   const auth = useGsCurrentUser();
   const { data: course } = useGsCourseBySlug(slug);
   const { data: modules } = useGsModulesByCourse(course?.id ?? "");
@@ -67,6 +68,26 @@ export default function ClassDashboardPageTemplate({
   const totalDiagnosticTests =
     dashboardMetrics?.diagnosticTestTotal ??
     (modules ?? []).filter((m) => m.type === "DIAGNOSTIC_TEST").length;
+
+  const moduleItems = useMemo(() => {
+    return getClassSidebarRoutes(slug)
+      .filter((item) => item.key !== "overview")
+      .map((item) => {
+        if (item.key === "materi") {
+          return {
+            ...item,
+            description: `${totalSubjects} materi tersedia`,
+          };
+        }
+        if (item.key === "diagnosis") {
+          return {
+            ...item,
+            description: `${totalDiagnosticTests} tes tersedia`,
+          };
+        }
+        return item;
+      });
+  }, [slug, totalSubjects, totalDiagnosticTests]);
 
   const metricItems: {
     key: string;
@@ -104,6 +125,10 @@ export default function ClassDashboardPageTemplate({
       routeKey: "lad",
     },
   ];
+
+  const diagnosticModules = useMemo(() => {
+    return (modules ?? []).filter((m) => m.type === "DIAGNOSTIC_TEST");
+  }, [modules]);
 
   return (
     <ClassPageShellTemplate
@@ -187,6 +212,7 @@ export default function ClassDashboardPageTemplate({
         </div>
       </section>
 
+
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.14)]">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base font-bold text-[#0F172A]">
@@ -220,3 +246,4 @@ export default function ClassDashboardPageTemplate({
     </ClassPageShellTemplate>
   );
 }
+

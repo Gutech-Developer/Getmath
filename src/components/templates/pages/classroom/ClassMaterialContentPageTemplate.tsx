@@ -15,6 +15,8 @@ import {
   useGsModuleById,
   useMarkFileRead,
   useMarkVideoWatched,
+  useMyTestAttempts,
+  useStartTestAttempt,
 } from "@/services";
 import type { GsCourseModule, GsCourseModuleSubject } from "@/types/gs-course";
 import type {
@@ -259,7 +261,7 @@ export default function ClassMaterialContentPageTemplate({
   slug,
 }: IClassMaterialContentPageTemplateProps) {
   const pathname = usePathname();
-  const { data: courseModules, isLoading } = useGsModulesByCourse(courseId);
+  const { data: courseModules, isPending } = useGsModulesByCourse(courseId);
 
   // ── Progress tracking hooks ──────────────────────────────────────────
   // @deprecated: useModuleProgress endpoint [UNREADY] - removed
@@ -278,14 +280,17 @@ export default function ClassMaterialContentPageTemplate({
 
   const modules = useMemo<IModuleView[]>(() => {
     return (courseModules ?? [])
-      .filter((m) => m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST")
-      .map((m, i) => {
+      .filter(
+        (m: GsCourseModule) =>
+          m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST",
+      )
+      .map((m: GsCourseModule, i: number) => {
         const mId = m.id ?? (m as any).courseModuleId;
         const dId = detailModule?.id ?? (detailModule as any)?.courseModuleId;
-        const moduleToUse = (dId && mId === dId) ? detailModule : m;
+        const moduleToUse = dId && mId === dId ? detailModule : m;
         return buildModuleView(moduleToUse as GsCourseModule, i);
       })
-      .filter((m): m is IModuleView => m !== null);
+      .filter((m: IModuleView | null): m is IModuleView => m !== null);
   }, [courseModules, detailModule]);
 
   // ── Reflect progress state on steps ──────────────────────────────────
@@ -357,6 +362,21 @@ export default function ClassMaterialContentPageTemplate({
     activeIndex >= 0 && activeIndex < flatSteps.length - 1
       ? flatSteps[activeIndex + 1]
       : null;
+
+  // ── Diagnostic test hooks ───────────────────────────────────────────
+  const { data: testAttempts } = useMyTestAttempts(activeStep?.moduleId ?? "", {
+    enabled: activeStep?.kind === "DIAGNOSTIC" && !!activeStep?.moduleId,
+  });
+
+  const latestAttempt = useMemo(() => {
+    if (!testAttempts?.attempts?.length) return null;
+    return [...testAttempts.attempts].sort(
+      (a, b) =>
+        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+    )[0];
+  }, [testAttempts]);
+
+  const startTestAttempt = useStartTestAttempt(activeStep?.moduleId ?? "");
 
   useEffect(() => {
     if (activeIndex > maxUnlockedIndex) {
@@ -457,7 +477,7 @@ export default function ClassMaterialContentPageTemplate({
   /* ================================================================ */
   /*  RENDER                                                           */
   /* ================================================================ */
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center text-sm text-[#9CA3AF]">
         Memuat materi...
@@ -594,6 +614,60 @@ export default function ClassMaterialContentPageTemplate({
                     </p>
                   )}
 
+                  {latestAttempt && (
+                    <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#0F172A]">
+                          Hasil Terakhir
+                        </p>
+                        <span
+                          className={cn(
+                            "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                            latestAttempt.isPassed
+                              ? "bg-[#DCFCE7] text-[#166534]"
+                              : "bg-[#FEE2E2] text-[#B91C1C]",
+                          )}
+                        >
+                          {latestAttempt.isPassed ? "Tuntas" : "Belum Tuntas"}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center gap-6">
+                        <div>
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
+                            Skor
+                          </p>
+                          <p className="text-xl font-bold text-[#0F172A]">
+                            {latestAttempt.score ?? 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
+                            Jawaban Benar
+                          </p>
+                          <p className="text-xl font-bold text-[#0F172A]">
+                            {latestAttempt.totalCorrect ?? 0}/
+                            {latestAttempt.totalQuestions ?? 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
+                            Tanggal
+                          </p>
+                          <p className="text-sm font-medium text-[#475569]">
+                            {new Date(latestAttempt.startedAt).toLocaleDateString(
+                              "id-ID",
+                              {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              },
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {slug && resolvedDiagnosticTestId && (
                     <Link
                       href={`/student/dashboard/class/${encodeURIComponent(
@@ -601,9 +675,14 @@ export default function ClassMaterialContentPageTemplate({
                       )}/materi/${encodeURIComponent(
                         activeStep?.moduleId ?? contentId,
                       )}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
+                      onClick={() => {
+                        startTestAttempt.mutate({
+                          packageId: resolvedDiagnosticTestId,
+                        });
+                      }}
                       className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
                     >
-                      Mulai Tes Diagnostik
+                      {latestAttempt ? "Kerjakan Ulang" : "Mulai Tes Diagnostik"}
                     </Link>
                   )}
 

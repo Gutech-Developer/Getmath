@@ -279,6 +279,7 @@ export default function TeacherLearningAnalyticsClassContent({
         courseId={classDetail.id ?? classDetail.slug}
         slug={classDetail.slug}
         role="teacher"
+        materials={materials}
       />
     ),  
   };
