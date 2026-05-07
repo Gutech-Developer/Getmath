@@ -52,9 +52,10 @@ export interface GsSubject {
   subjectName: string;
   description: string | null;
   subjectFileUrl: string;
+  eLKPDTitle: string | null;
+  eLKPDDescription: string | null;
+  eLKPDFileUrl: string | null;
   videoUrl: string | null;
-  /** Hanya tersedia pada GET /subjects/:id — tidak di-include pada list endpoint */
-  eLKPDs?: GsELKPD[];
   createdAt: string;
   updatedAt: string;
 }

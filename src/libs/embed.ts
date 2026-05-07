@@ -44,6 +44,10 @@ export function toYouTubeEmbed(url: string): string {
         params.set("start", String(seconds));
       }
     }
+    params.set("enablejsapi", "1");
+    if (typeof window !== "undefined" && window.location.origin) {
+      params.set("origin", window.location.origin);
+    }
     const qs = params.toString();
     return `https://www.youtube.com/embed/${videoId}${qs ? `?${qs}` : ""}`;
   } catch {

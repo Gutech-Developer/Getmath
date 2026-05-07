@@ -1,5 +1,6 @@
 "use client";
 
+import ChatIcon from "@/components/atoms/icons/ChatIcon";
 import ClipboardIcon from "@/components/atoms/icons/ClipboardIcon";
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
@@ -26,8 +27,9 @@ import type {
   ITeacherStudentAnalyticsItem,
 } from "@/types/learningAnalytics";
 import type { ComponentType, ReactNode } from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import ForumSection from "@/components/organisms/ForumSection";
 
 export type {
   ITeacherClassLearningAnalyticsDetail,
@@ -72,6 +74,11 @@ const TEACHER_VIEW_ITEMS: ITeacherSidebarItem[] = [
     type: "Laporan",
     label: "Laporan",
     icon: TrendUpIcon,
+  },
+  {
+    type: "Forum",
+    label: "Forum",
+    icon: ChatIcon,
   },
 ];
 
@@ -266,24 +273,37 @@ export default function TeacherLearningAnalyticsClassContent({
         students={classDetail.students}
       />
     ),
+    // seharusnya disini bukan di showforum 
+    Forum: (
+      <ForumSection
+        courseId={classDetail.id ?? classDetail.slug}
+        slug={classDetail.slug}
+        role="teacher"
+        materials={materials}
+      />
+    ),  
   };
 
   return (
     <div className="space-y-4">
       <LearningAnalyticsClassHeaderCard data={headerData} />
-      <LearningAnalyticsViewSwitcher
-        activeType={activeViewType}
-        onChange={(key) =>
-          router.push(
-            `${pathname.split("?")[0]}?view=${encodeURIComponent(key)}`,
-          )
-        }
-        badgeByType={{
-          Siswa: classDetail.studentCount,
-          Materi: materials.length,
-          "Kelola E-LKPD": elkpdItems.length,
-        }}
-      />
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <LearningAnalyticsViewSwitcher
+            activeType={activeViewType}
+            onChange={(key) => {
+              router.push(
+                `${pathname.split("?")[0]}?view=${encodeURIComponent(key)}`,
+              );
+            }}
+            badgeByType={{
+              Siswa: classDetail.studentCount,
+              Materi: materials.length,
+              "Kelola E-LKPD": elkpdItems.length,
+            }}
+          />
+        </div>
+      </div>
       {renderedByType[activeViewType]}
     </div>
   );

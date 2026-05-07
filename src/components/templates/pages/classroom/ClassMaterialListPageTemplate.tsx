@@ -12,7 +12,7 @@ import SearchIcon from "@/components/atoms/icons/SearchIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { cn } from "@/libs/utils";
 import { useGsCourseBySlug, useGsModulesByCourse } from "@/services";
-import type { GsCourseModule } from "@/types/gs-course";
+import type { GsCourseModule, GsCourseModuleSubject } from "@/types/gs-course";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -44,93 +44,128 @@ interface IClassMaterialListPageTemplateProps {
 /* ------------------------------------------------------------------ */
 /*  API mapper                                                         */
 /* ------------------------------------------------------------------ */
+function getModuleId(module: GsCourseModule): string {
+  return module.id || (module as any).courseModuleId || "";
+}
+
 /**
  * Map GsCourseModule (type=SUBJECT) → IMaterialModule.
  * Module yang dikembalikan backend hanya berisi subset subject
- * (subjectName, subjectFileUrl, videoUrl) — tanpa eLKPDs.
- * eLKPDs dapat di-fetch terpisah via GET /subjects/:id jika diperlukan.
+ * (subjectName, subjectFileUrl, videoUrl, eLKPDTitle, dll).
  */
 function mapModuleToMaterial(
   module: GsCourseModule,
   index: number,
 ): IMaterialModule {
+  const moduleId = getModuleId(module);
+  const flat = module as any;
+
   // Handle diagnostic test modules
-  if (module.type === "DIAGNOSTIC_TEST" && module.diagnosticTest) {
+  if (module.type === "DIAGNOSTIC_TEST") {
     const test = module.diagnosticTest;
     const title =
-      test.testName ?? `Tes Diagnostik ${module.order ?? index + 1}`;
+      flat.testName ??
+      test?.testName ??
+      `Tes Diagnostik ${module.order ?? index + 1}`;
+
     const steps: IMaterialStep[] = [
       {
-        id: `${module.id}-diagnostic`,
+        id: module.diagnosticTestId ?? test?.id ?? `${moduleId}-diagnostic`,
         typeLabel: "Test Diagnosis",
-        title: test.testName ?? title,
-        status: index === 0 ? "in-progress" : "locked",
+        title,
+        status: flat.completed
+          ? "completed"
+          : flat.accessible
+            ? "in-progress"
+            : "locked",
       },
     ];
 
-    const completedSteps = index === 0 ? 1 : 0;
+    const completedSteps = flat.completed ? 1 : 0;
 
     return {
-      id: module.id,
+      id: moduleId,
       title,
-      description: test.description ?? "",
+      description: test?.description ?? flat.description ?? "",
       totalSteps: steps.length,
       completedSteps,
       progressPercent:
-        steps.length > 0
-          ? Math.round((completedSteps / steps.length) * 100)
-          : 0,
-      status:
-        completedSteps === steps.length
-          ? "completed"
-          : completedSteps > 0
-            ? "in-progress"
-            : "locked",
+        steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0,
+      status: flat.completed
+        ? "completed"
+        : flat.accessible
+          ? "in-progress"
+          : "locked",
       steps,
     };
   }
 
-  // Fallback: SUBJECT modules (existing behavior)
+  // SUBJECT modules
   const subject = module.subject;
-  const title = subject?.subjectName ?? `Modul ${module.order ?? index + 1}`;
+  const title =
+    flat.subjectName ??
+    subject?.subjectName ??
+    `Modul ${module.order ?? index + 1}`;
+
   const steps: IMaterialStep[] = [];
 
-  // Selalu ada materi PDF
+  // 1. Materi (PDF) - Standard for SUBJECT
   steps.push({
-    id: `${module.id}-materi`,
+    id: `${moduleId}-materi`,
     typeLabel: "Materi",
     title,
-    status: "in-progress",
+    status: flat.fileRead
+      ? "completed"
+      : flat.accessible
+        ? "in-progress"
+        : "locked",
   });
 
-  if (subject?.videoUrl) {
+  // 2. Video
+  if (flat.hasVideo) {
     steps.push({
-      id: `${module.id}-video`,
+      id: `${moduleId}-video`,
       typeLabel: "Video",
       title: `Video: ${title}`,
-      status: "locked",
+      status: flat.videoWatched
+        ? "completed"
+        : flat.fileRead
+          ? "in-progress"
+          : "locked",
     });
   }
 
-  // E-LKPD tidak tersedia di data modul (perlu fetch /subjects/:id terpisah)
-  // akan ditampilkan jika backend sudah menyertakan data tersebut
-
-  const completedSteps = index === 0 ? 1 : 0;
-
-  return {
-    id: module.id,
-    title,
-    description: subject?.description ?? "",
-    totalSteps: steps.length,
-    completedSteps,
-    progressPercent:
-      steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0,
-    status:
-      completedSteps === steps.length
+  // 3. E-LKPD
+  if (flat.hasELKPD) {
+    const prevCompleted = flat.hasVideo ? flat.videoWatched : flat.fileRead;
+    steps.push({
+      id: `${moduleId}-elkpd`,
+      typeLabel: "E-LKPD",
+      title: `E-LKPD: ${title}`,
+      status: flat.eLKPDGraded
         ? "completed"
-        : completedSteps > 0
+        : prevCompleted
           ? "in-progress"
           : "locked",
+    });
+  }
+
+  const totalSteps = steps.length;
+  const completedSteps = steps.filter((s) => s.status === "completed").length;
+
+  return {
+    id: moduleId,
+    title,
+    description: subject?.description ?? flat.description ?? "",
+    totalSteps,
+    completedSteps,
+    progressPercent:
+      totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0,
+    status: flat.completed
+      ? "completed"
+      : flat.accessible
+        ? "in-progress"
+        : "locked",
     steps,
   };
 }
@@ -407,9 +442,15 @@ export default function ClassMaterialListPageTemplate({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-bold text-[#0F172A]">
-                      {module.title}
-                    </h3>
+                    <Link
+                      href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${module.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="group/title"
+                    >
+                      <h3 className="text-base font-bold text-[#0F172A] transition group-hover/title:text-[#2563EB]">
+                        {module.title}
+                      </h3>
+                    </Link>
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",

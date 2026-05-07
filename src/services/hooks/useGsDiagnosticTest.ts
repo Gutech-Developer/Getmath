@@ -111,10 +111,19 @@ export function useGsCreateDiagnosticTest() {
     mutationFn: (input) => gsPost<GsDiagnosticTest>("/diagnostic-tests", input),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.myList(),
+        queryKey: queryKeys.gsDiagnosticTests.all,
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.lists(),
+        queryKey: queryKeys.gsDashboard.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourses.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsRemediations.all,
       });
     },
   });
@@ -130,18 +139,42 @@ export function useGsUpdateDiagnosticTest() {
     Error,
     { id: string; data: GsUpdateDiagnosticTestInput }
   >({
-    mutationFn: ({ id, data }) =>
-      gsPatch<GsDiagnosticTest>(`/diagnostic-tests/${id}`, data),
-    onSuccess: async (_updated, variables) => {
+    mutationFn: ({ id, data }) => {
+      if (!id) {
+        throw new Error("ID tes diagnostik tidak valid");
+      }
+      if (!data || Object.keys(data).length === 0) {
+        throw new Error("Data pembaruan tidak boleh kosong");
+      }
+      return gsPatch<GsDiagnosticTest>(`/diagnostic-tests/${id}`, data);
+    },
+    onSuccess: async () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.myList(),
+        queryKey: queryKeys.gsDiagnosticTests.all,
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.lists(),
+        queryKey: queryKeys.gsDashboard.all,
       });
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.detail(variables.id),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourses.all,
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsRemediations.all,
+      });
+    },
+    retry: (failureCount, error: any) => {
+      // Retry max 3 times for transient 5xx errors only
+      if (failureCount < 3 && error?.status >= 500 && error?.status < 600) {
+        return true;
+      }
+      return false;
+    },
+    retryDelay: (attemptIndex) => {
+      // Exponential backoff: 1s, 2s, 4s
+      return Math.min(1000 * Math.pow(2, attemptIndex), 10000);
     },
   });
 }
@@ -153,15 +186,21 @@ export function useGsDeleteDiagnosticTest() {
 
   return useMutation<void, Error, string>({
     mutationFn: (id) => gsDel<void>(`/diagnostic-tests/${id}`),
-    onSuccess: (_, id) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.myList(),
+        queryKey: queryKeys.gsDiagnosticTests.all,
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsDiagnosticTests.lists(),
+        queryKey: queryKeys.gsDashboard.all,
       });
-      queryClient.removeQueries({
-        queryKey: queryKeys.gsDiagnosticTests.detail(id),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourses.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsRemediations.all,
       });
     },
   });

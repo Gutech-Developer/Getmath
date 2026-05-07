@@ -25,38 +25,6 @@ export interface ISequencePreviewAsset {
   type: "pdf" | "video" | "elkpd";
 }
 
-function toYouTubeEmbedUrl(url: string): string | null {
-  if (!url) {
-    return null;
-  }
-
-  try {
-    const parsedUrl = new URL(url);
-
-    if (
-      parsedUrl.hostname.includes("youtube.com") &&
-      parsedUrl.searchParams.get("v")
-    ) {
-      return `https://www.youtube.com/embed/${parsedUrl.searchParams.get("v")}`;
-    }
-
-    if (parsedUrl.hostname === "youtu.be") {
-      return `https://www.youtube.com/embed${parsedUrl.pathname}`;
-    }
-
-    if (
-      parsedUrl.hostname.includes("youtube.com") &&
-      parsedUrl.pathname.startsWith("/embed/")
-    ) {
-      return url;
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 function getAssetIconComponent(
   kind: MateriAssetKind,
 ):
@@ -87,6 +55,8 @@ function getAssetTextClassName(kind: MateriAssetKind): string {
   return "text-[#EA580C]";
 }
 
+import { toEmbedUrl } from "@/libs/embed";
+
 function getPreviewLabel(type: ISequencePreviewAsset["type"]): string {
   if (type === "pdf") {
     return "PDF · Heyzine";
@@ -97,12 +67,6 @@ function getPreviewLabel(type: ISequencePreviewAsset["type"]): string {
   }
 
   return "E-LKPD · Liveworksheets";
-}
-
-function getPreviewSrc(asset: ISequencePreviewAsset): string {
-  return asset.type === "video"
-    ? (toYouTubeEmbedUrl(asset.url) ?? asset.url)
-    : asset.url;
 }
 
 export function MaterialPreviewPanel({
@@ -158,20 +122,12 @@ export function MaterialPreviewPanel({
               {activeItem.title}
             </h4>
           </div>
-          <a
-            href={activeItem.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-[#EFF6FF] px-3 py-2 text-xs font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
-          >
-            <EyeIcon className="h-4 w-4" />
-            Buka
-          </a>
+         
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F3F4F6]">
           <iframe
-            src={getPreviewSrc(activeItem)}
+            src={toEmbedUrl(activeItem.url, activeItem.type)}
             className="min-h-[420px] w-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
             allowFullScreen
@@ -314,11 +270,18 @@ export function DiagnosticPreviewBody({ test }: { test: GsDiagnosticTest }) {
                       <MathText text={question.pembahasan} />
                     </p>
                     {(() => {
-                      const embedUrl = toYouTubeEmbedUrl(
+                      const embedUrl = toEmbedUrl(
                         question.videoUrl ?? "",
+                        "video"
                       );
 
-                      if (!embedUrl) {
+                      // toEmbedUrl returns the original URL if it can't embed it.
+                      // If it is the original URL and it's not a youtube embed URL (since we want an iframe), we should probably just show the link.
+                      // Wait, toEmbedUrl for video always returns a youtube embed link if it's youtube.
+                      // Let's just check if it contains /embed/ to be safe.
+                      const isEmbeddable = embedUrl.includes("/embed/");
+
+                      if (!isEmbeddable) {
                         return question.videoUrl ? (
                           <a
                             href={question.videoUrl}
@@ -576,15 +539,7 @@ export function ELKPDGradingPanel({
               </p>
             )}
           </div>
-          <a
-            href={activeELKPD.fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl bg-[#EFF6FF] px-3 py-2 text-xs font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
-          >
-            <EyeIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Buka</span>
-          </a>
+         
         </div>
       </div>
 
@@ -612,16 +567,6 @@ export function ELKPDGradingPanel({
         </div>
       </div>
 
-      {/* Preview Section */}
-      <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F3F4F6]">
-        <iframe
-          src={activeELKPD.fileUrl}
-          className="min-h-[300px] w-full border-0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-          allowFullScreen
-          title={activeELKPD.title}
-        />
-      </div>
     </div>
   );
 }

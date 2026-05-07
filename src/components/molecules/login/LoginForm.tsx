@@ -6,11 +6,12 @@ import { BodySmallMedium } from "@/components/atoms/Typography";
 import { SubmitButton } from "@/components/atoms/buttons/SubmitButton";
 import EmailInput from "@/components/atoms/inputs/EmailInput";
 import PasswordInput from "@/components/atoms/inputs/PasswordInput";
-import { useGsLogin } from "@/services";
+import { useGsLogin, useGsGoogleLogin } from "@/services";
 import { toast } from "sonner";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
+import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 
 const registerOptions: Array<{
   role: "teacher" | "student" | "parent";
@@ -45,14 +46,43 @@ const registerOptions: Array<{
   },
 ];
 
-const LoginForm: React.FC = () => {
+const LoginFormContent: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const login = useGsLogin();
+  const googleLogin = useGsGoogleLogin();
 
-  const isLoading = login.isPending;
-  const error = login.error;
+  const isLoading = login.isPending || googleLogin.isPending || isGoogleLoading;
+  const error = login.error || googleLogin.error;
+
+  const handleGoogleLoginSuccess = async (codeResponse: any) => {
+    try {
+      setIsGoogleLoading(true);
+      await googleLogin.mutateAsync({
+        googleToken: codeResponse.code,
+        redirectUri: "postmessage",
+      });
+      toast.success("Login dengan Google berhasil. Selamat datang kembali.");
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : "Login Google gagal. Silakan coba lagi.";
+      toast.error(msg);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const startGoogleLogin = useGoogleLogin({
+    flow: "auth-code",
+    onSuccess: handleGoogleLoginSuccess,
+    onError: () => {
+      toast.error("Gagal terhubung dengan Google. Silakan coba lagi.");
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,8 +108,9 @@ const LoginForm: React.FC = () => {
     <form onSubmit={handleSubmit} className="space-y-4 w-full">
       <button
         type="button"
-        className="w-full rounded-[12px] border border-gray-300 bg-white py-2.5 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-3 shadow-sm"
-        onClick={() => toast.info("Login dengan Google belum tersedia.")}
+        onClick={() => startGoogleLogin()}
+        disabled={isLoading}
+        className="w-full rounded-[12px] border border-gray-300 bg-white py-2.5 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-3 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -103,7 +134,7 @@ const LoginForm: React.FC = () => {
             d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
           />
         </svg>
-        Masuk dengan Google
+        {isGoogleLoading ? "Mengarahkan ke Google..." : "Masuk dengan Google"}
       </button>
 
       <div className="flex items-center gap-3">
@@ -229,6 +260,16 @@ const LoginForm: React.FC = () => {
         ))}
       </div>
     </form>
+  );
+};
+
+const LoginForm: React.FC = () => {
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
+  return (
+    <GoogleOAuthProvider clientId={clientId}>
+      <LoginFormContent />
+    </GoogleOAuthProvider>
   );
 };
 

@@ -223,4 +223,133 @@ export const queryKeys = {
     detail: (id: string) =>
       [...queryKeys.gsCourseModules.details(), id] as const,
   },
+
+  // Forum Discussions
+  gsForumDiscussions: {
+    all: ["gs", "forum", "discussions"] as const,
+    lists: () => [...queryKeys.gsForumDiscussions.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsForumDiscussions.lists(), filters] as const,
+    byModule: (courseModuleId: string, filters?: Record<string, unknown>) =>
+      [
+        ...queryKeys.gsForumDiscussions.all,
+        "byModule",
+        courseModuleId,
+        filters,
+      ] as const,
+    byCourse: (courseId: string, filters?: Record<string, unknown>) =>
+      [
+        ...queryKeys.gsForumDiscussions.all,
+        "byCourse",
+        courseId,
+        filters,
+      ] as const,
+    details: () => [...queryKeys.gsForumDiscussions.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.gsForumDiscussions.details(), id] as const,
+  },
+
+  // Forum Comments
+  gsForumComments: {
+    all: ["gs", "forum", "comments"] as const,
+    byDiscussion: (discussionId: string, filters?: Record<string, unknown>) =>
+      [
+        ...queryKeys.gsForumComments.all,
+        "byDiscussion",
+        discussionId,
+        filters,
+      ] as const,
+    details: () => [...queryKeys.gsForumComments.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.gsForumComments.details(), id] as const,
+  },
+
+  // Forum — unified convenience namespace
+  gsForum: {
+    all: ["gs", "forum"] as const,
+    discussionsByCourse: (
+      courseId: string,
+      filters?: Record<string, unknown>,
+    ) =>
+      [
+        "gs",
+        "forum",
+        "discussions",
+        courseId,
+        ...(filters ? [filters] : []),
+      ] as const,
+    discussionDetail: (id: string) =>
+      ["gs", "forum", "discussionDetail", id] as const,
+    commentsByDiscussion: (
+      discussionId: string,
+      filters?: Record<string, unknown>,
+    ) =>
+      [
+        "gs",
+        "forum",
+        "comments",
+        discussionId,
+        ...(filters ? [filters] : []),
+      ] as const,
+  },
+
+  // Dashboard
+  gsDashboard: {
+    all: ["gs", "dashboard"] as const,
+    student: (courseId: string) =>
+      [...queryKeys.gsDashboard.all, "student", courseId] as const,
+    teacher: (courseId: string) =>
+      [...queryKeys.gsDashboard.all, "teacher", courseId] as const,
+    admin: (courseId: string) =>
+      [...queryKeys.gsDashboard.all, "admin", courseId] as const,
+    parent: (courseId: string) =>
+      [...queryKeys.gsDashboard.all, "parent", courseId] as const,
+  },
+
+  // Student Progress
+  gsProgress: {
+    all: ["gs", "progress"] as const,
+    moduleProgress: (courseModuleId: string) =>
+      [...queryKeys.gsProgress.all, "module", courseModuleId] as const,
+    testAttempts: (courseModuleId: string) =>
+      [...queryKeys.gsProgress.all, "testAttempts", courseModuleId] as const,
+    elkpdGrades: (courseModuleId: string) =>
+      [...queryKeys.gsProgress.all, "elkpdGrades", courseModuleId] as const,
+  },
+
+  // Remediation / Diagnostic Tests Results
+  gsRemediations: {
+    all: ["gs", "remediations"] as const,
+    lists: () => [...queryKeys.gsRemediations.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsRemediations.lists(), filters] as const,
+    byStudent: (studentId: string, filters?: Record<string, unknown>) =>
+      [
+        ...queryKeys.gsRemediations.all,
+        "byStudent",
+        studentId,
+        filters,
+      ] as const,
+    details: () => [...queryKeys.gsRemediations.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.gsRemediations.details(), id] as const,
+  },
+
+  // E-LKPD Submissions
+  gsELkpdSubmissions: {
+    all: ["gs", "elkpd", "submissions"] as const,
+    lists: () => [...queryKeys.gsELkpdSubmissions.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsELkpdSubmissions.lists(), filters] as const,
+    byModule: (courseModuleId: string, filters?: Record<string, unknown>) =>
+      [
+        ...queryKeys.gsELkpdSubmissions.all,
+        "byModule",
+        courseModuleId,
+        filters,
+      ] as const,
+    details: () => [...queryKeys.gsELkpdSubmissions.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.gsELkpdSubmissions.details(), id] as const,
+  },
 } as const;

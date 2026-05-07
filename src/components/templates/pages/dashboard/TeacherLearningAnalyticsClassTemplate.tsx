@@ -5,6 +5,7 @@ import {
   useGsCourseBySlug,
   useGsEnrollmentsByCourse,
   useGsModulesByCourse,
+  useTeacherDashboard,
 } from "@/services";
 import type { ITeacherClassLearningAnalyticsDetail } from "@/types/learningAnalytics";
 import { useMemo } from "react";
@@ -45,6 +46,10 @@ export default function TeacherLearningAnalyticsClassTemplate({
     isLoading: isCourseLoading,
     error: courseError,
   } = useGsCourseBySlug(slug);
+
+  const { data: dashboardData } = useTeacherDashboard(course?.id ?? "", {
+    enabled: !!course?.id,
+  });
 
   const { data: modules = [], isLoading: isModulesLoading } =
     useGsModulesByCourse(course?.id ?? "");
@@ -136,8 +141,7 @@ export default function TeacherLearningAnalyticsClassTemplate({
               : "Aktif",
         }));
 
-      const progress =
-        studentCount > 0 ? Math.round((passedCount / studentCount) * 100) : 0;
+      const progress = dashboardData?.averageProgress ?? (studentCount > 0 ? Math.round((passedCount / studentCount) * 100) : 0);
 
       return {
         id: course.id,
@@ -158,7 +162,7 @@ export default function TeacherLearningAnalyticsClassTemplate({
         materials,
         elkpdItems,
       };
-    }, [course, enrollmentsData, orderedModules, slug]);
+    }, [course, enrollmentsData, orderedModules, slug, dashboardData]);
 
   if (isCourseLoading || isModulesLoading || isEnrollmentsLoading) {
     return (

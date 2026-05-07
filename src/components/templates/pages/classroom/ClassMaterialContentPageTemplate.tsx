@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
@@ -10,11 +10,15 @@ import PDFIcon from "@/components/atoms/icons/PDFIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { cn } from "@/libs/utils";
 import { toEmbedUrl } from "@/libs/embed";
-import { useGsModulesByCourse } from "@/services";
-import type {
-  GsCourseModule,
-  GsCourseModuleSubject,
-} from "@/types/gs-course";
+import {
+  useGsModulesByCourse,
+  useGsModuleById,
+  useMarkFileRead,
+  useMarkVideoWatched,
+  useMyTestAttempts,
+  useStartTestAttempt,
+} from "@/services";
+import type { GsCourseModule, GsCourseModuleSubject } from "@/types/gs-course";
 import type {
   IClassMaterialContentPageTemplateProps,
   ModuleStepState,
@@ -29,6 +33,7 @@ type StepKind = "PDF" | "VIDEO" | "ELKPD" | "DIAGNOSTIC";
 interface IFlatStep {
   id: string;
   moduleId: string;
+  diagnosticTestId?: string;
   moduleTitle: string;
   kind: StepKind;
   typeLabel: string;
@@ -54,13 +59,59 @@ function buildModuleView(
   module: GsCourseModule,
   index: number,
 ): IModuleView | null {
-  if (module.type === "SUBJECT" && module.subject) {
-    return moduleFromSubject(module, module.subject, index);
+  const moduleType = module.type;
+  const subject = getSubjectFromModule(module);
+
+  if (moduleType === "SUBJECT" && subject) {
+    return moduleFromSubject(module, subject, index);
   }
-  if (module.type === "DIAGNOSTIC_TEST" && module.diagnosticTest) {
+  if (moduleType === "DIAGNOSTIC_TEST") {
     return moduleFromDiagnostic(module, index);
   }
   return null;
+}
+
+function getModuleId(module: GsCourseModule): string {
+  const fallbackId = (module as GsCourseModule & { courseModuleId?: string })
+    .courseModuleId;
+  return module.id ?? fallbackId ?? "";
+}
+
+function getSubjectFromModule(
+  module: GsCourseModule,
+): GsCourseModuleSubject | null {
+  if (module.subject) {
+    return module.subject;
+  }
+
+  const flat = module as Partial<GsCourseModuleSubject> & {
+    subjectName?: string;
+    description?: string | null;
+    subjectFileUrl?: string;
+    eLKPDTitle?: string | null;
+    eLKPDDescription?: string | null;
+    eLKPDFileUrl?: string | null;
+    videoUrl?: string | null;
+    hasVideo?: boolean;
+    hasELKPD?: boolean;
+  };
+
+  if (!flat.subjectName) {
+    return null;
+  }
+
+  return {
+    id: module.subjectId ?? getModuleId(module),
+    subjectName: flat.subjectName,
+    description: flat.description ?? null,
+    subjectFileUrl: flat.subjectFileUrl ?? "",
+    eLKPDTitle: flat.eLKPDTitle ?? null,
+    eLKPDDescription: flat.eLKPDDescription ?? null,
+    eLKPDFileUrl: flat.eLKPDFileUrl ?? null,
+    videoUrl: flat.videoUrl ?? null,
+    _hasVideo: flat.hasVideo,
+    _hasELKPD: flat.hasELKPD,
+  } as GsCourseModuleSubject & { _hasVideo?: boolean; _hasELKPD?: boolean };
 }
 
 function moduleFromSubject(
@@ -68,52 +119,53 @@ function moduleFromSubject(
   subject: GsCourseModuleSubject,
   index: number,
 ): IModuleView {
+  const moduleId = getModuleId(module);
   const steps: IFlatStep[] = [];
 
-  if (subject.subjectFileUrl) {
+  if (subject.subjectFileUrl || true) {
     steps.push({
-      id: `${module.id}-pdf`,
-      moduleId: module.id,
+      id: `${moduleId}-pdf`,
+      moduleId,
       moduleTitle: subject.subjectName,
       kind: "PDF",
       typeLabel: "Materi",
       title: subject.subjectName,
-      url: toEmbedUrl(subject.subjectFileUrl, "pdf"),
-      rawUrl: subject.subjectFileUrl,
+      url: subject.subjectFileUrl ? toEmbedUrl(subject.subjectFileUrl, "pdf") : null,
+      rawUrl: subject.subjectFileUrl || null,
       state: index === 0 ? "active" : "upcoming",
     });
   }
 
-  if (subject.videoUrl) {
+  if (subject.videoUrl || (subject as any)._hasVideo) {
     steps.push({
-      id: `${module.id}-video`,
-      moduleId: module.id,
+      id: `${moduleId}-video`,
+      moduleId,
       moduleTitle: subject.subjectName,
       kind: "VIDEO",
       typeLabel: "Video",
       title: `Video: ${subject.subjectName}`,
-      url: toEmbedUrl(subject.videoUrl, "video"),
-      rawUrl: subject.videoUrl,
+      url: subject.videoUrl ? toEmbedUrl(subject.videoUrl, "video") : null,
+      rawUrl: subject.videoUrl || null,
       state: "upcoming",
     });
   }
 
-  for (const elkpd of subject.eLKPDs ?? []) {
+  if ((subject.eLKPDTitle && subject.eLKPDFileUrl) || (subject as any)._hasELKPD) {
     steps.push({
-      id: `${module.id}-elkpd-${elkpd.id}`,
-      moduleId: module.id,
+      id: `${moduleId}-elkpd-${subject.id || moduleId}`,
+      moduleId,
       moduleTitle: subject.subjectName,
       kind: "ELKPD",
       typeLabel: "E-LKPD",
-      title: elkpd.title,
-      url: toEmbedUrl(elkpd.fileUrl, "elkpd"),
-      rawUrl: elkpd.fileUrl,
+      title: subject.eLKPDTitle || "E-LKPD",
+      url: subject.eLKPDFileUrl ? toEmbedUrl(subject.eLKPDFileUrl, "elkpd") : null,
+      rawUrl: subject.eLKPDFileUrl || null,
       state: "upcoming",
     });
   }
 
   return {
-    id: module.id,
+    id: moduleId,
     title: subject.subjectName,
     description: subject.description ?? "",
     steps,
@@ -124,16 +176,24 @@ function moduleFromDiagnostic(
   module: GsCourseModule,
   index: number,
 ): IModuleView {
-  const test = module.diagnosticTest!;
-  const title = test.testName || `Tes Diagnostik ${module.order ?? index + 1}`;
+  const moduleId = getModuleId(module);
+  const test = module.diagnosticTest;
+  const fallback = module as { testName?: string; description?: string | null };
+  const title =
+    test?.testName ??
+    fallback.testName ??
+    `Tes Diagnostik ${module.order ?? index + 1}`;
+  const diagnosticTestId = module.diagnosticTestId ?? test?.id ?? "";
+
   return {
-    id: module.id,
+    id: moduleId,
     title,
-    description: test.description ?? "",
+    description: test?.description ?? fallback.description ?? "",
     steps: [
       {
-        id: `${module.id}-diagnostic`,
-        moduleId: module.id,
+        id: `${moduleId}-diagnostic`,
+        moduleId,
+        diagnosticTestId,
         moduleTitle: title,
         kind: "DIAGNOSTIC",
         typeLabel: "Test Diagnosis",
@@ -201,22 +261,46 @@ export default function ClassMaterialContentPageTemplate({
   slug,
 }: IClassMaterialContentPageTemplateProps) {
   const pathname = usePathname();
-  const { data: courseModules, isLoading } = useGsModulesByCourse(courseId);
+  const { data: courseModules, isPending } = useGsModulesByCourse(courseId);
+
+  // ── Progress tracking hooks ──────────────────────────────────────────
+  // @deprecated: useModuleProgress endpoint [UNREADY] - removed
+  // Mutations still track progress on backend, but visual state not available
+  const markFileRead = useMarkFileRead(contentId);
+  const markVideoWatched = useMarkVideoWatched(contentId);
+
+  const [openModuleId, setOpenModuleId] = useState<string | null>(contentId ?? null);
+  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+  const [videoFinished, setVideoFinished] = useState<Record<string, boolean>>({});
+  const [elkpdFinished, setElkpdFinished] = useState<Record<string, boolean>>({});
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [maxUnlockedIndex, setMaxUnlockedIndex] = useState<number>(-1);
+
+  const { data: detailModule } = useGsModuleById(openModuleId ?? "");
 
   const modules = useMemo<IModuleView[]>(() => {
     return (courseModules ?? [])
-      .filter((m) => m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST")
-      .map((m, i) => buildModuleView(m, i))
-      .filter((m): m is IModuleView => m !== null);
-  }, [courseModules]);
+      .filter(
+        (m: GsCourseModule) =>
+          m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST",
+      )
+      .map((m: GsCourseModule, i: number) => {
+        const mId = m.id ?? (m as any).courseModuleId;
+        const dId = detailModule?.id ?? (detailModule as any)?.courseModuleId;
+        const moduleToUse = dId && mId === dId ? detailModule : m;
+        return buildModuleView(moduleToUse as GsCourseModule, i);
+      })
+      .filter((m: IModuleView | null): m is IModuleView => m !== null);
+  }, [courseModules, detailModule]);
 
-  const flatSteps = useMemo<IFlatStep[]>(
-    () => modules.flatMap((m) => m.steps),
-    [modules],
-  );
+  // ── Reflect progress state on steps ──────────────────────────────────
+  // @deprecated: progressData tracking [UNREADY] - removed
+  // All steps render as "in-progress" until endpoint is available
+  const flatSteps = useMemo<IFlatStep[]>(() => {
+    return modules.flatMap((m) => m.steps);
+  }, [modules]);
 
-  const [openModuleId, setOpenModuleId] = useState<string | null>(null);
-  const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+
 
   // Set default selectedStep dari modul yang dibuka via contentId.
   useEffect(() => {
@@ -239,11 +323,7 @@ export default function ClassMaterialContentPageTemplate({
     const items = segments
       .map((segment) => {
         currentPath += `/${segment}`;
-        const label = formatBreadcrumbLabel(
-          segment,
-          slug ?? "",
-          contentTitle,
-        );
+        const label = formatBreadcrumbLabel(segment, slug ?? "", contentTitle);
         if (!label) return null;
         return { label, href: currentPath };
       })
@@ -265,6 +345,15 @@ export default function ClassMaterialContentPageTemplate({
     );
   }, [flatSteps, selectedStepId, contentId]);
 
+  const { data: activeDiagnosticModule } = useGsModuleById(
+    activeStep?.kind === "DIAGNOSTIC" ? activeStep.moduleId : "",
+  );
+  const resolvedDiagnosticTestId =
+    activeStep?.diagnosticTestId ??
+    activeDiagnosticModule?.diagnosticTestId ??
+    activeDiagnosticModule?.diagnosticTest?.id ??
+    "";
+
   const activeIndex = activeStep
     ? flatSteps.findIndex((s) => s.id === activeStep.id)
     : -1;
@@ -274,16 +363,121 @@ export default function ClassMaterialContentPageTemplate({
       ? flatSteps[activeIndex + 1]
       : null;
 
-  const goTo = (step: IFlatStep | null) => {
-    if (!step) return;
-    setSelectedStepId(step.id);
-    setOpenModuleId(step.moduleId);
-  };
+  // ── Diagnostic test hooks ───────────────────────────────────────────
+  const { data: testAttempts } = useMyTestAttempts(activeStep?.moduleId ?? "", {
+    enabled: activeStep?.kind === "DIAGNOSTIC" && !!activeStep?.moduleId,
+  });
+
+  const latestAttempt = useMemo(() => {
+    if (!testAttempts?.attempts?.length) return null;
+    return [...testAttempts.attempts].sort(
+      (a, b) =>
+        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+    )[0];
+  }, [testAttempts]);
+
+  const startTestAttempt = useStartTestAttempt(activeStep?.moduleId ?? "");
+
+  useEffect(() => {
+    if (activeIndex > maxUnlockedIndex) {
+      setMaxUnlockedIndex(activeIndex);
+    }
+  }, [activeIndex, maxUnlockedIndex]);
+
+  const goTo = useCallback(
+    (step: IFlatStep | null) => {
+      if (!step) return;
+      setSelectedStepId(step.id);
+      setOpenModuleId(step.moduleId);
+
+      // ── Auto-track progress when navigating ──────────────────────────
+      // @deprecated: Conditional tracking based on progressData [UNREADY] - removed
+      // Now always tracks to ensure backend state is updated
+      if (step.moduleId === contentId) {
+        if (step.kind === "PDF") {
+          markFileRead.mutate();
+        }
+        // VIDEO is now marked when YT player ends
+      }
+    },
+    [contentId, markFileRead],
+  );
+
+  useEffect(() => {
+    if (activeStep?.kind !== "VIDEO") return;
+    if (!activeStep.url) return;
+    if (videoFinished[activeStep.id]) return;
+
+    if (!activeStep.url.includes("youtube.com/embed")) {
+      setVideoFinished((prev) => ({ ...prev, [activeStep.id]: true }));
+      markVideoWatched.mutate();
+      return;
+    }
+
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName("script")[0];
+    if (firstScriptTag && firstScriptTag.parentNode) {
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+
+    let player: any;
+    const iframeId = `youtube-player-${activeStep.id}`;
+
+    const initPlayer = () => {
+      // Check if iframe exists in DOM
+      if (!document.getElementById(iframeId)) return;
+      player = new (window as any).YT.Player(iframeId, {
+        events: {
+          onStateChange: (event: any) => {
+            if (event.data === (window as any).YT.PlayerState.ENDED) {
+              setVideoFinished((prev) => ({ ...prev, [activeStep.id]: true }));
+              markVideoWatched.mutate();
+            }
+          },
+        },
+      });
+    };
+
+    if (!(window as any).YT) {
+      (window as any).onYouTubeIframeAPIReady = initPlayer;
+    } else if ((window as any).YT.Player) {
+      // Use setTimeout to ensure iframe is rendered before initializing
+      setTimeout(initPlayer, 500);
+    }
+
+    return () => {
+      if (player && player.destroy) {
+        player.destroy();
+      }
+    };
+  }, [activeStep?.id, activeStep?.kind, activeStep?.url, videoFinished, markVideoWatched]);
+
+  useEffect(() => {
+    if (activeStep?.kind !== "ELKPD") return;
+    if (!activeStep.id) return;
+    if (elkpdFinished[activeStep.id]) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setElkpdFinished((prev) => ({ ...prev, [activeStep.id]: true }));
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (bottomRef.current) {
+      observer.observe(bottomRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [activeStep?.id, activeStep?.kind, elkpdFinished]);
 
   /* ================================================================ */
   /*  RENDER                                                           */
   /* ================================================================ */
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center text-sm text-[#9CA3AF]">
         Memuat materi...
@@ -350,17 +544,6 @@ export default function ClassMaterialContentPageTemplate({
                   </p>
                 </div>
               </div>
-
-              {activeStep?.rawUrl && (
-                <a
-                  href={activeStep.rawUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/15"
-                >
-                  Buka di tab baru
-                </a>
-              )}
             </div>
           </div>
 
@@ -371,6 +554,7 @@ export default function ClassMaterialContentPageTemplate({
                 <ContentBadge icon={VideoIcon} label="Video Pembelajaran" />
                 <div className="aspect-video overflow-hidden rounded-2xl border border-[#E2E8F0] bg-black">
                   <iframe
+                    id={`youtube-player-${activeStep.id}`}
                     key={activeStep.id}
                     src={activeStep.url}
                     title={activeStep.title}
@@ -430,17 +614,83 @@ export default function ClassMaterialContentPageTemplate({
                     </p>
                   )}
 
-                  {slug && (
+                  {latestAttempt && (
+                    <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#0F172A]">
+                          Hasil Terakhir
+                        </p>
+                        <span
+                          className={cn(
+                            "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                            latestAttempt.isPassed
+                              ? "bg-[#DCFCE7] text-[#166534]"
+                              : "bg-[#FEE2E2] text-[#B91C1C]",
+                          )}
+                        >
+                          {latestAttempt.isPassed ? "Tuntas" : "Belum Tuntas"}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center gap-6">
+                        <div>
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
+                            Skor
+                          </p>
+                          <p className="text-xl font-bold text-[#0F172A]">
+                            {latestAttempt.score ?? 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
+                            Jawaban Benar
+                          </p>
+                          <p className="text-xl font-bold text-[#0F172A]">
+                            {latestAttempt.totalCorrect ?? 0}/
+                            {latestAttempt.totalQuestions ?? 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
+                            Tanggal
+                          </p>
+                          <p className="text-sm font-medium text-[#475569]">
+                            {new Date(latestAttempt.startedAt).toLocaleDateString(
+                              "id-ID",
+                              {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              },
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {slug && resolvedDiagnosticTestId && (
                     <Link
                       href={`/student/dashboard/class/${encodeURIComponent(
                         slug,
                       )}/materi/${encodeURIComponent(
                         activeStep?.moduleId ?? contentId,
-                      )}/diagnostic`}
+                      )}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
+                      onClick={() => {
+                        startTestAttempt.mutate({
+                          packageId: resolvedDiagnosticTestId,
+                        });
+                      }}
                       className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
                     >
-                      Mulai Tes Diagnostik
+                      {latestAttempt ? "Kerjakan Ulang" : "Mulai Tes Diagnostik"}
                     </Link>
+                  )}
+
+                  {slug && !resolvedDiagnosticTestId && (
+                    <p className="mt-4 text-sm font-medium text-[#DC2626]">
+                      Tes diagnostik belum bisa dibuka karena ID diagnostik
+                      tidak ditemukan.
+                    </p>
                   )}
                 </div>
               </>
@@ -453,6 +703,8 @@ export default function ClassMaterialContentPageTemplate({
                 </p>
               </div>
             )}
+            
+            <div ref={bottomRef} className="h-px w-full" />
           </div>
 
           {/* ------- Step navigation ------- */}
@@ -473,7 +725,11 @@ export default function ClassMaterialContentPageTemplate({
             <button
               type="button"
               onClick={() => goTo(nextStep)}
-              disabled={!nextStep}
+              disabled={
+                !nextStep ||
+                (isVideo && !videoFinished[activeStep?.id || ""]) ||
+                (isElkpd && !elkpdFinished[activeStep?.id || ""])
+              }
               className="inline-flex h-11 items-center justify-center rounded-full bg-[#2563EB] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)] transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {nextStep ? `Selanjutnya: ${nextStep.typeLabel}` : "Selesai"} →
@@ -538,6 +794,8 @@ export default function ClassMaterialContentPageTemplate({
                   {isOpen && (
                     <ul className="space-y-1 border-t border-[#E2E8F0] bg-[#FAFBFD] p-2">
                       {module.steps.map((step, stepIndex) => {
+                        const globalIndex = flatSteps.findIndex((s) => s.id === step.id);
+                        const isLocked = globalIndex > maxUnlockedIndex;
                         const StepIcon = getStepIcon(step.kind);
                         const tone = getStepTone(step.kind);
                         const isActive = activeStep?.id === step.id;
@@ -547,11 +805,14 @@ export default function ClassMaterialContentPageTemplate({
                             <button
                               type="button"
                               onClick={() => goTo(step)}
+                              disabled={isLocked}
                               className={cn(
                                 "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition",
                                 isActive
                                   ? "border-[#BFDBFE] bg-[#EFF6FF]"
-                                  : "border-transparent hover:border-[#E2E8F0] hover:bg-white",
+                                  : "border-transparent",
+                                !isLocked && !isActive && "hover:border-[#E2E8F0] hover:bg-white",
+                                isLocked && "cursor-not-allowed opacity-50"
                               )}
                             >
                               <span

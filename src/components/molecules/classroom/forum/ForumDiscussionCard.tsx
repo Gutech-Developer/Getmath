@@ -4,6 +4,7 @@ import Link from "next/link";
 import ChatIcon from "@/components/atoms/icons/ChatIcon";
 import ClockIcon from "@/components/atoms/icons/ClockIcon";
 import HeartIcon from "@/components/atoms/icons/HeartIcon";
+import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import type { IForumDiscussion } from "@/types";
 import {
   buildClassForumDiscussionRoute,
@@ -20,6 +21,7 @@ interface IForumDiscussionCardProps {
   slug?: string;
   variant?: ForumDiscussionCardVariant;
   onLike: (discussionId: string) => void;
+  onDelete?: (discussionId: string) => void;
 }
 
 function getRoleLabel(role: IForumDiscussion["author"]["role"]): string {
@@ -35,6 +37,7 @@ export default function ForumDiscussionCard({
   slug,
   variant = "list",
   onLike,
+  onDelete,
 }: IForumDiscussionCardProps) {
   const isDetail = variant === "detail";
   const detailHref = slug
@@ -66,7 +69,7 @@ export default function ForumDiscussionCard({
                   {getRoleLabel(discussion.author.role)}
                 </ForumBadge>
                 <ForumBadge tone="material">
-                  {getForumMaterialLabel(discussion.materialId)}
+                  {discussion.materialName ?? getForumMaterialLabel(discussion.materialId)}
                 </ForumBadge>
                 {discussion.status === "inactive" ? (
                   <ForumBadge tone="inactive">Nonaktif</ForumBadge>
@@ -100,18 +103,32 @@ export default function ForumDiscussionCard({
           </p>
 
           {isDetail ? (
-            <button
-              type="button"
-              onClick={() => onLike(discussion.id)}
-              className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#FECACA] bg-[#FEF2F2] px-5 py-3 text-base font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
-            >
-              <HeartIcon
-                className={
-                  discussion.isLiked ? "text-[#DC2626]" : "text-[#F87171]"
-                }
-              />
-              {discussion.likesCount} Suka
-            </button>
+            <div className="mt-5 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onLike(discussion.id)}
+                className="inline-flex items-center gap-2 rounded-full border border-[#FECACA] bg-[#FEF2F2] px-5 py-3 text-base font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
+              >
+                <HeartIcon
+                  className={
+                    discussion.isLiked ? "text-[#DC2626]" : "text-[#F87171]"
+                  }
+                />
+                {discussion.likesCount} Suka
+              </button>
+              {onDelete ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(discussion.id);
+                  }}
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#E2E8F0] bg-white text-[#94A3B8] transition hover:border-[#EF4444] hover:text-[#EF4444]"
+                >
+                  <TrashIcon />
+                </button>
+              ) : null}
+            </div>
           ) : (
             <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-[#94A3B8]">
               <span className="inline-flex items-center gap-1.5">
@@ -120,7 +137,10 @@ export default function ForumDiscussionCard({
               </span>
               <button
                 type="button"
-                onClick={() => onLike(discussion.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLike(discussion.id);
+                }}
                 className="inline-flex items-center gap-1.5 text-[#EF4444] transition hover:text-[#DC2626]"
               >
                 <HeartIcon
@@ -132,8 +152,20 @@ export default function ForumDiscussionCard({
               </button>
               <span className="inline-flex items-center gap-1.5">
                 <ChatIcon className="text-[#94A3B8]" />
-                {discussion.replies.length} balasan
+                {discussion.commentCount ?? discussion.replies.length} balasan
               </span>
+              {onDelete ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(discussion.id);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-[#94A3B8] transition hover:text-[#EF4444]"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              ) : null}
             </div>
           )}
         </div>
