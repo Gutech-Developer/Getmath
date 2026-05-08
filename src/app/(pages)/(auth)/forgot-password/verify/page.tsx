@@ -78,7 +78,7 @@ export default function ForgotPasswordVerifyPage() {
           Silakan lanjutkan untuk mengatur password baru Anda.
         </p>
         <Link
-          href={`/reset-password?token=${encodeURIComponent(token)}`}
+          href={`/reset-password?token=${encodeURIComponent(data.resetToken)}`}
           className="inline-block bg-charcoal-green text-white py-3 px-6 rounded-lg font-medium hover:bg-charcoal-green-dark transition-colors"
         >
           Reset Password
