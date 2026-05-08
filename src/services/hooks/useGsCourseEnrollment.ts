@@ -10,7 +10,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
-import { gsGet, gsPost, gsDel } from "@/libs/api/getsmart";
+import { gsGet, gsPost, gsDel } from "@/libs/api/gsAction";
 import { showToast, showErrorToast } from "@/libs/toast";
 import type {
   GsCourseEnrollment,

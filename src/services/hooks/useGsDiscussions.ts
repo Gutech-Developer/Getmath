@@ -7,7 +7,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
-import { gsGet, gsPost, gsPut, gsDel } from "@/libs/api/getsmart";
+import { gsGet, gsPost, gsPut, gsDel } from "@/libs/api/gsAction";
 import { gsLogger } from "@/utils/logger";
 import { showToast, showErrorToast } from "@/libs/toast";
 import type {

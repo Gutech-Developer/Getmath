@@ -7,7 +7,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
-import { gsGet } from "@/libs/api/getsmart";
+import { gsGet } from "@/libs/api/gsAction";
 import { gsLogger } from "@/utils/logger";
 
 // ─── Types ────────────────────────────────────────────────────────────────

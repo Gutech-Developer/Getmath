@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { gsPublicGet } from "@/libs/api/getsmart";
+import { gsPublicGet } from "@/libs/api/gsAction";
 import { queryKeys } from "@/libs/api";
 import type { GsHealthCheckResponse } from "@/types/gs-health";
 
