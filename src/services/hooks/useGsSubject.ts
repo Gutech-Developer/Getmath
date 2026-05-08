@@ -12,8 +12,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
-import { gsGet, gsPost, gsDel } from "@/libs/api/getsmart";
-import { gsPut } from "@/libs/api/getsmart";
+import { gsGet, gsPost, gsDel } from "@/libs/api/gsAction";
+import { gsPut } from "@/libs/api/gsAction";
 import type {
   GsSubject,
   GsELKPD,

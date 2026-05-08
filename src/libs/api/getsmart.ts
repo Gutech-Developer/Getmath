@@ -45,10 +45,11 @@ const COOKIE_TTL = {
 
 // ─── Response Types ───────────────────────────────────────────────────────────
 
-export type { GsApiResponse } from "./getsmart.types";
+export type { GsApiResponse, GsFetchResult } from "./getsmart.types";
 import {
   GsApiError as GsApiErrorClass,
   type GsApiResponse,
+  type GsFetchResult,
 } from "./getsmart.types";
 
 export interface GsTokenPair {
@@ -361,7 +362,7 @@ async function coreFetch<T>(
   config: GsRequestConfig = {},
   withAuth: boolean,
   isRetry = false,
-): Promise<T> {
+): Promise<GsFetchResult<T>> {
   const {
     method = "GET",
     body,
@@ -397,13 +398,12 @@ async function coreFetch<T>(
     const newAccessToken = await doRefreshToken();
 
     if (!newAccessToken) {
-      // Refresh gagal → session habis
+      // Refresh gagal → session habis → redirect (Next.js menangani khusus)
       await clearTokens();
       redirect("/login");
     }
 
-    // Ulangi request dengan access token baru — inject langsung agar tidak
-    // bergantung pada cookie timing di edge / cache layer
+    // Ulangi request dengan access token baru
     const retryRes = await fetch(`${BASE_URL}${path}`, {
       method,
       headers: {
@@ -425,7 +425,7 @@ async function coreFetch<T>(
       } catch {
         /* ignore */
       }
-      throw new GsApiErrorClass(message, retryRes.status, errors);
+      return { ok: false, message, status: retryRes.status, errors };
     }
 
     const retryJson: GsApiResponse<T> = await retryRes.json();
@@ -435,7 +435,7 @@ async function coreFetch<T>(
       status: retryRes.status,
       response: retryJson.data,
     });
-    return retryJson.data;
+    return { ok: true, data: retryJson.data };
   }
 
   // ── Error Handling ────────────────────────────────────────────────────────
@@ -448,10 +448,16 @@ async function coreFetch<T>(
       if (errJson?.message) message = errJson.message;
       if (errJson?.errors) errors = errJson.errors;
     } catch {
-      // Abaikan error parsing
+      /* ignore */
     }
 
-    throw new GsApiErrorClass(message, res.status, errors);
+    logGsApiResponse({
+      method,
+      endpoint,
+      status: res.status,
+      response: { message, errors },
+    });
+    return { ok: false, message, status: res.status, errors };
   }
 
   const json: GsApiResponse<T> = await res.json();
@@ -461,7 +467,7 @@ async function coreFetch<T>(
     status: res.status,
     response: json.data,
   });
-  return json.data;
+  return { ok: true, data: json.data };
 }
 
 // ─── Public Request (tanpa Auth) ─────────────────────────────────────────────
@@ -473,53 +479,55 @@ async function coreFetch<T>(
 export async function gsPublicRequest<T>(
   path: string,
   config?: GsRequestConfig,
-): Promise<T> {
+): Promise<GsFetchResult<T>> {
   return coreFetch<T>(path, config, false);
 }
 
 // ─── Protected Request (dengan Auth + Auto-Refresh) ───────────────────────────
 
-/**
- * Request terproteksi — menyertakan Bearer token secara otomatis.
- * Jika access token expired (401) akan otomatis di-refresh dan di-retry.
- */
 export async function gsRequest<T>(
   path: string,
   config?: GsRequestConfig,
-): Promise<T> {
+): Promise<GsFetchResult<T>> {
   return coreFetch<T>(path, config, true);
 }
 
 // ─── Convenience Methods ──────────────────────────────────────────────────────
-//
-//  Semua method di bawah pakai gsRequest (protected) kecuali yang berlabel Public.
-//  Gunakan langsung dari Server Actions atau Server Components.
 
 /** GET terproteksi */
 export async function gsGet<T>(
   path: string,
   next?: NextFetchRequestConfig,
-): Promise<T> {
+): Promise<GsFetchResult<T>> {
   return gsRequest<T>(path, { method: "GET", next });
 }
 
 /** POST terproteksi */
-export async function gsPost<T>(path: string, data?: unknown): Promise<T> {
+export async function gsPost<T>(
+  path: string,
+  data?: unknown,
+): Promise<GsFetchResult<T>> {
   return gsRequest<T>(path, { method: "POST", body: data });
 }
 
 /** PUT terproteksi */
-export async function gsPut<T>(path: string, data?: unknown): Promise<T> {
+export async function gsPut<T>(
+  path: string,
+  data?: unknown,
+): Promise<GsFetchResult<T>> {
   return gsRequest<T>(path, { method: "PUT", body: data });
 }
 
 /** PATCH terproteksi */
-export async function gsPatch<T>(path: string, data?: unknown): Promise<T> {
+export async function gsPatch<T>(
+  path: string,
+  data?: unknown,
+): Promise<GsFetchResult<T>> {
   return gsRequest<T>(path, { method: "PATCH", body: data });
 }
 
 /** DELETE terproteksi */
-export async function gsDel<T>(path: string): Promise<T> {
+export async function gsDel<T>(path: string): Promise<GsFetchResult<T>> {
   return gsRequest<T>(path, { method: "DELETE" });
 }
 
@@ -527,11 +535,11 @@ export async function gsDel<T>(path: string): Promise<T> {
 export async function gsPublicPost<T>(
   path: string,
   data?: unknown,
-): Promise<T> {
+): Promise<GsFetchResult<T>> {
   return gsPublicRequest<T>(path, { method: "POST", body: data });
 }
 
 /** GET publik (tanpa auth) */
-export async function gsPublicGet<T>(path: string): Promise<T> {
+export async function gsPublicGet<T>(path: string): Promise<GsFetchResult<T>> {
   return gsPublicRequest<T>(path, { method: "GET" });
 }

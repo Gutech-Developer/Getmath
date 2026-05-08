@@ -11,14 +11,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import { queryKeys } from "@/libs/api";
-import {
-  gsPublicGet,
-  gsPublicPost,
-  gsPost,
-  gsGet,
-  saveTokens,
-  clearTokens,
-} from "@/libs/api/getsmart";
+import { gsPublicGet, gsPublicPost, gsPost, gsGet } from "@/libs/api/gsAction";
+import { saveTokens, clearTokens } from "@/libs/api/getsmart";
 import { decodeGsJWT, getDashboardPath } from "@/libs/gs-jwt";
 import type {
   GsAuthResponse,

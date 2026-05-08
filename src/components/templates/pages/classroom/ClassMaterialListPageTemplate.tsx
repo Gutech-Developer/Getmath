@@ -90,7 +90,9 @@ function mapModuleToMaterial(
       totalSteps: steps.length,
       completedSteps,
       progressPercent:
-        steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0,
+        steps.length > 0
+          ? Math.round((completedSteps / steps.length) * 100)
+          : 0,
       status: flat.completed
         ? "completed"
         : flat.accessible
@@ -222,6 +224,9 @@ export default function ClassMaterialListPageTemplate({
   const { data: courseModules, isLoading } = useGsModulesByCourse(
     course?.id ?? "",
   );
+
+  // console.log("course : ", course);
+  // console.log("course module : ", courseModules);
 
   const modules: IMaterialModule[] = (courseModules ?? [])
     .filter((m) => m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST")
@@ -404,6 +409,7 @@ export default function ClassMaterialListPageTemplate({
           const isExpanded = expandedModuleId === module.id;
           const statusConfig = STATUS_CONFIG[module.status];
           const isLocked = module.status === "locked";
+          // if (moduleIndex === 1) console.log(module);
 
           return (
             <article
@@ -538,7 +544,7 @@ export default function ClassMaterialListPageTemplate({
                             </div>
                           ) : (
                             <Link
-                              href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${module.id}${step.typeLabel === "Test Diagnosis" || step.typeLabel === "Tes" ? `/${step.id}` : ""}`}
+                              href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${module.id}${step.typeLabel === "Test Diagnosis" || step.typeLabel === "Tes" ? `/${module.id}` : ""}`}
                               className={cn(
                                 "flex items-center gap-3 rounded-xl border px-3 py-2.5 transition",
                                 step.status === "in-progress"

@@ -10,6 +10,24 @@ export interface GsApiResponse<T = unknown> {
   success?: boolean;
 }
 
+/**
+ * Discriminated union untuk return value dari Server Action fetch.
+ *
+ * Server Actions di Next.js 15+ mengganti pesan error (dari throw) dengan
+ * pesan generik "An error occurred in the Server Components render..." di sisi
+ * client. Solusinya: Server Action TIDAK throw, tapi RETURN error info lewat
+ * tipe ini. Client wrapper (gsAction.ts) yang kemudian throw Error sendiri
+ * dari sisi client, sehingga pesan asli backend tetap terbaca.
+ */
+export type GsFetchResult<T> =
+  | { ok: true; data: T }
+  | {
+      ok: false;
+      message: string;
+      status: number;
+      errors?: Record<string, string[]>;
+    };
+
 export interface GsTokenPairInternal {
   accessToken: string;
   refreshToken: string;
