@@ -351,7 +351,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                   60 detik.
                 </div>
 
-                <button
+                {/* <button
                   type="button"
                   onClick={() => router.push(config.dashboardPath)}
                   className="mt-5 w-full rounded-[14px] px-4 py-3 text-[16px] font-bold text-white"
@@ -361,7 +361,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                   }}
                 >
                   Lanjut ke Dashboard (Demo)
-                </button>
+                </button> */}
               </div>
             </div>
           ) : (
@@ -517,7 +517,9 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                     onChange={(searchValue, selected) => {
                       if (selected) {
                         // Set input to selected school name to prevent redundant API calls
-                        setSchoolSearch(selected.metadata?.schoolName || selected.value);
+                        setSchoolSearch(
+                          selected.metadata?.schoolName || selected.value,
+                        );
                         updateField(
                           "schoolName",
                           selected.metadata?.schoolName || selected.value,
