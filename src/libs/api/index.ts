@@ -12,13 +12,17 @@ export {
   gsDel,
   gsPublicGet,
   gsPublicPost,
-  // Token management
+} from "./gsAction";
+
+export {
+  // Token management (tetap server action — butuh cookies)
   saveTokens,
   clearTokens,
   // Types
   type GsApiResponse,
   type GsTokenPair,
   type GsRequestConfig,
+  type GsFetchResult,
 } from "./getsmart";
 
 // Error class — exported from non-"use server" file

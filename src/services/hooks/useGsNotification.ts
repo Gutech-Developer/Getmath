@@ -14,7 +14,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
-import { gsGet, gsPatch, gsDel } from "@/libs/api/getsmart";
+import { gsGet, gsPatch, gsDel } from "@/libs/api/gsAction";
 import type {
   GsNotificationListParams,
   GsPaginatedNotifications,

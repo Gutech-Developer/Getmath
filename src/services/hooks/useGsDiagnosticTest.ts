@@ -11,7 +11,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
-import { gsGet, gsPost, gsPatch, gsDel } from "@/libs/api/getsmart";
+import { gsGet, gsPost, gsPatch, gsDel } from "@/libs/api/gsAction";
 import type {
   GsDiagnosticTest,
   GsCreateDiagnosticTestInput,

@@ -130,7 +130,9 @@ function moduleFromSubject(
       kind: "PDF",
       typeLabel: "Materi",
       title: subject.subjectName,
-      url: subject.subjectFileUrl ? toEmbedUrl(subject.subjectFileUrl, "pdf") : null,
+      url: subject.subjectFileUrl
+        ? toEmbedUrl(subject.subjectFileUrl, "pdf")
+        : null,
       rawUrl: subject.subjectFileUrl || null,
       state: index === 0 ? "active" : "upcoming",
     });
@@ -150,7 +152,10 @@ function moduleFromSubject(
     });
   }
 
-  if ((subject.eLKPDTitle && subject.eLKPDFileUrl) || (subject as any)._hasELKPD) {
+  if (
+    (subject.eLKPDTitle && subject.eLKPDFileUrl) ||
+    (subject as any)._hasELKPD
+  ) {
     steps.push({
       id: `${moduleId}-elkpd-${subject.id || moduleId}`,
       moduleId,
@@ -158,7 +163,9 @@ function moduleFromSubject(
       kind: "ELKPD",
       typeLabel: "E-LKPD",
       title: subject.eLKPDTitle || "E-LKPD",
-      url: subject.eLKPDFileUrl ? toEmbedUrl(subject.eLKPDFileUrl, "elkpd") : null,
+      url: subject.eLKPDFileUrl
+        ? toEmbedUrl(subject.eLKPDFileUrl, "elkpd")
+        : null,
       rawUrl: subject.eLKPDFileUrl || null,
       state: "upcoming",
     });
@@ -269,10 +276,16 @@ export default function ClassMaterialContentPageTemplate({
   const markFileRead = useMarkFileRead(contentId);
   const markVideoWatched = useMarkVideoWatched(contentId);
 
-  const [openModuleId, setOpenModuleId] = useState<string | null>(contentId ?? null);
+  const [openModuleId, setOpenModuleId] = useState<string | null>(
+    contentId ?? null,
+  );
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-  const [videoFinished, setVideoFinished] = useState<Record<string, boolean>>({});
-  const [elkpdFinished, setElkpdFinished] = useState<Record<string, boolean>>({});
+  const [videoFinished, setVideoFinished] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [elkpdFinished, setElkpdFinished] = useState<Record<string, boolean>>(
+    {},
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
   const [maxUnlockedIndex, setMaxUnlockedIndex] = useState<number>(-1);
 
@@ -299,8 +312,6 @@ export default function ClassMaterialContentPageTemplate({
   const flatSteps = useMemo<IFlatStep[]>(() => {
     return modules.flatMap((m) => m.steps);
   }, [modules]);
-
-
 
   // Set default selectedStep dari modul yang dibuka via contentId.
   useEffect(() => {
@@ -451,7 +462,13 @@ export default function ClassMaterialContentPageTemplate({
         player.destroy();
       }
     };
-  }, [activeStep?.id, activeStep?.kind, activeStep?.url, videoFinished, markVideoWatched]);
+  }, [
+    activeStep?.id,
+    activeStep?.kind,
+    activeStep?.url,
+    videoFinished,
+    markVideoWatched,
+  ]);
 
   useEffect(() => {
     if (activeStep?.kind !== "ELKPD") return;
@@ -464,7 +481,7 @@ export default function ClassMaterialContentPageTemplate({
           setElkpdFinished((prev) => ({ ...prev, [activeStep.id]: true }));
         }
       },
-      { threshold: 1.0 }
+      { threshold: 1.0 },
     );
 
     if (bottomRef.current) {
@@ -654,14 +671,13 @@ export default function ClassMaterialContentPageTemplate({
                             Tanggal
                           </p>
                           <p className="text-sm font-medium text-[#475569]">
-                            {new Date(latestAttempt.startedAt).toLocaleDateString(
-                              "id-ID",
-                              {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              },
-                            )}
+                            {new Date(
+                              latestAttempt.startedAt,
+                            ).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
                           </p>
                         </div>
                       </div>
@@ -682,7 +698,9 @@ export default function ClassMaterialContentPageTemplate({
                       }}
                       className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
                     >
-                      {latestAttempt ? "Kerjakan Ulang" : "Mulai Tes Diagnostik"}
+                      {latestAttempt
+                        ? "Kerjakan Ulang"
+                        : "Mulai Tes Diagnostik"}
                     </Link>
                   )}
 
@@ -703,7 +721,7 @@ export default function ClassMaterialContentPageTemplate({
                 </p>
               </div>
             )}
-            
+
             <div ref={bottomRef} className="h-px w-full" />
           </div>
 
@@ -732,7 +750,10 @@ export default function ClassMaterialContentPageTemplate({
               }
               className="inline-flex h-11 items-center justify-center rounded-full bg-[#2563EB] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)] transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {nextStep ? `Selanjutnya: ${nextStep.typeLabel}` : "Selesai"} →
+              {nextStep
+                ? `Selanjutnya: ${nextStep.typeLabel === "Test Diagnosis" ? "Tes Diagnostik" : nextStep.typeLabel}`
+                : "Selesai"}{" "}
+              →
             </button>
           </div>
         </div>
@@ -794,7 +815,9 @@ export default function ClassMaterialContentPageTemplate({
                   {isOpen && (
                     <ul className="space-y-1 border-t border-[#E2E8F0] bg-[#FAFBFD] p-2">
                       {module.steps.map((step, stepIndex) => {
-                        const globalIndex = flatSteps.findIndex((s) => s.id === step.id);
+                        const globalIndex = flatSteps.findIndex(
+                          (s) => s.id === step.id,
+                        );
                         const isLocked = globalIndex > maxUnlockedIndex;
                         const StepIcon = getStepIcon(step.kind);
                         const tone = getStepTone(step.kind);
@@ -811,8 +834,10 @@ export default function ClassMaterialContentPageTemplate({
                                 isActive
                                   ? "border-[#BFDBFE] bg-[#EFF6FF]"
                                   : "border-transparent",
-                                !isLocked && !isActive && "hover:border-[#E2E8F0] hover:bg-white",
-                                isLocked && "cursor-not-allowed opacity-50"
+                                !isLocked &&
+                                  !isActive &&
+                                  "hover:border-[#E2E8F0] hover:bg-white",
+                                isLocked && "cursor-not-allowed opacity-50",
                               )}
                             >
                               <span

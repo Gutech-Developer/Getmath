@@ -31,8 +31,8 @@ import {
   gsDel,
   gsPublicGet,
   gsPublicPost,
-  type GsRequestConfig,
-} from "./getsmart";
+} from "./gsAction";
+import type { GsRequestConfig } from "./getsmart";
 
 // ─── Generic Query (GET protected) ───────────────────────────────────────────
 

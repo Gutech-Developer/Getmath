@@ -49,9 +49,14 @@ export default function ClassDiagnosisContentPageTemplate({
     DIAGNOSTIC_DURATION_SECONDS,
   );
 
-  const { data: apiModule, isLoading: isModuleLoading } = useGsModuleById(contentId);
+  const { data: apiModule, isLoading: isModuleLoading } =
+    useGsModuleById(contentId);
+
   const diagnosticTestId = apiModule?.diagnosticTestId ?? "";
-  const { data: apiTest, isLoading: isTestLoading } = useGsDiagnosticTestById(diagnosticTestId);
+  const { data: apiTest, isLoading: isTestLoading } =
+    useGsDiagnosticTestById(diagnosticTestId);
+  // console.log("tess id : ", diagnosticTestId);
+  // console.log(apiModule);
 
   const diagnosticQuestions = useMemo(() => {
     if (!apiTest?.packages?.[0]?.questions) return [];
@@ -346,7 +351,9 @@ export default function ClassDiagnosisContentPageTemplate({
                   </span>
                   <div>
                     <p className="text-xs text-white/75">Durasi</p>
-                    <p className="text-sm font-semibold">{apiModule?.durationMinutes ?? 15} Menit</p>
+                    <p className="text-sm font-semibold">
+                      {apiModule?.durationMinutes ?? 15} Menit
+                    </p>
                   </div>
                 </div>
               </div>
@@ -357,9 +364,7 @@ export default function ClassDiagnosisContentPageTemplate({
                   </span>
                   <div>
                     <p className="text-[11px] text-white/75">KKM / Passing</p>
-                    <p className="text-sm font-semibold">
-                      {kkmScore}
-                    </p>
+                    <p className="text-sm font-semibold">{kkmScore}</p>
                   </div>
                 </div>
               </div>
@@ -423,13 +428,9 @@ export default function ClassDiagnosisContentPageTemplate({
                 <li>Nilai dihitung dari jumlah jawaban benar.</li>
                 <li>Rumus: (Benar / {diagnosticQuestions.length}) x 100.</li>
                 <li>
-                  Jika nilai &lt; {kkmScore}: status tidak
-                  tuntas (merah).
+                  Jika nilai &lt; {kkmScore}: status tidak tuntas (merah).
                 </li>
-                <li>
-                  Jika nilai &gt;= {kkmScore}: status tuntas
-                  (biru).
-                </li>
+                <li>Jika nilai &gt;= {kkmScore}: status tuntas (biru).</li>
               </ul>
             </div>
           </div>
