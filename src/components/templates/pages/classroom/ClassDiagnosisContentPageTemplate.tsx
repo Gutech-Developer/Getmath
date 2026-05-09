@@ -8,11 +8,11 @@ import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
 import ClockIcon from "@/components/atoms/icons/ClockIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
+import MathText from "@/components/atoms/MathText";
 import {
   CAMERA_REQUIREMENTS,
   DIAGNOSTIC_DURATION_SECONDS,
   DIAGNOSTIC_KKM_MINIMUM_SCORE,
-  DIAGNOSTIC_QUESTIONS,
   DIAGNOSTIC_RULES,
 } from "@/constant/classDiagnosis";
 import { cn } from "@/libs/utils";
@@ -25,11 +25,15 @@ import { formatDiagnosticTime } from "@/utils";
 import { showToast } from "@/libs/toast";
 import {
   useGsModuleById,
-  useGsDiagnosticTestById,
+  useGsModuleByPackage,
   useStartTestAttempt,
   useMyTestAttempts,
   useSubmitTestAttempt,
 } from "@/services";
+import type {
+  StartTestAttemptResult,
+  SubmitTestAttemptResult,
+} from "@/services/hooks/useGsProgress";
 
 export default function ClassDiagnosisContentPageTemplate({
   slug,
@@ -48,19 +52,64 @@ export default function ClassDiagnosisContentPageTemplate({
   const [remainingSeconds, setRemainingSeconds] = useState(
     DIAGNOSTIC_DURATION_SECONDS,
   );
+  const [submitResult, setSubmitResult] =
+    useState<SubmitTestAttemptResult | null>(null);
+  // Questions from the started attempt — these IDs must be used as testQuestionId on submit
+  const [attemptQuestions, setAttemptQuestions] = useState<
+    StartTestAttemptResult["questions"] | null
+  >(null);
+  // attemptId from POST /start response — used for submit (more reliable than activeAttempt from query)
+  const [currentAttemptId, setCurrentAttemptId] = useState<string | null>(null);
 
   const { data: apiModule, isLoading: isModuleLoading } =
     useGsModuleById(contentId);
 
-  const diagnosticTestId = apiModule?.diagnosticTestId ?? "";
-  const { data: apiTest, isLoading: isTestLoading } =
-    useGsDiagnosticTestById(diagnosticTestId);
-  // console.log("tess id : ", diagnosticTestId);
-  // console.log(apiModule);
+  const { data: attemptsData } = useMyTestAttempts(contentId);
+  const activeAttempt = useMemo(() => {
+    return attemptsData?.attempts
+      ?.filter((a) => !a.completedAt)
+      .sort(
+        (a, b) =>
+          new Date(b.startedAt ?? 0).getTime() -
+          new Date(a.startedAt ?? 0).getTime(),
+      )[0];
+  }, [attemptsData]);
+
+  // Always use the module's nextPackage for displaying questions.
+  // The active attempt's package may differ, but we resolve it at submit time via POST /start.
+  const packageId = apiModule?.nextPackage?.packageId ?? "";
+  const { data: apiPackage } = useGsModuleByPackage(packageId);
 
   const diagnosticQuestions = useMemo(() => {
-    if (!apiTest?.packages?.[0]?.questions) return [];
-    return apiTest.packages[0].questions.map((q) => ({
+    // Prefer questions from the started attempt so that `id` matches
+    // the testQuestionId the backend expects on submit.
+    // Fall back to the package endpoint for initial display before start.
+    const source =
+      attemptQuestions ??
+      apiPackage?.package?.questions?.map((q) => ({
+        id: q.id,
+        questionNumber: 0,
+        textQuestion: q.textQuestion,
+        imageQuestionUrl: q.imageQuestionUrl,
+        options: q.options.map((opt) => ({
+          id: opt.id,
+          option: opt.option,
+          textAnswer: opt.textAnswer,
+          imageAnswerUrl: opt.imageAnswerUrl,
+        })),
+      })) ??
+      [];
+
+    console.log(
+      "[DiagnosticTest] diagnosticQuestions source:",
+      attemptQuestions
+        ? "attemptQuestions (from POST /start)"
+        : "apiPackage (fallback)",
+      "ids:",
+      source.map((q) => q.id),
+    );
+
+    return source.map((q) => ({
       id: q.id,
       prompt: q.textQuestion ?? "",
       topic: "Umum",
@@ -70,20 +119,14 @@ export default function ClassDiagnosisContentPageTemplate({
         label: opt.option,
         text: opt.textAnswer ?? "",
       })),
-      correctOptionId: q.options.find((opt) => opt.isCorrect)?.id ?? "",
-      discussion: q.pembahasan ?? "",
+      discussion:
+        apiPackage?.package?.questions?.find((pq) => pq.id === q.id)
+          ?.pembahasan ?? "",
+      videoUrl:
+        apiPackage?.package?.questions?.find((pq) => pq.id === q.id)
+          ?.videoUrl ?? "",
     }));
-  }, [apiTest]);
-
-  const { data: attemptsData } = useMyTestAttempts(contentId);
-  const activeAttempt = useMemo(() => {
-    return attemptsData?.attempts
-      ?.filter((a) => !a.finishedAt)
-      .sort(
-        (a, b) =>
-          new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
-      )[0];
-  }, [attemptsData]);
+  }, [attemptQuestions, apiPackage]);
 
   const startTestMutation = useStartTestAttempt(contentId);
   const submitAttempt = useSubmitTestAttempt(contentId);
@@ -100,23 +143,40 @@ export default function ClassDiagnosisContentPageTemplate({
   const activeQuestion = diagnosticQuestions[activeQuestionIndex] ?? null;
   const allRulesConfirmed = ruleChecklist.every(Boolean);
   const answeredCount = Object.keys(answers).length;
-  const correctCount = diagnosticQuestions.filter(
-    (question) => answers[question.id] === question.correctOptionId,
-  ).length;
-  const scorePercent = Math.round(
-    (correctCount / Math.max(1, diagnosticQuestions.length)) * 100,
-  );
+  // Scoring comes from the server (submitResult); use 0 as fallback before submit
+  const correctCount = submitResult?.correctAnswers ?? 0;
+  const scorePercent = submitResult?.score ?? 0;
   const kkmScore = apiModule?.passingScore ?? DIAGNOSTIC_KKM_MINIMUM_SCORE;
-  const isPassedKKM = scorePercent >= kkmScore;
+  const isPassedKKM = submitResult ? submitResult.isPassed : false;
   const allQuestionsAnswered = answeredCount === diagnosticQuestions.length;
   const completionPercent = Math.round(
     (answeredCount / Math.max(1, diagnosticQuestions.length)) * 100,
   );
 
+  const attemptCount = attemptsData?.attempts?.length ?? 0;
+  const hasPassedAnyAttempt =
+    attemptsData?.attempts?.some((a) => a.isPassed) ?? false;
+  const isMaxAttempts = attemptCount >= 3;
+
   const timeLabel = useMemo(
     () => formatDiagnosticTime(remainingSeconds),
     [remainingSeconds],
   );
+
+  useEffect(() => {
+    console.log("[DiagnosticTest] attemptsData:", attemptsData);
+    console.log("[DiagnosticTest] activeAttempt:", activeAttempt);
+  }, [attemptsData, activeAttempt]);
+
+  useEffect(() => {
+    console.log(
+      "[DiagnosticTest] apiPackage questions:",
+      apiPackage?.package?.questions?.map((q) => ({
+        id: q.id,
+        text: q.textQuestion?.slice(0, 40),
+      })),
+    );
+  }, [apiPackage]);
 
   useEffect(() => {
     if (!previewRef.current || !streamRef.current) {
@@ -156,17 +216,53 @@ export default function ClassDiagnosisContentPageTemplate({
   const handleCompleteTest = async () => {
     setFlowStep("completed");
 
-    if (activeAttempt?.id) {
+    // Prefer attemptId from POST /start response; fall back to activeAttempt from query
+    const attemptId = currentAttemptId ?? activeAttempt?.attemptId;
+
+    console.log("[DiagnosticTest] handleCompleteTest called");
+    console.log("[DiagnosticTest] currentAttemptId:", currentAttemptId);
+    console.log("[DiagnosticTest] activeAttempt:", activeAttempt);
+    console.log("[DiagnosticTest] resolved attemptId:", attemptId);
+    console.log("[DiagnosticTest] answers state:", answers);
+    console.log("[DiagnosticTest] attemptQuestions:", attemptQuestions);
+    console.log(
+      "[DiagnosticTest] diagnosticQuestions ids:",
+      diagnosticQuestions.map((q) => q.id),
+    );
+
+    if (attemptId) {
       const formattedAnswers = Object.entries(answers).map(
-        ([questionId, selectedOptionId]) => ({
-          questionId,
+        ([testQuestionId, selectedOptionId]) => ({
+          testQuestionId,
           selectedOptionId,
         }),
       );
 
-      submitAttempt.mutate({
-        attemptId: activeAttempt.id,
-        input: { answers: formattedAnswers },
+      console.log(
+        "[DiagnosticTest] formattedAnswers to submit:",
+        formattedAnswers,
+      );
+
+      submitAttempt.mutate(
+        {
+          attemptId,
+          input: { answers: formattedAnswers },
+        },
+        {
+          onSuccess: (data) => {
+            console.log("[DiagnosticTest] submit SUCCESS:", data);
+            setSubmitResult(data);
+          },
+          onError: (err: any) => {
+            console.error("[DiagnosticTest] submit ERROR:", err);
+          },
+        },
+      );
+    } else {
+      console.warn("[DiagnosticTest] No attemptId found — submit skipped", {
+        attemptsData,
+        activeAttempt,
+        currentAttemptId,
       });
     }
   };
@@ -209,28 +305,75 @@ export default function ClassDiagnosisContentPageTemplate({
   };
 
   const handleStartDiagnostic = () => {
-    if (activeAttempt) {
-      setFlowStep("quiz");
-      return;
-    }
-
     const packageId = apiModule?.nextPackage?.packageId;
     if (!packageId) {
       showToast.error("Paket soal tidak tersedia");
       return;
     }
 
-    startTestMutation.mutate(
-      { packageId },
-      {
-        onSuccess: () => {
-          setFlowStep("quiz");
+    const doStart = () => {
+      startTestMutation.mutate(
+        { packageId },
+        {
+          onSuccess: (data) => {
+            console.log("[DiagnosticTest] startTestMutation SUCCESS:", data);
+            console.log(
+              "[DiagnosticTest] attempt questions from start:",
+              data?.questions?.map((q) => ({
+                id: q.id,
+                text: q.textQuestion?.slice(0, 40),
+              })),
+            );
+            if (data?.questions) {
+              setAttemptQuestions(data.questions);
+            }
+            if (data?.attemptId) {
+              setCurrentAttemptId(data.attemptId);
+              console.log(
+                "[DiagnosticTest] currentAttemptId set:",
+                data.attemptId,
+              );
+            }
+            setFlowStep("quiz");
+          },
+          onError: (err: any) => {
+            console.error("[DiagnosticTest] startTestMutation ERROR:", err);
+            showToast.error(err.message || "Gagal memulai tes");
+          },
         },
-        onError: (err: any) => {
-          showToast.error(err.message || "Gagal memulai tes");
+      );
+    };
+
+    // If there's an unsubmitted attempt from a previous session, submit it with
+    // empty answers first (backend will mark it completed with score=0), then start fresh.
+    if (activeAttempt?.attemptId) {
+      console.log(
+        "[DiagnosticTest] Submitting stale unfinished attempt before starting new one:",
+        activeAttempt.attemptId,
+      );
+      submitAttempt.mutate(
+        { attemptId: activeAttempt.attemptId, input: { answers: [] } },
+        {
+          onSuccess: () => {
+            console.log(
+              "[DiagnosticTest] Stale attempt submitted, starting new attempt...",
+            );
+            doStart();
+          },
+          onError: (err: any) => {
+            console.error(
+              "[DiagnosticTest] Failed to submit stale attempt:",
+              err,
+            );
+            // Try starting anyway — backend might allow it now or return a different error
+            doStart();
+          },
         },
-      },
-    );
+      );
+      return;
+    }
+
+    doStart();
   };
 
   const handleSelectAnswer = (questionId: string, optionId: string) => {
@@ -266,6 +409,44 @@ export default function ClassDiagnosisContentPageTemplate({
   };
 
   if (flowStep === "camera") {
+    // Block access when max attempts reached or already passed
+    if (hasPassedAnyAttempt || isMaxAttempts) {
+      return (
+        <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
+          <div className="mx-auto max-w-md rounded-3xl border border-[#E2E8F0] bg-white p-6 text-center shadow-[0_18px_45px_rgba(37,99,235,0.12)]">
+            <div
+              className={cn(
+                "mx-auto flex h-14 w-14 items-center justify-center rounded-full",
+                hasPassedAnyAttempt ? "bg-[#DCFCE7]" : "bg-[#FEE2E2]",
+              )}
+            >
+              {hasPassedAnyAttempt ? (
+                <CheckCircleIcon className="h-7 w-7 text-[#166534]" />
+              ) : (
+                <AlertIcon className="h-7 w-7 text-[#B91C1C]" />
+              )}
+            </div>
+            <h2 className="mt-4 text-lg font-bold text-[#0F172A]">
+              {hasPassedAnyAttempt
+                ? "Kamu Sudah Lulus Tes Ini"
+                : "Batas Percobaan Habis"}
+            </h2>
+            <p className="mt-2 text-sm text-[#64748B]">
+              {hasPassedAnyAttempt
+                ? "Kamu telah menyelesaikan tes diagnostik ini dengan tuntas."
+                : `Kamu sudah menggunakan 3 dari 3 kesempatan. Hubungi guru untuk mendapat bantuan lebih lanjut.`}
+            </p>
+            <Link
+              href={materialHref}
+              className="mt-6 inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+            >
+              Kembali ke Materi
+            </Link>
+          </div>
+        </section>
+      );
+    }
+
     return (
       <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
         <div className="mx-auto max-w-md rounded-3xl border border-[#E2E8F0] bg-white p-4 shadow-[0_18px_45px_rgba(37,99,235,0.12)] sm:p-5">
@@ -485,7 +666,9 @@ export default function ClassDiagnosisContentPageTemplate({
           >
             <p className="text-sm text-[#475569]">Ringkasan Hasil</p>
             <p className="mt-1 text-xl font-semibold text-[#0F172A]">
-              {answeredCount}/{diagnosticQuestions.length} soal terjawab
+              {answeredCount}/
+              {submitResult?.totalQuestions ?? diagnosticQuestions.length} soal
+              terjawab
             </p>
             <p className="mt-1 text-sm text-[#334155]">
               Benar: {correctCount} soal • Nilai: {scorePercent}
@@ -514,11 +697,6 @@ export default function ClassDiagnosisContentPageTemplate({
                 const selectedOption = question.options.find(
                   (option) => option.id === answers[question.id],
                 );
-                const correctOption = question.options.find(
-                  (option) => option.id === question.correctOptionId,
-                );
-                const isCorrect =
-                  selectedOption?.id === question.correctOptionId;
                 const isOpen = openedDiscussionIds.includes(question.id);
                 const panelId = `discussion-panel-${question.id}`;
 
@@ -539,7 +717,7 @@ export default function ClassDiagnosisContentPageTemplate({
                           Soal {index + 1}
                         </p>
                         <p className="mt-1 text-sm font-medium text-[#0F172A]">
-                          {question.prompt}
+                          <MathText text={question.prompt} />
                         </p>
                       </div>
 
@@ -548,16 +726,12 @@ export default function ClassDiagnosisContentPageTemplate({
                           className={cn(
                             "inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold",
                             selectedOption
-                              ? isCorrect
-                                ? "border-[#86EFAC] bg-[#DCFCE7] text-[#166534]"
-                                : "border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]"
+                              ? "border-[#DBEAFE] bg-[#EFF6FF] text-[#1D4ED8]"
                               : "border-[#E2E8F0] bg-white text-[#64748B]",
                           )}
                         >
                           {selectedOption
-                            ? isCorrect
-                              ? "Benar"
-                              : "Salah"
+                            ? `Dijawab: ${selectedOption.label}`
                             : "Belum Dijawab"}
                         </span>
 
@@ -580,24 +754,33 @@ export default function ClassDiagnosisContentPageTemplate({
                             <span className="font-semibold text-[#0F172A]">
                               Jawaban kamu:
                             </span>{" "}
-                            {selectedOption
-                              ? `${selectedOption.label}. ${selectedOption.text}`
-                              : "Belum menjawab soal ini."}
+                            {selectedOption ? (
+                              <>
+                                {selectedOption.label}.{" "}
+                                <MathText text={selectedOption.text} />
+                              </>
+                            ) : (
+                              "Belum menjawab soal ini."
+                            )}
                           </p>
-                          <p>
-                            <span className="font-semibold text-[#0F172A]">
-                              Jawaban benar:
-                            </span>{" "}
-                            {correctOption
-                              ? `${correctOption.label}. ${correctOption.text}`
-                              : "-"}
-                          </p>
-                          <p className="leading-6">
-                            <span className="font-semibold text-[#0F172A]">
-                              Pembahasan:
-                            </span>{" "}
-                            {question.discussion}
-                          </p>
+                          {question.discussion ? (
+                            <p className="leading-6">
+                              <span className="font-semibold text-[#0F172A]">
+                                Pembahasan:
+                              </span>{" "}
+                              <MathText text={question.discussion} />
+                            </p>
+                          ) : null}
+                          {question.videoUrl ? (
+                            <a
+                              href={question.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[#2563EB] underline"
+                            >
+                              Lihat video pembahasan
+                            </a>
+                          ) : null}
                         </div>
                       </div>
                     ) : null}
@@ -666,7 +849,7 @@ export default function ClassDiagnosisContentPageTemplate({
             </div>
 
             <h2 className="mt-4 text-lg font-semibold leading-7 text-[#0F172A]">
-              {activeQuestion?.prompt}
+              <MathText text={activeQuestion?.prompt ?? ""} />
             </h2>
 
             <div className="mt-4 space-y-2.5">
@@ -699,7 +882,7 @@ export default function ClassDiagnosisContentPageTemplate({
                       {option.label}
                     </span>
                     <span className="text-sm text-[#334155]">
-                      {option.text}
+                      <MathText text={option.text} />
                     </span>
                   </button>
                 );
@@ -709,7 +892,7 @@ export default function ClassDiagnosisContentPageTemplate({
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-[#64748B]">
-              Jawaban terisi {answeredCount}/{DIAGNOSTIC_QUESTIONS.length} soal
+              Jawaban terisi {answeredCount}/{diagnosticQuestions.length} soal
             </p>
 
             <div className="flex items-center gap-2">
@@ -728,12 +911,12 @@ export default function ClassDiagnosisContentPageTemplate({
                 onClick={handleNextQuestion}
                 disabled={
                   !canSubmitCurrentQuestion ||
-                  (activeQuestionIndex === DIAGNOSTIC_QUESTIONS.length - 1 &&
+                  (activeQuestionIndex === diagnosticQuestions.length - 1 &&
                     !allQuestionsAnswered)
                 }
                 className="inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {activeQuestionIndex === DIAGNOSTIC_QUESTIONS.length - 1
+                {activeQuestionIndex === diagnosticQuestions.length - 1
                   ? allQuestionsAnswered
                     ? "Selesaikan Tes"
                     : "Lengkapi Semua Soal"
@@ -759,7 +942,7 @@ export default function ClassDiagnosisContentPageTemplate({
               Soal
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {DIAGNOSTIC_QUESTIONS.map((question, index) => {
+              {diagnosticQuestions.map((question, index) => {
                 const isActive = index === activeQuestionIndex;
                 const isAnswered = Boolean(answers[question.id]);
 

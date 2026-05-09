@@ -196,7 +196,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
 
   const { schools, isLoading: loadingSchools } = useSchoolSearch({
     searchTerm: schoolSearch,
-    debounceMs: 3000,
+    debounceMs: 800,
   });
 
   const isSubmitting = register.isPending;

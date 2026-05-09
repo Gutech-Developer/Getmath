@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
@@ -43,6 +43,8 @@ interface IFlatStep {
   /** URL asli (sebelum di-rewrite ke /embed) untuk tombol "Buka di tab baru". */
   rawUrl: string | null;
   state: ModuleStepState;
+  /** Backend-driven completion status for sidebar rendering. */
+  status: "completed" | "in-progress" | "locked";
 }
 
 interface IModuleView {
@@ -120,6 +122,7 @@ function moduleFromSubject(
   index: number,
 ): IModuleView {
   const moduleId = getModuleId(module);
+  const flat = module as any;
   const steps: IFlatStep[] = [];
 
   if (subject.subjectFileUrl || true) {
@@ -135,6 +138,12 @@ function moduleFromSubject(
         : null,
       rawUrl: subject.subjectFileUrl || null,
       state: index === 0 ? "active" : "upcoming",
+      // accessible===false means explicitly locked; undefined (detail endpoint) → in-progress
+      status: flat.fileRead
+        ? "completed"
+        : flat.accessible === false
+          ? "locked"
+          : "in-progress",
     });
   }
 
@@ -149,6 +158,12 @@ function moduleFromSubject(
       url: subject.videoUrl ? toEmbedUrl(subject.videoUrl, "video") : null,
       rawUrl: subject.videoUrl || null,
       state: "upcoming",
+      // Lock video only when fileRead is explicitly false (i.e. backend returned it as false)
+      status: flat.videoWatched
+        ? "completed"
+        : flat.fileRead === false
+          ? "locked"
+          : "in-progress",
     });
   }
 
@@ -156,6 +171,8 @@ function moduleFromSubject(
     (subject.eLKPDTitle && subject.eLKPDFileUrl) ||
     (subject as any)._hasELKPD
   ) {
+    const hasVideo = flat.hasVideo as boolean | undefined;
+    const prevDone = hasVideo ? flat.videoWatched : flat.fileRead;
     steps.push({
       id: `${moduleId}-elkpd-${subject.id || moduleId}`,
       moduleId,
@@ -168,6 +185,12 @@ function moduleFromSubject(
         : null,
       rawUrl: subject.eLKPDFileUrl || null,
       state: "upcoming",
+      // Lock ELKPD only when prevDone is explicitly false (backend returned it)
+      status: flat.eLKPDGraded
+        ? "completed"
+        : prevDone === false
+          ? "locked"
+          : "in-progress",
     });
   }
 
@@ -184,6 +207,7 @@ function moduleFromDiagnostic(
   index: number,
 ): IModuleView {
   const moduleId = getModuleId(module);
+  const flat = module as any;
   const test = module.diagnosticTest;
   const fallback = module as { testName?: string; description?: string | null };
   const title =
@@ -208,6 +232,12 @@ function moduleFromDiagnostic(
         url: null,
         rawUrl: null,
         state: index === 0 ? "active" : "upcoming",
+        // accessible===false = explicitly locked; undefined (detail endpoint) → in-progress
+        status: flat.completed
+          ? "completed"
+          : flat.accessible === false
+            ? "locked"
+            : "in-progress",
       },
     ],
   };
@@ -268,6 +298,7 @@ export default function ClassMaterialContentPageTemplate({
   slug,
 }: IClassMaterialContentPageTemplateProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: courseModules, isPending } = useGsModulesByCourse(courseId);
 
   // ── Progress tracking hooks ──────────────────────────────────────────
@@ -300,8 +331,23 @@ export default function ClassMaterialContentPageTemplate({
       .map((m: GsCourseModule, i: number) => {
         const mId = m.id ?? (m as any).courseModuleId;
         const dId = detailModule?.id ?? (detailModule as any)?.courseModuleId;
-        const moduleToUse = dId && mId === dId ? detailModule : m;
-        return buildModuleView(moduleToUse as GsCourseModule, i);
+        // Merge: use detailModule for rich content fields, but preserve
+        // progress flags (accessible, fileRead, etc.) from the list module (m)
+        // because the detail endpoint does NOT return those flat fields.
+        const moduleToUse: GsCourseModule =
+          dId && mId === dId
+            ? ({
+                ...detailModule,
+                accessible: (m as any).accessible,
+                fileRead: (m as any).fileRead,
+                videoWatched: (m as any).videoWatched,
+                eLKPDGraded: (m as any).eLKPDGraded,
+                completed: (m as any).completed,
+                hasVideo: (m as any).hasVideo,
+                hasELKPD: (m as any).hasELKPD,
+              } as GsCourseModule)
+            : m;
+        return buildModuleView(moduleToUse, i);
       })
       .filter((m: IModuleView | null): m is IModuleView => m !== null);
   }, [courseModules, detailModule]);
@@ -383,7 +429,8 @@ export default function ClassMaterialContentPageTemplate({
     if (!testAttempts?.attempts?.length) return null;
     return [...testAttempts.attempts].sort(
       (a, b) =>
-        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+        new Date(b.startedAt ?? 0).getTime() -
+        new Date(a.startedAt ?? 0).getTime(),
     )[0];
   }, [testAttempts]);
 
@@ -401,9 +448,14 @@ export default function ClassMaterialContentPageTemplate({
       setSelectedStepId(step.id);
       setOpenModuleId(step.moduleId);
 
+      // Update URL when navigating to a different module's step
+      if (step.moduleId !== contentId && slug) {
+        router.push(
+          `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}`,
+        );
+      }
+
       // ── Auto-track progress when navigating ──────────────────────────
-      // @deprecated: Conditional tracking based on progressData [UNREADY] - removed
-      // Now always tracks to ensure backend state is updated
       if (step.moduleId === contentId) {
         if (step.kind === "PDF") {
           markFileRead.mutate();
@@ -411,7 +463,7 @@ export default function ClassMaterialContentPageTemplate({
         // VIDEO is now marked when YT player ends
       }
     },
-    [contentId, markFileRead],
+    [contentId, slug, router, markFileRead],
   );
 
   useEffect(() => {
@@ -659,11 +711,10 @@ export default function ClassMaterialContentPageTemplate({
                         </div>
                         <div>
                           <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
-                            Jawaban Benar
+                            Status
                           </p>
                           <p className="text-xl font-bold text-[#0F172A]">
-                            {latestAttempt.totalCorrect ?? 0}/
-                            {latestAttempt.totalQuestions ?? 0}
+                            {latestAttempt.isPassed ? "Lulus" : "Belum Lulus"}
                           </p>
                         </div>
                         <div>
@@ -672,7 +723,7 @@ export default function ClassMaterialContentPageTemplate({
                           </p>
                           <p className="text-sm font-medium text-[#475569]">
                             {new Date(
-                              latestAttempt.startedAt,
+                              latestAttempt.startedAt ?? Date.now(),
                             ).toLocaleDateString("id-ID", {
                               day: "numeric",
                               month: "short",
@@ -684,25 +735,53 @@ export default function ClassMaterialContentPageTemplate({
                     </div>
                   )}
 
-                  {slug && resolvedDiagnosticTestId && (
-                    <Link
-                      href={`/student/dashboard/class/${encodeURIComponent(
-                        slug,
-                      )}/materi/${encodeURIComponent(
-                        activeStep?.moduleId ?? contentId,
-                      )}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
-                      onClick={() => {
-                        startTestAttempt.mutate({
-                          packageId: resolvedDiagnosticTestId,
-                        });
-                      }}
-                      className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
-                    >
-                      {latestAttempt
-                        ? "Kerjakan Ulang"
-                        : "Mulai Tes Diagnostik"}
-                    </Link>
-                  )}
+                  {slug &&
+                    resolvedDiagnosticTestId &&
+                    (() => {
+                      const attemptCount = testAttempts?.attempts?.length ?? 0;
+                      const hasPassed =
+                        testAttempts?.attempts?.some((a) => a.isPassed) ??
+                        false;
+                      const isMaxAttempts = attemptCount >= 3;
+
+                      if (hasPassed) {
+                        return (
+                          <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-5 py-3 text-sm font-semibold text-[#166534]">
+                            <CheckCircleIcon className="h-4 w-4" />
+                            Kamu sudah lulus tes ini
+                          </div>
+                        );
+                      }
+
+                      if (isMaxAttempts) {
+                        return (
+                          <div className="mt-4 space-y-2">
+                            <div className="inline-flex items-center gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-3 text-sm font-semibold text-[#B91C1C]">
+                              Batas percobaan tes sudah habis (3/3)
+                            </div>
+                            <p className="text-xs text-[#94A3B8]">
+                              Hubungi guru kamu untuk mendapat kesempatan
+                              tambahan.
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          href={`/student/dashboard/class/${encodeURIComponent(
+                            slug,
+                          )}/materi/${encodeURIComponent(
+                            activeStep?.moduleId ?? contentId,
+                          )}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
+                          className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                        >
+                          {attemptCount > 0
+                            ? `Kerjakan Ulang (${attemptCount}/3)`
+                            : "Mulai Tes Diagnostik"}
+                        </Link>
+                      );
+                    })()}
 
                   {slug && !resolvedDiagnosticTestId && (
                     <p className="mt-4 text-sm font-medium text-[#DC2626]">
@@ -815,55 +894,87 @@ export default function ClassMaterialContentPageTemplate({
                   {isOpen && (
                     <ul className="space-y-1 border-t border-[#E2E8F0] bg-[#FAFBFD] p-2">
                       {module.steps.map((step, stepIndex) => {
-                        const globalIndex = flatSteps.findIndex(
-                          (s) => s.id === step.id,
-                        );
-                        const isLocked = globalIndex > maxUnlockedIndex;
                         const StepIcon = getStepIcon(step.kind);
                         const tone = getStepTone(step.kind);
                         const isActive = activeStep?.id === step.id;
+                        const isLocked = step.status === "locked";
+                        const stepIsCompleted = step.status === "completed";
+                        const stepIsInProgress = step.status === "in-progress";
 
                         return (
                           <li key={step.id}>
-                            <button
-                              type="button"
-                              onClick={() => goTo(step)}
-                              disabled={isLocked}
-                              className={cn(
-                                "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition",
-                                isActive
-                                  ? "border-[#BFDBFE] bg-[#EFF6FF]"
-                                  : "border-transparent",
-                                !isLocked &&
-                                  !isActive &&
-                                  "hover:border-[#E2E8F0] hover:bg-white",
-                                isLocked && "cursor-not-allowed opacity-50",
-                              )}
-                            >
-                              <span
-                                className={cn(
-                                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
-                                  tone.bg,
-                                )}
-                              >
-                                <StepIcon className={cn("h-4 w-4", tone.fg)} />
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p
+                            {isLocked ? (
+                              <div className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 opacity-50">
+                                <span
                                   className={cn(
-                                    "truncate text-sm font-medium",
-                                    isActive
-                                      ? "text-[#1D4ED8]"
-                                      : "text-[#0F172A]",
+                                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                                    tone.bg,
                                   )}
                                 >
-                                  {step.title}
-                                </p>
-                                <p className="text-xs text-[#64748B]">
-                                  {step.typeLabel} · Langkah {stepIndex + 1}
-                                </p>
+                                  <StepIcon
+                                    className={cn("h-4 w-4", tone.fg)}
+                                  />
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-medium text-[#0F172A]">
+                                    {step.title}
+                                  </p>
+                                  <p className="text-xs text-[#CBD5E1]">
+                                    {step.typeLabel} · Terkunci
+                                  </p>
+                                </div>
+                                <span className="text-xs text-[#CBD5E1]">
+                                  🔒
+                                </span>
                               </div>
-                            </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => goTo(step)}
+                                className={cn(
+                                  "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition",
+                                  isActive
+                                    ? "border-[#BFDBFE] bg-[#EFF6FF]"
+                                    : stepIsInProgress
+                                      ? "border-[#BFDBFE] bg-[#EFF6FF] shadow-sm"
+                                      : "border-transparent hover:border-[#E2E8F0] hover:bg-white",
+                                )}
+                              >
+                                <span
+                                  className={cn(
+                                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                                    tone.bg,
+                                  )}
+                                >
+                                  <StepIcon
+                                    className={cn("h-4 w-4", tone.fg)}
+                                  />
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p
+                                    className={cn(
+                                      "truncate text-sm font-medium",
+                                      isActive || stepIsInProgress
+                                        ? "text-[#1D4ED8]"
+                                        : "text-[#0F172A]",
+                                    )}
+                                  >
+                                    {step.title}
+                                  </p>
+                                  <p className="text-xs text-[#64748B]">
+                                    {step.typeLabel} · Langkah {stepIndex + 1}
+                                  </p>
+                                </div>
+                                {stepIsCompleted && !isActive && (
+                                  <CheckCircleIcon className="h-5 w-5 shrink-0 text-[#22C55E]" />
+                                )}
+                                {stepIsInProgress && !isActive && (
+                                  <span className="shrink-0 rounded-full bg-[#2563EB] px-2.5 py-0.5 text-[10px] font-semibold text-white">
+                                    Lanjutkan
+                                  </span>
+                                )}
+                              </button>
+                            )}
                           </li>
                         );
                       })}

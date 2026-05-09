@@ -222,6 +222,8 @@ export const queryKeys = {
     details: () => [...queryKeys.gsCourseModules.all, "detail"] as const,
     detail: (id: string) =>
       [...queryKeys.gsCourseModules.details(), id] as const,
+    byPackage: (packageId: string) =>
+      [...queryKeys.gsCourseModules.all, "byPackage", packageId] as const,
   },
 
   // Forum Discussions
