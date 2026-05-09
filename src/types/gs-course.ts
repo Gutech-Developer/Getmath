@@ -107,6 +107,56 @@ export interface GsModuleNextPackage {
   totalQuestions: number;
 }
 
+// ─── GET /course-modules/package/:packageId ───────────────────────────────────
+
+export interface GsModulePackageOption {
+  id: string;
+  option: string;
+  textAnswer: string | null;
+  imageAnswerUrl: string | null;
+}
+
+export interface GsModulePackageQuestion {
+  id: string;
+  questionNumber: number;
+  textQuestion: string | null;
+  imageQuestionUrl: string | null;
+  pembahasan: string;
+  videoUrl: string;
+  options: GsModulePackageOption[];
+}
+
+export interface GsModulePackageDetail {
+  packageId: string;
+  packageName: string | null;
+  totalQuestions: number;
+  questions: GsModulePackageQuestion[];
+}
+
+export interface GsModuleByPackageResponse {
+  id: string;
+  courseId: string;
+  order: number;
+  type: string;
+  diagnosticTestId: string;
+  testName: string;
+  durationMinutes: number;
+  passingScore: number;
+  canAttempt: boolean;
+  attemptsUsed: number;
+  maxAttempts: number;
+  attemptHistory: Array<{
+    attemptId: string;
+    attemptNumber: number;
+    score?: number;
+    isPassed: boolean;
+    startedAt?: string;
+    completedAt?: string;
+  }>;
+  nextPackage?: GsModuleNextPackage | null;
+  package: GsModulePackageDetail;
+}
+
 export interface GsCourseModule {
   id: string;
   order: number | null;

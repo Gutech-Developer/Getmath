@@ -2,7 +2,7 @@
 
 /**
  * GetSmart API — Course Module Hooks
- * 
+ *
  * ⚠️ MIGRATED TO GO BACKEND
  * All endpoints verified against Go routes in:
  * getsmart_api_services_go/internal/routes/course_module_router.go
@@ -36,6 +36,7 @@ import type {
   GsCreateCourseModuleInput,
   GsUpdateCourseModuleInput,
   GsReorderCourseModulesInput,
+  GsModuleByPackageResponse,
 } from "@/types/gs-course";
 
 // ─── GET /course-modules/course/:courseId ─────────────────────────────────────
@@ -46,7 +47,7 @@ export function useGsModulesByCourse(courseId: string) {
     queryFn: () =>
       gsGet<GsCourseModule[]>(`/course-modules/course/${courseId}`),
     enabled: !!courseId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0, // Always refetch when returning to page so progress is up-to-date
   });
 }
 
@@ -57,6 +58,18 @@ export function useGsModuleById(id: string) {
     queryKey: queryKeys.gsCourseModules.detail(id),
     queryFn: () => gsGet<GsCourseModule>(`/course-modules/${id}`),
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── GET /course-modules/package/:packageId ───────────────────────────────────
+
+export function useGsModuleByPackage(packageId: string) {
+  return useQuery<GsModuleByPackageResponse, Error>({
+    queryKey: queryKeys.gsCourseModules.byPackage(packageId),
+    queryFn: () =>
+      gsGet<GsModuleByPackageResponse>(`/course-modules/package/${packageId}`),
+    enabled: !!packageId,
     staleTime: 5 * 60 * 1000,
   });
 }
