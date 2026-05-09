@@ -47,22 +47,40 @@ export interface ModuleProgressResponse {
 // ─── Test Attempt Types ───────────────────────────────────────────────────
 
 export interface TestAttemptAnswer {
-  questionId: string;
-  selectedOptionId: string;
+  testQuestionId: string;
+  selectedOptionId: string | null;
 }
 
-export interface TestAttemptResult {
-  id: string;
-  courseModuleId: string;
-  studentId: string;
-  packageId: string;
-  startedAt: string;
-  finishedAt?: string;
+// Returned by GET /test-attempts/me (DiagnosticAttemptItem from backend)
+export interface DiagnosticAttemptItem {
+  attemptId: string;
+  attemptNumber: number;
   score?: number;
-  totalCorrect?: number;
-  totalQuestions?: number;
-  isPassed?: boolean;
-  answers?: TestAttemptAnswer[];
+  isPassed: boolean;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+// Returned by POST /test-attempts/start (StartTestAttemptResult from backend)
+export interface StartTestAttemptResult {
+  attemptId: string;
+  attemptNumber: number;
+  testQuestionPackageId: string;
+  passingScore: number;
+  durationMinutes: number;
+  startedAt: string;
+  questions: Array<{
+    id: string;
+    questionNumber: number;
+    textQuestion: string | null;
+    imageQuestionUrl: string | null;
+    options: Array<{
+      id: string;
+      option: string;
+      textAnswer: string | null;
+      imageAnswerUrl: string | null;
+    }>;
+  }>;
 }
 
 export interface StartTestAttemptInput {
@@ -71,6 +89,18 @@ export interface StartTestAttemptInput {
 
 export interface SubmitTestAttemptInput {
   answers: TestAttemptAnswer[];
+}
+
+export interface SubmitTestAttemptResult {
+  attemptId: string;
+  attemptNumber: number;
+  score: number;
+  passingScore: number;
+  isPassed: boolean;
+  totalQuestions: number;
+  correctAnswers: number;
+  remainingAttempts: number;
+  completedAt: string;
 }
 
 // ─── ELKPD Grading Types ──────────────────────────────────────────────────
@@ -132,6 +162,10 @@ export function useMarkFileRead(courseModuleId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsProgress.moduleProgress(courseModuleId),
       });
+      // Invalidate module list so sidebar/list page reflect new fileRead status
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseModules.all,
+      });
       gsLogger.info("File marked as read", { courseModuleId });
     },
   });
@@ -165,6 +199,10 @@ export function useMarkVideoWatched(courseModuleId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsProgress.moduleProgress(courseModuleId),
       });
+      // Invalidate module list so sidebar/list page reflect new videoWatched status
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseModules.all,
+      });
       gsLogger.info("Video marked as watched", { courseModuleId });
     },
   });
@@ -183,7 +221,7 @@ export function useStartTestAttempt(courseModuleId: string) {
         {},
         input,
       );
-      const response = await gsPost<TestAttemptResult>(
+      const response = await gsPost<StartTestAttemptResult>(
         `/progress/modules/${courseModuleId}/test-attempts/start`,
         input,
       );
@@ -202,7 +240,11 @@ export function useStartTestAttempt(courseModuleId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsProgress.moduleProgress(courseModuleId),
       });
-      gsLogger.info("Test attempt started", { attemptId: data?.id });
+      // Invalidate module list so diagnostic step status updates in sidebar/list page
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseModules.all,
+      });
+      gsLogger.info("Test attempt started", { attemptId: data?.attemptId });
     },
   });
 }
@@ -226,7 +268,7 @@ export function useSubmitTestAttempt(courseModuleId: string) {
         {},
         input,
       );
-      const response = await gsPost<TestAttemptResult>(
+      const response = await gsPost<SubmitTestAttemptResult>(
         `/progress/modules/${courseModuleId}/test-attempts/${attemptId}/submit`,
         input,
       );
@@ -248,8 +290,12 @@ export function useSubmitTestAttempt(courseModuleId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsRemediations.all,
       });
+      // Invalidate module list so diagnostic step shows completed/passed in sidebar/list page
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseModules.all,
+      });
       gsLogger.info("Test attempt submitted", {
-        attemptId: data?.id,
+        attemptId: data?.attemptId,
         score: data?.score,
         isPassed: data?.isPassed,
       });
@@ -267,7 +313,7 @@ export function useMyTestAttempts(
     queryKey: queryKeys.gsProgress.testAttempts(courseModuleId),
     queryFn: async () => {
       gsLogger.info(`Fetching my test attempts for ${courseModuleId}`, {});
-      const response = await gsGet<{ attempts: TestAttemptResult[] }>(
+      const response = await gsGet<{ attempts: DiagnosticAttemptItem[] }>(
         `/progress/modules/${courseModuleId}/test-attempts/me`,
       );
       gsLogger.response(
