@@ -167,6 +167,9 @@ interface ParentDashboardContentProps {
   emotionSegments: EmotionSegment[];
   testResults: TestResult[];
   onManageChild?: () => void;
+  childrenList?: Array<{ id: string; fullName: string }>;
+  selectedChildId?: string | null;
+  onChildSelect?: (id: string) => void;
 }
 
 export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
@@ -183,6 +186,9 @@ export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
   emotionSegments,
   testResults,
   onManageChild,
+  childrenList,
+  selectedChildId: selectedChildIdProp,
+  onChildSelect,
 }) => {
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
@@ -286,6 +292,9 @@ export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
         name={parentName}
         childName={childName}
         onManageChild={onManageChild}
+        children={childrenList}
+        selectedChildId={selectedChildIdProp}
+        onChildSelect={onChildSelect}
       />
 
       {/* Stats Grid */}
@@ -348,6 +357,8 @@ export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
                   <div className="mt-6">
                     <ClassLADPageTemplate
                       slug={selectedClass.slug}
+                      courseId={selectedClass.id}
+                      studentId={selectedChildIdProp || ""}
                       backHref="/parent/dashboard"
                       backLabel="← Kembali ke Dashboard Orang Tua"
                     />

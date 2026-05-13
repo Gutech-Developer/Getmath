@@ -16,199 +16,267 @@ import ActivityIcon from "@/components/atoms/icons/ActivityIcon";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import TrophyIcon from "@/components/atoms/icons/TrophyIcon";
 import ClockIcon from "@/components/atoms/icons/ClockIcon";
-import { useGsCurrentUser } from "@/services";
+import { Modal } from "@/components/molecules/Modal";
+import {
+  useGsCurrentUser,
+  useGsChildren,
+  useGsChildDashboard,
+  useGsAddChild,
+  useGsRemoveChild,
+} from "@/services";
+import { useEffect, useMemo } from "react";
+import { showToast } from "@/libs/toast";
 
-// ============ MOCK DATA ============
-// Replace with real API data from hooks
-
-const PARENT_STATS: ParentStat[] = [
-  {
-    icon: <ActivityIcon className="w-5 h-5" />,
-    value: 3,
-    label: "Kelas Aktif",
-    subtitle: "kelas diikuti",
-  },
-  {
-    icon: <BookIcon className="w-5 h-5" />,
-    value: "8/15",
-    label: "Materi Selesai",
-    subtitle: "dari materi",
-  },
-  {
-    icon: <TrophyIcon className="w-5 h-5" />,
-    value: 78,
-    label: "Rata-rata Nilai",
-    subtitle: "nilai sekarang",
-  },
-  {
-    icon: <ClockIcon className="w-5 h-5" />,
-    value: "14j 35m",
-    label: "Waktu Belajar",
-    subtitle: "total waktu",
-  },
-];
-
-const PARENT_CLASSES: ParentClass[] = [
-  {
-    id: "1",
-    slug: "matematika-wajib-kelas-x",
-    title: "Matematika Wajib Kelas X",
-    teacherName: "Bpk. Rudi Santoso",
-    symbol: <span className="text-xl">Σ</span>,
-    symbolColor: "bg-indigo-100 text-indigo-600",
-    progress: 75,
-    score: 80,
-    status: "Aktif",
-    progressVariant: "primary",
-    activeTests: 1,
-  },
-  {
-    id: "2",
-    slug: "matematika-peminatan-xi-ipa",
-    title: "Matematika Peminatan XI IPA",
-    teacherName: "Ibu Sari Dewi",
-    symbol: <span className="text-xl">∫</span>,
-    symbolColor: "bg-purple-100 text-purple-600",
-    progress: 45,
-    score: 72,
-    status: "Aktif",
-    progressVariant: "info",
-    activeTests: 2,
-  },
-  {
-    id: "3",
-    slug: "statistika-probabilitas",
-    title: "Statistika & Probabilitas",
-    teacherName: "Bpk. Dani Wirawan",
-    symbol: <span className="text-xl">σ</span>,
-    symbolColor: "bg-emerald-100 text-emerald-600",
-    progress: 90,
-    score: 88,
-    status: "Aktif",
-    progressVariant: "success",
-  },
-];
-
-const TREND_LABELS = ["21 Jan", "28 Jan", "04 Feb", "11 Feb", "17 Feb"];
-
-const TREND_LINES: TrendLine[] = [
-  {
-    label: "Nilai Ahmad Rizki",
-    color: "#10b981",
-    data: [65, 70, 75, 80, 82],
-  },
-];
-
-const EMOTION_SEGMENTS: EmotionSegment[] = [
-  { label: "Fokus", value: 45, color: "#6366f1" },
-  { label: "Senang", value: 30, color: "#10b981" },
-  { label: "Bingung", value: 15, color: "#f59e0b" },
-  { label: "Lelah", value: 10, color: "#ef4444" },
-];
-
-const TEST_RESULTS: TestResult[] = [
-  {
-    id: "1",
-    title: "Tes Diagnostik 1 – Persamaan Kuadrat",
-    date: "21 Jun 2025",
-    score: 88,
-    status: "Lulus",
-    type: "other",
-    subject: "Mat. Wajib",
-  },
-  {
-    id: "2",
-    title: "Tes Diagnostik 1 – Fungsi Kuadrat",
-    date: "19 Jun 2025",
-    score: 65,
-    status: "Remedial",
-    type: "diagnostic",
-    remedialNote: "Wajib menonton video remedial!",
-    subject: "Diagnostik",
-  },
-  {
-    id: "3",
-    title: "Tes Statistika Dasar",
-    date: "10 Feb 2025",
-    score: 88,
-    status: "Lulus",
-    type: "other",
-    subject: "Statistika",
-  },
-  {
-    id: "4",
-    title: "Tes Diagnostik 2 – Fungsi",
-    date: "28 Jan 2025",
-    score: 72,
-    status: "Remedial",
-    type: "diagnostic",
-    remedialNote: "Wajib menonton video remedial!",
-    subject: "Diagnostik",
-  },
-  {
-    id: "5",
-    title: "Tes Probabilitas Dasar",
-    date: "17 Feb 2025",
-    score: 85,
-    status: "Lulus",
-    type: "other",
-    subject: "Statistika",
-  },
-];
-
-const MANAGED_CHILDREN: IManagedChild[] = [
-  {
-    id: "child-1",
-    fullname: "Ahmad Rizki",
-    nis: "10234",
-    classroom: "Kelas X-1",
-  },
-  {
-    id: "child-2",
-    fullname: "Siti Nurhaliza",
-    nis: "10235",
-    classroom: "Kelas IX-2",
-  },
-];
+// Mappings removed, moved inside component or using API data
 
 export default function ParentDashboardTemplate() {
   const [isChildManagementOpen, setIsChildManagementOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [childToDelete, setChildToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
   const { data: user } = useGsCurrentUser();
 
-  // Extract parent name from user profile
+  // ─── API Hooks ─────────────────────────────────────────────────────────────
+  const { data: children, isLoading: isChildrenLoading } = useGsChildren();
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+
+  // Auto-select first child if not selected
+  useEffect(() => {
+    if (children && children.length > 0 && !selectedChildId) {
+      setSelectedChildId(children[0].id);
+    }
+  }, [children, selectedChildId]);
+
+  const { data: dashboard, isLoading: isDashboardLoading } = useGsChildDashboard(
+    selectedChildId ?? ""
+  );
+
+  const addChild = useGsAddChild();
+  const removeChild = useGsRemoveChild();
+
+  // ─── Mappings ──────────────────────────────────────────────────────────────
   const parentName =
     (user?.profile?.fullName as string) ||
     (user?.fullName as string) ||
     (user?.profile?.fullname as string) ||
     user?.fullname ||
-    "Parent";
+    "Orang Tua";
 
-  // Default child name — ideally should come from API or selection
-  const childName = "Ahmad Rizki";
+  const selectedChild = useMemo(() => {
+    return children?.find((c) => c.id === selectedChildId);
+  }, [children, selectedChildId]);
+
+  const childName = selectedChild?.fullName || "Pilih Anak";
+
+  const parentStats: ParentStat[] = useMemo(() => {
+    if (!dashboard) return [];
+    return [
+      {
+        icon: <ActivityIcon className="w-5 h-5" />,
+        value: dashboard.activeCourses.length,
+        label: "Kelas Aktif",
+        subtitle: "kelas diikuti",
+      },
+      {
+        icon: <BookIcon className="w-5 h-5" />,
+        value: `${dashboard.completedSubjectModules}/${dashboard.totalSubjectModules}`,
+        label: "Materi Selesai",
+        subtitle: "dari materi",
+      },
+      {
+        icon: <TrophyIcon className="w-5 h-5" />,
+        value: Math.round(dashboard.avgDiagnosticScore),
+        label: "Rata-rata Nilai",
+        subtitle: "skor tes",
+      },
+      {
+        icon: <ClockIcon className="w-5 h-5" />,
+        value: dashboard.activeCourses.reduce(
+          (sum, c) => sum + c.unfinishedDiagnostics,
+          0
+        ),
+        label: "Tes Belum Selesai",
+        subtitle: "segera kerjakan",
+      },
+    ];
+  }, [dashboard]);
+
+  const parentClasses: ParentClass[] = useMemo(() => {
+    if (!dashboard) return [];
+    return dashboard.activeCourses.map((c, i) => ({
+      id: c.courseId,
+      slug: c.courseId,
+      title: c.courseName,
+      teacherName: "Guru Pengampu",
+      symbol: <span className="text-xl">Σ</span>,
+      symbolColor: [
+        "bg-indigo-100 text-indigo-600",
+        "bg-purple-100 text-purple-600",
+        "bg-emerald-100 text-emerald-600",
+      ][i % 3],
+      progress: c.progressPercent,
+      score: c.lastDiagnosticScore,
+      status: c.isArchived ? "Tidak Aktif" : "Aktif",
+      progressVariant: ["primary", "info", "success"][i % 3] as any,
+      activeTests: c.unfinishedDiagnostics,
+    }));
+  }, [dashboard]);
+
+  const testResults: TestResult[] = useMemo(() => {
+    if (!dashboard) return [];
+    return dashboard.recentDiagnostics.map((d) => ({
+      id: d.attemptId,
+      title: d.testName,
+      date: new Date(d.completedAt).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+      score: d.score,
+      status: d.isRemedial ? "Remedial" : "Lulus",
+      type: "diagnostic",
+      remedialNote: d.isRemedial ? "Wajib menonton video remedial!" : undefined,
+      subject: d.courseName,
+    }));
+  }, [dashboard]);
+
+  const managedChildren: IManagedChild[] = useMemo(() => {
+    return (children || []).map((c) => ({
+      id: c.id,
+      fullname: c.fullName,
+      nis: c.NIS,
+      classroom: c.schoolName || "Siswa GetSmart",
+    }));
+  }, [children]);
+
+  // Handlers
+  const handleAddChild = (nis: string) => {
+    addChild.mutate(
+      { nis },
+      {
+        onSuccess: () => {
+          showToast.success("Anak berhasil ditambahkan");
+        },
+        onError: (error: any) => {
+          showToast.error(error?.message || "Gagal menambahkan anak");
+        },
+      }
+    );
+  };
+
+  const handleDeleteChild = (id: string) => {
+    const child = managedChildren.find((c) => c.id === id);
+    if (child) {
+      setChildToDelete({ id, name: child.fullname });
+      setIsDeleteModalOpen(true);
+    }
+  };
+
+  const confirmDeleteChild = () => {
+    if (childToDelete) {
+      removeChild.mutate(childToDelete.id, {
+        onSuccess: () => {
+          showToast.success("Anak berhasil dihapus");
+          if (selectedChildId === childToDelete.id) setSelectedChildId(null);
+          setIsDeleteModalOpen(false);
+          setChildToDelete(null);
+        },
+        onError: (error: any) => {
+          showToast.error(error?.message || "Gagal menghapus anak");
+        },
+      });
+    }
+  };
+
+  if (isChildrenLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Memuat data...</div>;
+  }
 
   return (
     <>
       <ParentDashboardContent
+        key={selectedChildId}
         parentName={parentName}
         childName={childName}
-        stats={PARENT_STATS}
-        alertMessage="Ahmad Rizki belum lulus di 2 tes dan wajib menonton video remedial. Pastikan ia meluangkan waktu untuk mengulang materi terkait."
+        stats={parentStats}
+        alertMessage={
+          dashboard && dashboard.avgDiagnosticScore < 70
+            ? `${childName} membutuhkan bimbingan lebih pada beberapa materi (Rata-rata: ${Math.round(dashboard.avgDiagnosticScore)}).`
+            : ""
+        }
         onAlertClick={() => console.log("Lihat detail alert")}
-        classes={PARENT_CLASSES}
+        classes={parentClasses}
         onViewClass={(id) => console.log("View class", id)}
-        trendChartLabels={TREND_LABELS}
-        trendChartLines={TREND_LINES}
-        trendChartTitle="Tren Nilai Ahmad Rizki"
-        emotionSegments={EMOTION_SEGMENTS}
-        testResults={TEST_RESULTS}
+        trendChartLabels={["Minggu 1", "Minggu 2", "Minggu 3", "Minggu 4"]}
+        childrenList={children?.map((c) => ({
+          id: c.id,
+          fullName: c.fullName,
+        }))}
+        selectedChildId={selectedChildId}
+        onChildSelect={(id) => setSelectedChildId(id)}
+        trendChartLines={[
+          {
+            label: `Skor Tes ${childName}`,
+            color: "#6366f1",
+            data: dashboard?.recentDiagnostics.map((d) => d.score).reverse() || [
+              0,
+            ],
+          },
+        ]}
+        trendChartTitle={`Tren Belajar ${childName}`}
+        emotionSegments={[
+          { label: "Fokus", value: 60, color: "#6366f1" },
+          { label: "Senang", value: 40, color: "#10b981" },
+        ]}
+        testResults={testResults}
         onManageChild={() => setIsChildManagementOpen(true)}
       />
 
       <ChildManagementModal
         isOpen={isChildManagementOpen}
         onClose={() => setIsChildManagementOpen(false)}
-        initialChildren={MANAGED_CHILDREN}
+        children={managedChildren}
+        onAddChild={handleAddChild}
+        onDeleteChild={handleDeleteChild}
+        onSelectChild={setSelectedChildId}
+        isLoading={addChild.isPending || removeChild.isPending}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Konfirmasi Hapus"
+        size="sm"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-grey text-sm">
+            Apakah Anda yakin ingin memutuskan hubungan dengan{" "}
+            <span className="font-bold text-neutral-02">
+              {childToDelete?.name}
+            </span>
+            ? Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <div className="flex gap-3 justify-end mt-2">
+            <button
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="flex-1 px-4 py-2.5 border border-grey-stroke rounded-xl text-sm font-semibold text-grey hover:bg-grey-50 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={confirmDeleteChild}
+              disabled={removeChild.isPending}
+              className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {removeChild.isPending ? "Menghapus..." : "Ya, Hapus"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

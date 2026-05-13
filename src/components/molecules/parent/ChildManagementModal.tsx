@@ -16,7 +16,11 @@ export interface IManagedChild {
 interface ChildManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialChildren?: IManagedChild[];
+  children?: IManagedChild[];
+  onAddChild?: (nis: string) => void;
+  onDeleteChild?: (id: string) => void;
+  onSelectChild?: (id: string) => void;
+  isLoading?: boolean;
 }
 
 const CLASSROOM_PRESET = [
@@ -39,15 +43,13 @@ function getChildInitial(fullname: string) {
 export default function ChildManagementModal({
   isOpen,
   onClose,
-  initialChildren = [],
+  onAddChild,
+  onDeleteChild,
+  onSelectChild,
+  isLoading,
+  children = [],
 }: ChildManagementModalProps) {
-  const [children, setChildren] = useState<IManagedChild[]>(initialChildren);
-  const [fullnameInput, setFullnameInput] = useState("");
   const [nisInput, setNisInput] = useState("");
-
-  useEffect(() => {
-    setChildren(initialChildren);
-  }, [initialChildren]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -70,8 +72,8 @@ export default function ChildManagementModal({
   }, [isOpen, onClose]);
 
   const isAddDisabled = useMemo(
-    () => fullnameInput.trim().length < 3 || nisInput.trim().length < 4,
-    [fullnameInput, nisInput],
+    () => nisInput.trim().length < 4 || isLoading,
+    [nisInput, isLoading],
   );
 
   const handleAddChild = () => {
@@ -79,20 +81,16 @@ export default function ChildManagementModal({
       return;
     }
 
-    const newChild: IManagedChild = {
-      id: `child-${Date.now()}`,
-      fullname: fullnameInput.trim(),
-      nis: nisInput,
-      classroom: CLASSROOM_PRESET[children.length % CLASSROOM_PRESET.length],
-    };
-
-    setChildren((prev) => [...prev, newChild]);
-    setFullnameInput("");
-    setNisInput("");
+    if (onAddChild) {
+      onAddChild(nisInput);
+      setNisInput("");
+    }
   };
 
   const handleDeleteChild = (id: string) => {
-    setChildren((prev) => prev.filter((child) => child.id !== id));
+    if (onDeleteChild) {
+      onDeleteChild(id);
+    }
   };
 
   if (!isOpen) {
@@ -152,11 +150,17 @@ export default function ChildManagementModal({
                 children.map((child, index) => (
                   <div
                     key={child.id}
+                    onClick={() => {
+                      if (onSelectChild) {
+                        onSelectChild(child.id);
+                        onClose();
+                      }
+                    }}
                     className={cn(
-                      "flex items-center justify-between rounded-2xl border px-4 py-3",
+                      "flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 transition hover:shadow-sm",
                       index === 0
-                        ? "border-[#C7D2FE] bg-[#EEF2FF]"
-                        : "border-[#E5E7EB] bg-[#F8FAFC]",
+                        ? "border-[#C7D2FE] bg-[#EEF2FF] hover:bg-[#E0E7FF]"
+                        : "border-[#E5E7EB] bg-[#F8FAFC] hover:bg-[#F1F5F9]",
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -198,18 +202,7 @@ export default function ChildManagementModal({
             </h3>
 
             <div className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-[#4B5563]">
-                  Nama Lengkap Anak
-                </label>
-                <input
-                  type="text"
-                  value={fullnameInput}
-                  onChange={(event) => setFullnameInput(event.target.value)}
-                  placeholder="cth: Ahmad Rizki"
-                  className="h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm text-[#1F2937] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#C7D2FE] placeholder:text-[#9CA3AF]"
-                />
-              </div>
+              {/* Nama input removed because backend only needs NIS */}
 
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-[#4B5563]">

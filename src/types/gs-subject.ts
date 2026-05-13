@@ -134,6 +134,9 @@ export interface GsUpdateSubjectInput {
   description?: string;
   subjectFileUrl?: string;
   videoUrl?: string;
+  eLKPDTitle?: string;
+  eLKPDDescription?: string;
+  eLKPDFileUrl?: string;
 }
 
 // ─── Input: E-LKPD ───────────────────────────────────────────────────────────
