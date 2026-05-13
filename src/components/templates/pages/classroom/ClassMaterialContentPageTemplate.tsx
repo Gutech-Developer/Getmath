@@ -372,15 +372,20 @@ export default function ClassMaterialContentPageTemplate({
   };
 
   /* ---------- Breadcrumb ---------- */
-  const contentTitle = formatContentTitle(contentId);
+  const currentModuleTitle =
+    modules.find((module) => module.id === contentId)?.title ??
+    formatContentTitle(contentId);
   const breadcrumbItems = useMemo(() => {
     if (!pathname) return [];
     const segments = pathname.split("/").filter(Boolean);
     let currentPath = "";
     const items = segments
-      .map((segment) => {
+      .map((segment, index) => {
         currentPath += `/${segment}`;
-        const label = formatBreadcrumbLabel(segment, slug ?? "", contentTitle);
+        const isLastSegment = index === segments.length - 1;
+        const label = isLastSegment
+          ? currentModuleTitle
+          : formatBreadcrumbLabel(segment, slug ?? "", currentModuleTitle);
         if (!label) return null;
         return { label, href: currentPath };
       })
@@ -390,7 +395,7 @@ export default function ClassMaterialContentPageTemplate({
       ...item,
       isCurrent: i === items.length - 1,
     }));
-  }, [pathname, slug, contentTitle]);
+  }, [pathname, slug, currentModuleTitle]);
 
   /* ---------- Active step ---------- */
   const activeStep = useMemo<IFlatStep | null>(() => {

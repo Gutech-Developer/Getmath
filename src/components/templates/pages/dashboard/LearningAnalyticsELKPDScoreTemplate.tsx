@@ -22,70 +22,40 @@ function formatClassTitleFromSlug(slug: string): string {
     .join(" ");
 }
 
-function createFallbackClassDetail(
-  slug: string,
-  elkpdId: string,
-): IClassLearningAnalyticsDetail {
-  return {
-    slug,
-    className: formatClassTitleFromSlug(slug),
-    teacherName: "Ibu Rahma Johar",
-    studentCount: 5,
-    averageScore: 75,
-    passedCount: 3,
-    remedialCount: 2,
-    progress: 64,
-    classCode: "MATH-X-001",
-    gradeLabel: "Umum",
-    semesterLabel: "Ganjil 2024/2025",
-    subjectLabel: "Matematika",
-    students: [
-      {
-        id: "fallback-student-1",
-        fullname: "Andi Pratama",
-        nis: "2310001",
-        score: 85,
-        status: "Lulus",
-      },
-      {
-        id: "fallback-student-2",
-        fullname: "Siti Nurhaliza",
-        nis: "2310002",
-        score: 72,
-        status: "Lulus",
-      },
-      {
-        id: "fallback-student-3",
-        fullname: "Budi Santoso",
-        nis: "2310003",
-        score: 58,
-        status: "Remedial",
-      },
-      {
-        id: "fallback-student-4",
-        fullname: "Dewi Anggraini",
-        nis: "2310004",
-        score: 92,
-        status: "Lulus",
-      },
-      {
-        id: "fallback-student-5",
-        fullname: "Eko Prasetyo",
-        nis: "2310005",
-        score: 65,
-        status: "Remedial",
-      },
-    ],
-    elkpdItems: [
-      {
-        id: elkpdId,
-        title: "E-LKPD - Penilaian Kelas",
-        dueLabel: "30 Apr 2026",
-        submittedCount: 0,
-        status: "Aktif",
-      },
-    ],
-  };
+function ELKPDScoreLoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      {/* Header Skeleton */}
+      <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-[0px_16px_32px_rgba(148,163,184,0.12)] space-y-4">
+        <div className="h-8 w-1/3 animate-pulse rounded-full bg-[#E5E7EB]" />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-4 w-1/2 animate-pulse rounded-full bg-[#F1F5F9]" />
+              <div className="h-6 w-2/3 animate-pulse rounded-full bg-[#E5E7EB]" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Content Skeleton */}
+      <div className="rounded-[28px] border border-[#E5E7EB] bg-white p-6 shadow-[0px_16px_32px_rgba(148,163,184,0.12)] space-y-4">
+        <div className="h-6 w-1/4 animate-pulse rounded-full bg-[#E5E7EB]" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <div className="h-10 w-10 animate-pulse rounded-full bg-[#E5E7EB]" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-1/3 animate-pulse rounded-full bg-[#E5E7EB]" />
+                <div className="h-3 w-1/4 animate-pulse rounded-full bg-[#F1F5F9]" />
+              </div>
+              <div className="h-4 w-12 animate-pulse rounded-full bg-[#E5E7EB]" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function LearningAnalyticsELKPDScoreTemplate({
@@ -94,58 +64,93 @@ export default function LearningAnalyticsELKPDScoreTemplate({
   elkpdId,
 }: ILearningAnalyticsELKPDScoreTemplateProps) {
   // ── Resolve course from slug ─────────────────────────────────────────
-  const { data: course } = useGsCourseBySlug(slug);
+  const { data: course, isLoading: isCourseLoading } = useGsCourseBySlug(slug);
 
   // ── Fetch ELKPD submissions from API ─────────────────────────────────
-  const { data: submissionsData } = useELKPDGradesByModule(
-    elkpdId,
-    { enabled: !!elkpdId },
-  );
+  const { data: submissionsData, isLoading: isSubmissionsLoading } =
+    useELKPDGradesByModule(elkpdId, {
+      enabled: !!elkpdId,
+    });
 
   // ── Build class detail from API data or fallback ─────────────────────
   const classDetail = useMemo<IClassLearningAnalyticsDetail>(() => {
     const staticDetail = LEARNING_ANALYTICS_CLASS_DATA.find(
       (item) => item.slug === slug,
     );
-    const fallback = staticDetail ?? createFallbackClassDetail(slug, elkpdId);
+    const apiGrades = submissionsData?.eLKPDs?.[0]?.grades ?? [];
+    const apiStudents = apiGrades.map((sub, index) => {
+      const score = sub.score ?? 0;
+      return {
+        id: sub.studentId,
+        fullname: sub.fullName || `Siswa ${index + 1}`,
+        nis: sub.NIS || sub.studentId.slice(0, 7) || "-",
+        score,
+        status: (score >= 75 ? "Lulus" : "Remedial") as "Lulus" | "Remedial",
+      };
+    });
 
-    // If we have API submissions, enrich student data with real scores
-    const apiGrades = submissionsData?.eLKPDs?.[0]?.grades;
-    if (apiGrades?.length) {
-      const apiStudents = apiGrades.map((sub, index) => {
-        const score = sub.score ?? 0;
-        return {
-          id: sub.studentId,
-          fullname: sub.fullName || `Siswa ${index + 1}`,
-          nis: sub.NIS || sub.studentId.slice(0, 7) || "-",
-          score,
-          status: (score >= 75 ? "Lulus" : "Remedial") as "Lulus" | "Remedial",
-        };
-      });
+    const passedCount = apiStudents.filter((s) => s.status === "Lulus").length;
+    const averageScore =
+      apiStudents.length > 0
+        ? Math.round(
+            apiStudents.reduce((sum, student) => sum + student.score, 0) /
+              apiStudents.length,
+          )
+        : (staticDetail?.averageScore ?? 0);
 
-      if (apiStudents.length > 0) {
-        const passedCount = apiStudents.filter(
-          (s) => s.status === "Lulus",
-        ).length;
-        const avgScore =
-          apiStudents.reduce((sum, s) => sum + s.score, 0) /
-          apiStudents.length;
+    const fallbackClassName =
+      course?.courseName ??
+      staticDetail?.className ??
+      formatClassTitleFromSlug(slug);
+    const fallbackClassCode =
+      course?.courseCode ?? staticDetail?.classCode ?? "MATH-X-001";
 
-        return {
-          ...fallback,
-          className: course?.courseName ?? fallback.className,
-          classCode: course?.courseCode ?? fallback.classCode,
-          students: apiStudents,
-          studentCount: apiStudents.length,
-          averageScore: Math.round(avgScore),
-          passedCount,
-          remedialCount: apiStudents.length - passedCount,
-        };
-      }
-    }
+    return {
+      id: course?.id,
+      slug,
+      className: fallbackClassName,
+      teacherName: staticDetail?.teacherName ?? "Guru Kelas",
+      studentCount: apiStudents.length || staticDetail?.studentCount || 0,
+      averageScore,
+      passedCount: apiStudents.length
+        ? passedCount
+        : (staticDetail?.passedCount ?? 0),
+      remedialCount: apiStudents.length
+        ? apiStudents.length - passedCount
+        : (staticDetail?.remedialCount ?? 0),
+      progress: staticDetail?.progress ?? 0,
+      classCode: fallbackClassCode,
+      gradeLabel: staticDetail?.gradeLabel ?? "Umum",
+      semesterLabel: staticDetail?.semesterLabel ?? "Ganjil 2024/2025",
+      subjectLabel:
+        staticDetail?.subjectLabel ?? course?.courseName ?? "Matematika",
+      defaultViewType: staticDetail?.defaultViewType,
+      students:
+        apiStudents.length > 0 ? apiStudents : (staticDetail?.students ?? []),
+      materials: staticDetail?.materials,
+      elkpdItems:
+        submissionsData?.eLKPDs?.map((item) => ({
+          id: item.eLKPDId,
+          title: item.title,
+          dueLabel:
+            staticDetail?.elkpdItems?.find((elkpd) => elkpd.id === item.eLKPDId)
+              ?.dueLabel ?? "-",
+          submittedCount:
+            item.grades?.filter((grade) => grade.submissionId).length ?? 0,
+          status: "Aktif" as const,
+        })) ??
+        staticDetail?.elkpdItems ??
+        [],
+      reportSummaryCards: staticDetail?.reportSummaryCards,
+      scoreBuckets: staticDetail?.scoreBuckets,
+      emotionSegments: staticDetail?.emotionSegments,
+    };
+  }, [slug, course, submissionsData]);
 
-    return fallback;
-  }, [slug, elkpdId, course, submissionsData]);
+  // ── Show loading skeleton while fetching data ─────────────────────────
+  if (isCourseLoading || isSubmissionsLoading) {
+    return <ELKPDScoreLoadingSkeleton />;
+  }
 
   return (
     <LearningAnalyticsELKPDScoreContent
@@ -156,4 +161,3 @@ export default function LearningAnalyticsELKPDScoreTemplate({
     />
   );
 }
-
