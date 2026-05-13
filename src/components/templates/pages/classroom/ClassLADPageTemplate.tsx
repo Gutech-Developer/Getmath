@@ -14,6 +14,8 @@ import {
 } from "@/components/molecules/classroom";
 import { buildClassRoute } from "@/constant/classSidebarRoutes";
 import { cn } from "@/libs/utils";
+import { useGsChildCourseDetail } from "@/services/hooks/useGsParent";
+import { useStudentDashboard } from "@/services/hooks/useGsDashboard";
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
@@ -80,6 +82,8 @@ const AI_SUMMARY =
 /* ------------------------------------------------------------------ */
 interface IClassLADPageTemplateProps {
   slug: string;
+  courseId?: string;
+  studentId?: string;
   studentName?: string;
   backHref?: string;
   backLabel?: string;
@@ -131,14 +135,43 @@ function SectionCard({
 /* ------------------------------------------------------------------ */
 export default function ClassLADPageTemplate({
   slug,
-  studentName,
+  courseId,
+  studentId,
+  studentName: studentNameProp,
   backHref,
   backLabel,
 }: IClassLADPageTemplateProps) {
-  const classTitle = formatClassTitleFromSlug(slug);
+  // Parent Mode
+  const { data: childCourseDetail, isLoading: isChildLoading } = useGsChildCourseDetail(
+    studentId || "",
+    courseId || ""
+  );
+
+  // Student Mode (Self)
+  const { data: studentDashboard, isLoading: isStudentLoading } = useStudentDashboard(
+    courseId || "",
+    { enabled: !studentId && !!courseId }
+  );
+
+  const isLoading = isChildLoading || isStudentLoading;
+  const classTitle = childCourseDetail?.course.courseName || studentDashboard?.courseName || formatClassTitleFromSlug(slug);
+  const studentName = studentId ? studentNameProp : studentNameProp; // If parent mode, studentName is usually passed from dashboard
   const ladTitle = studentName ? `LAD – ${studentName}` : `LAD – ${classTitle}`;
   const resolvedBackHref = backHref ?? buildClassRoute(slug);
   const resolvedBackLabel = backLabel ?? "← Kembali ke Beranda Kelas";
+
+  const progressPercent = studentId 
+    ? (childCourseDetail?.totalSubjectModules ? Math.round((childCourseDetail.completedSubjectModules / childCourseDetail.totalSubjectModules) * 100) : 0)
+    : studentDashboard?.progressPercent;
+    
+  const scoreTrendData = studentId 
+    ? childCourseDetail?.diagnosticResults.map(d => ({
+        date: new Date(d.completedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+        nilai: d.score
+      })).reverse() || []
+    : SCORE_TREND_DATA;
+
+
 
   return (
     <ClassPageShellTemplate slug={slug} activeKey="lad" classTitle={classTitle}>
@@ -173,33 +206,33 @@ export default function ClassLADPageTemplate({
       {/* ---- Metric Cards ---- */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <LADMetricCard
-          value="76"
-          label="Rata-rata Nilai"
-          sub="Dari semua tes di kelasmu"
+          value={studentId ? `${progressPercent}%` : (studentDashboard?.progressPercent ? `${studentDashboard.progressPercent}%` : "0%")}
+          label="Progres Belajar"
+          sub="Dari materi dibaca"
           icon={TrendUpIcon}
           iconBg="bg-[#FEE2E2]"
           iconFg="text-[#EF4444]"
         />
         <LADMetricCard
-          value="14j 35m"
-          label="Total Waktu Belajar"
-          sub="6 sesi ini"
+          value={studentId ? `${childCourseDetail?.completedSubjectModules}/${childCourseDetail?.totalSubjectModules}` : "14j 35m"}
+          label={studentId ? "Materi Selesai" : "Total Waktu Belajar"}
+          sub={studentId ? "Modul dipelajari" : "6 sesi ini"}
           icon={ClockIcon}
           iconBg="bg-[#FEF3C7]"
           iconFg="text-[#D97706]"
         />
         <LADMetricCard
-          value="22 menit"
-          label="Rata-rata per Materi"
-          sub="Waktu baca"
+          value={studentId ? String(childCourseDetail?.diagnosticResults[0]?.score || 0) : (studentDashboard?.subjectModuleRead ? `${studentDashboard.subjectModuleRead}/${studentDashboard.subjectModuleTotal}` : "0/0")}
+          label={studentId ? "Skor Terakhir" : "Materi Selesai"}
+          sub={studentId ? "Tes diagnostik" : "Modul dibaca"}
           icon={TrophyIcon}
           iconBg="bg-[#D1FAE5]"
           iconFg="text-[#059669]"
         />
         <LADMetricCard
-          value="#2"
-          label="Peringkat"
-          sub="28 siswa"
+          value={studentId ? String(childCourseDetail?.diagnosticResults.length || 0) : (studentDashboard?.enrolledCount ? `#${studentDashboard.enrolledCount}` : "-")}
+          label={studentId ? "Total Percobaan" : "Peringkat"}
+          sub={studentId ? "Kali tes" : "Status kelas"}
           icon={StarIcon}
           iconBg="bg-[#FEF3C7]"
           iconFg="text-[#D97706]"
@@ -212,7 +245,7 @@ export default function ClassLADPageTemplate({
         subtitle="Riwayat nilai dari semua tes diagnostik"
         icon={<TrendUpIcon className="h-4 w-4" />}
       >
-        <LADScoreTrendChart data={SCORE_TREND_DATA} />
+        <LADScoreTrendChart data={scoreTrendData} />
       </SectionCard>
 
       {/* ---- Emotion Charts ---- */}

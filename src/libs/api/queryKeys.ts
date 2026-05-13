@@ -354,4 +354,20 @@ export const queryKeys = {
     detail: (id: string) =>
       [...queryKeys.gsELkpdSubmissions.details(), id] as const,
   },
+
+  // Parents (monitoring children)
+  gsParents: {
+    all: ["gs", "parents"] as const,
+    children: () => [...queryKeys.gsParents.all, "children"] as const,
+    childDashboard: (studentId: string) =>
+      [...queryKeys.gsParents.all, "child", studentId, "dashboard"] as const,
+    childCourseDetail: (studentId: string, courseId: string) =>
+      [
+        ...queryKeys.gsParents.all,
+        "child",
+        studentId,
+        "course",
+        courseId,
+      ] as const,
+  },
 } as const;
