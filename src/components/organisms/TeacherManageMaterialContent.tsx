@@ -452,19 +452,26 @@ export default function TeacherManageMaterialContent({
       return;
     }
 
-    const elkpdData = {
-      eLKPDTitle: form.elkpdTitle.trim(),
-      eLKPDDescription: form.elkpdDescription.trim() || undefined,
-      eLKPDFileUrl: form.elkpdFileUrl.trim(),
-    };
+    const elkpdData =
+      form.elkpdTitle.trim() && form.elkpdFileUrl.trim()
+        ? {
+            eLKPD: {
+              title: form.elkpdTitle.trim(),
+              description: form.elkpdDescription.trim() || undefined,
+              fileUrl: form.elkpdFileUrl.trim(),
+            },
+          }
+        : {};
 
     if (editingSubjectId) {
       const subjectData = {
         subjectName: form.subjectName.trim(),
         description: form.description.trim() || undefined,
         subjectFileUrl: form.subjectFileUrl.trim(),
-        videoUrl: form.videoUrl.trim(),
-        ...elkpdData,
+        videoUrl: form.videoUrl.trim() || undefined,
+        eLKPDTitle: form.elkpdTitle.trim() || undefined,
+        eLKPDDescription: form.elkpdDescription.trim() || undefined,
+        eLKPDFileUrl: form.elkpdFileUrl.trim() || undefined,
       };
 
       updateSubject.mutate(
@@ -484,7 +491,7 @@ export default function TeacherManageMaterialContent({
           subjectName: form.subjectName.trim(),
           description: form.description.trim() || undefined,
           subjectFileUrl: form.subjectFileUrl.trim(),
-          videoUrl: form.videoUrl.trim(),
+          videoUrl: form.videoUrl.trim() || undefined,
           ...elkpdData,
         },
         {

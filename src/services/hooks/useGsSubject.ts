@@ -113,17 +113,9 @@ export function useGsCreateSubject() {
   return useMutation<GsCreateSubjectResponse, Error, GsCreateSubjectInput>({
     mutationFn: (input) => gsPost<GsCreateSubjectResponse>("/subjects", input),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.gsSubjects.all });
       queryClient.invalidateQueries({
-        queryKey: ["gs", "subjects", "my"],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.gsSubjects.lists(),
-      });
-
-      queryClient.refetchQueries({
-        queryKey: ["gs", "subjects", "my"],
-        type: "active",
+        queryKey: queryKeys.gsCourseModules.all,
       });
     },
   });
@@ -141,21 +133,14 @@ export function useGsUpdateSubject() {
   >({
     mutationFn: ({ id, data }) => gsPut<GsSubject>(`/subjects/${id}`, data),
     onSuccess: (updated) => {
-      queryClient.invalidateQueries({
-        queryKey: ["gs", "subjects", "my"],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.gsSubjects.lists(),
-      });
-
+      // Update detail cache immediately, then invalidate everything else
       queryClient.setQueryData(
         queryKeys.gsSubjects.detail(updated.id),
         updated,
       );
-
+      queryClient.invalidateQueries({ queryKey: queryKeys.gsSubjects.all });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.gsSubjects.detail(updated.id),
+        queryKey: queryKeys.gsCourseModules.all,
       });
     },
   });
@@ -169,11 +154,14 @@ export function useGsDeleteSubject() {
   return useMutation<void, Error, string>({
     mutationFn: (id) => gsDel<void>(`/subjects/${id}`),
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.gsSubjects.myList(),
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.gsSubjects.lists() });
+      // Remove the deleted subject's detail cache entry
       queryClient.removeQueries({ queryKey: queryKeys.gsSubjects.detail(id) });
+      // Invalidate all subject-related queries (my list, all lists, byTeacher, etc.)
+      queryClient.invalidateQueries({ queryKey: queryKeys.gsSubjects.all });
+      // Invalidate course modules — they may reference this subject
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseModules.all,
+      });
     },
   });
 }
