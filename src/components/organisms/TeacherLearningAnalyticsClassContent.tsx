@@ -273,7 +273,7 @@ export default function TeacherLearningAnalyticsClassContent({
         students={classDetail.students}
       />
     ),
-    // seharusnya disini bukan di showforum 
+    // seharusnya disini bukan di showforum
     Forum: (
       <ForumSection
         courseId={classDetail.id ?? classDetail.slug}
@@ -281,7 +281,7 @@ export default function TeacherLearningAnalyticsClassContent({
         role="teacher"
         materials={materials}
       />
-    ),  
+    ),
   };
 
   return (

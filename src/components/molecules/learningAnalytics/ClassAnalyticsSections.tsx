@@ -1154,9 +1154,7 @@ export function BaseMateriSection({
 
   const nextOrder = useMemo(() => {
     if (orderedCourseModules.length === 0) return 1;
-    const maxOrder = Math.max(
-      ...orderedCourseModules.map((m) => m.order ?? 0),
-    );
+    const maxOrder = Math.max(...orderedCourseModules.map((m) => m.order ?? 0));
     return maxOrder + 1;
   }, [orderedCourseModules]);
 
