@@ -44,6 +44,9 @@ interface ParentBannerProps extends WelcomeBannerBaseProps {
   role: "parent";
   childName: string;
   onManageChild?: () => void;
+  children?: Array<{ id: string; fullName: string }>;
+  selectedChildId?: string | null;
+  onChildSelect?: (id: string) => void;
 }
 
 export type WelcomeBannerProps =
@@ -55,10 +58,16 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = (props) => {
   const { name, role = "student" } = props;
 
   if (role === "parent") {
-    const { childName, onManageChild } = props as ParentBannerProps;
+    const {
+      childName,
+      onManageChild,
+      children = [],
+      selectedChildId,
+      onChildSelect,
+    } = props as ParentBannerProps;
     return (
       <div className="relative w-full rounded-2xl bg-[#1F2375] p-6 md:p-8 overflow-hidden">
-        <div className="relative flex items-start justify-between gap-4">
+        <div className="relative flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="flex flex-col gap-2">
             <Badge
               variant="ghost"
@@ -73,11 +82,31 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = (props) => {
               Pantau perkembangan belajar{" "}
               <span className="font-semibold text-white">{childName}</span>
             </p>
+
+            {/* Child Selector */}
+            {children.length > 1 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {children.map((child) => (
+                  <button
+                    key={child.id}
+                    onClick={() => onChildSelect?.(child.id)}
+                    className={cn(
+                      "px-4 py-1.5 rounded-full text-xs font-medium transition-all",
+                      selectedChildId === child.id
+                        ? "bg-white text-[#1F2375] shadow-lg scale-105"
+                        : "bg-white/10 text-white/80 hover:bg-white/20",
+                    )}
+                  >
+                    {child.fullName}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {onManageChild && (
             <button
               onClick={onManageChild}
-              className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-white text-[#1F2375] rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors"
+              className="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-[#1F2375] rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors"
             >
               <span>👤</span>
               Manajemen Anak
