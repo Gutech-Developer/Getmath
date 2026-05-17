@@ -188,6 +188,8 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.gsCourses.details(), id] as const,
     bySlug: (slug: string) =>
       [...queryKeys.gsCourses.all, "slug", slug] as const,
+    schoolList: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsCourses.all, "school", filters] as const,
   },
 
   // Course Enrollments

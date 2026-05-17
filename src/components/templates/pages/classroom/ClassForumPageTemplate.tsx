@@ -97,12 +97,15 @@ export default function ClassForumPageTemplate({
     ];
 
     if (modulesData) {
-      modulesData.forEach((mod) => {
-        mats.push({
-          id: mod.id,
-          label: mod.subject?.subjectName ?? mod.diagnosticTest?.testName ?? "Materi",
+      modulesData
+        .filter((mod) => mod.type === "SUBJECT")
+        .forEach((mod, index) => {
+          const flat = mod as any;
+          mats.push({
+            id: mod.id || flat.courseModuleId,
+            label: flat.subjectName ?? mod.subject?.subjectName ?? `Materi ${mod.order ?? index + 1}`,
+          });
         });
-      });
     }
 
     return mats;
