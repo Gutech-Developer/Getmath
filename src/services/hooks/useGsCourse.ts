@@ -42,6 +42,16 @@ export function useGsAllCourses(params?: GsPaginationParams) {
   });
 }
 
+// ─── STUDENT: GET /courses/school — semua kelas di sekolah student ──────────
+
+export function useGsSchoolCourses(params?: GsPaginationParams) {
+  return useQuery<GsPaginatedCourses, Error>({
+    queryKey: queryKeys.gsCourses.schoolList(params as Record<string, unknown>),
+    queryFn: () => gsGet<GsPaginatedCourses>(`/courses/school${buildQuery(params)}`),
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
 // ─── TEACHER: GET /courses/my — kelas milik teacher login ────────────────────
 
 export function useGsMyCourses(params?: GsPaginationParams) {
