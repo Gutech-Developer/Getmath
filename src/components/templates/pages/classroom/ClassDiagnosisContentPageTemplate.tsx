@@ -29,16 +29,21 @@ import {
   useStartTestAttempt,
   useMyTestAttempts,
   useSubmitTestAttempt,
+  useStartRemedialAttempt,
+  useSubmitRemedialVariant,
+  useGsRemedialTestById,
 } from "@/services";
 import type {
   StartTestAttemptResult,
   SubmitTestAttemptResult,
+  RemedialVariant,
 } from "@/services/hooks/useGsProgress";
 
 export default function ClassDiagnosisContentPageTemplate({
   slug,
   contentId,
   diagnotisId,
+  remediaId,
 }: IClassDiagnosisContentPageTemplateProps) {
   const [flowStep, setFlowStep] = useState<DiagnosticFlowStep>("camera");
   const [cameraState, setCameraState] = useState<CameraPermissionState>("idle");
@@ -64,6 +69,42 @@ export default function ClassDiagnosisContentPageTemplate({
   const { data: apiModule, isLoading: isModuleLoading } =
     useGsModuleById(contentId);
 
+  // ─── Remedial States ──────────────────────────────────────────────────────
+  const isRemedial = apiModule?.type === "REMEDIAL";
+  const [remedialAttemptId, setRemedialAttemptId] = useState<string | null>(null);
+  const [currentVariant, setCurrentVariant] = useState<RemedialVariant | null>(null);
+  const [remedialTestInfo, setRemedialTestInfo] = useState<{
+    testName: string;
+    passingScore: number;
+    totalQuestions: number;
+  } | null>(null);
+  const [selectedRemedialOptionId, setSelectedRemedialOptionId] = useState<string | null>(null);
+  const [discussionShow, setDiscussionShow] = useState<boolean>(false);
+  const [discussionData, setDiscussionData] = useState<{
+    text: string;
+    videoUrl?: string;
+  } | null>(null);
+  const [discussionVideoWatched, setDiscussionVideoWatched] = useState<boolean>(false);
+  const [remedialSummary, setRemedialSummary] = useState<any | null>(null);
+  const [nextVariantData, setNextVariantData] = useState<RemedialVariant | null>(null);
+  const [remedialAnswers, setRemedialAnswers] = useState<
+    Array<{ questionNumber: number; packageLabel: string; isCorrect: boolean }>
+  >([]);
+
+  const startRemedialMutation = useStartRemedialAttempt(contentId);
+  const submitRemedialVariantMutation = useSubmitRemedialVariant(contentId);
+
+  const { data: remedialTestData } = useGsRemedialTestById(
+    isRemedial ? (apiModule?.remedialTestId ?? "") : ""
+  );
+
+  const getYouTubeId = (url: string): string | null => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
   const { data: attemptsData } = useMyTestAttempts(contentId);
   const activeAttempt = useMemo(() => {
     return attemptsData?.attempts
@@ -75,36 +116,12 @@ export default function ClassDiagnosisContentPageTemplate({
       )[0];
   }, [attemptsData]);
 
-  // Always use the module's nextPackage for displaying questions.
-  // The active attempt's package may differ, but we resolve it at submit time via POST /start.
-  const packageId = apiModule?.nextPackage?.packageId ?? "";
-  const { data: apiPackage } = useGsModuleByPackage(packageId);
-
   const diagnosticQuestions = useMemo(() => {
-    // Prefer questions from the started attempt so that `id` matches
-    // the testQuestionId the backend expects on submit.
-    // Fall back to the package endpoint for initial display before start.
-    const source =
-      attemptQuestions ??
-      apiPackage?.package?.questions?.map((q) => ({
-        id: q.id,
-        questionNumber: 0,
-        textQuestion: q.textQuestion,
-        imageQuestionUrl: q.imageQuestionUrl,
-        options: q.options.map((opt) => ({
-          id: opt.id,
-          option: opt.option,
-          textAnswer: opt.textAnswer,
-          imageAnswerUrl: opt.imageAnswerUrl,
-        })),
-      })) ??
-      [];
+    const source = attemptQuestions ?? [];
 
     console.log(
       "[DiagnosticTest] diagnosticQuestions source:",
-      attemptQuestions
-        ? "attemptQuestions (from POST /start)"
-        : "apiPackage (fallback)",
+      attemptQuestions ? "attemptQuestions (from POST /start)" : "empty",
       "ids:",
       source.map((q) => q.id),
     );
@@ -119,14 +136,10 @@ export default function ClassDiagnosisContentPageTemplate({
         label: opt.option,
         text: opt.textAnswer ?? "",
       })),
-      discussion:
-        apiPackage?.package?.questions?.find((pq) => pq.id === q.id)
-          ?.pembahasan ?? "",
-      videoUrl:
-        apiPackage?.package?.questions?.find((pq) => pq.id === q.id)
-          ?.videoUrl ?? "",
+      discussion: "",
+      videoUrl: "",
     }));
-  }, [attemptQuestions, apiPackage]);
+  }, [attemptQuestions]);
 
   const startTestMutation = useStartTestAttempt(contentId);
   const submitAttempt = useSubmitTestAttempt(contentId);
@@ -136,9 +149,10 @@ export default function ClassDiagnosisContentPageTemplate({
 
   const encodedSlug = encodeURIComponent(slug);
   const encodedContentId = encodeURIComponent(contentId);
-  const encodedDiagnotisId = encodeURIComponent(diagnotisId);
   const materialHref = `/student/dashboard/class/${encodedSlug}/materi/${encodedContentId}`;
-  const diagnosticHref = `${materialHref}/${encodedDiagnotisId}`;
+  const diagnosticHref = isRemedial
+    ? `${materialHref}/remedia/${encodeURIComponent(remediaId ?? "")}`
+    : `${materialHref}/${encodeURIComponent(diagnotisId ?? "")}`;
 
   const activeQuestion = diagnosticQuestions[activeQuestionIndex] ?? null;
   const allRulesConfirmed = ruleChecklist.every(Boolean);
@@ -166,18 +180,49 @@ export default function ClassDiagnosisContentPageTemplate({
   useEffect(() => {
     console.log("[DiagnosticTest] attemptsData:", attemptsData);
     console.log("[DiagnosticTest] activeAttempt:", activeAttempt);
-  }, [attemptsData, activeAttempt]);
+  }, [attemptsData, activeAttempt]);  useEffect(() => {
+    if (!discussionShow || !discussionData?.videoUrl) return;
 
-  useEffect(() => {
-    console.log(
-      "[DiagnosticTest] apiPackage questions:",
-      apiPackage?.package?.questions?.map((q) => ({
-        id: q.id,
-        text: q.textQuestion?.slice(0, 40),
-      })),
-    );
-  }, [apiPackage]);
+    const tagId = "yt-iframe-api";
+    if (!document.getElementById(tagId)) {
+      const tag = document.createElement("script");
+      tag.id = tagId;
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName("script")[0];
+      if (firstScriptTag && firstScriptTag.parentNode) {
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      }
+    }
 
+    let player: any;
+    const iframeId = `youtube-remedial-player`;
+
+    const initPlayer = () => {
+      if (!document.getElementById(iframeId)) return;
+      player = new (window as any).YT.Player(iframeId, {
+        events: {
+          onStateChange: (event: any) => {
+            if (event.data === (window as any).YT.PlayerState.ENDED) {
+              setDiscussionVideoWatched(true);
+              showToast.success("Video selesai ditonton! Anda dapat melanjutkan.");
+            }
+          },
+        },
+      });
+    };
+
+    if (!(window as any).YT) {
+      (window as any).onYouTubeIframeAPIReady = initPlayer;
+    } else if ((window as any).YT.Player) {
+      setTimeout(initPlayer, 500);
+    }
+
+    return () => {
+      if (player && player.destroy) {
+        player.destroy();
+      }
+    };
+  }, [discussionShow, discussionData?.videoUrl]);
   useEffect(() => {
     if (!previewRef.current || !streamRef.current) {
       return;
@@ -305,15 +350,9 @@ export default function ClassDiagnosisContentPageTemplate({
   };
 
   const handleStartDiagnostic = () => {
-    const packageId = apiModule?.nextPackage?.packageId;
-    if (!packageId) {
-      showToast.error("Paket soal tidak tersedia");
-      return;
-    }
-
     const doStart = () => {
       startTestMutation.mutate(
-        { packageId },
+        {},
         {
           onSuccess: (data) => {
             console.log("[DiagnosticTest] startTestMutation SUCCESS:", data);
@@ -333,6 +372,9 @@ export default function ClassDiagnosisContentPageTemplate({
                 "[DiagnosticTest] currentAttemptId set:",
                 data.attemptId,
               );
+            }
+            if (data?.remainingSeconds) {
+              setRemainingSeconds(data.remainingSeconds);
             }
             setFlowStep("quiz");
           },
@@ -374,6 +416,106 @@ export default function ClassDiagnosisContentPageTemplate({
     }
 
     doStart();
+  };
+
+  const handleStartRemedial = () => {
+    startRemedialMutation.mutate(
+      undefined,
+      {
+        onSuccess: (data) => {
+          console.log("[RemedialTest] startRemedial SUCCESS:", data);
+          if (data?.attemptId) {
+            setRemedialAttemptId(data.attemptId);
+          }
+          if (data?.currentVariant) {
+            setCurrentVariant(data.currentVariant ?? null);
+          }
+          setRemedialTestInfo({
+            testName: data?.testName ?? "Tes Remedial",
+            passingScore: data?.passingScore ?? 70,
+            totalQuestions: data?.totalQuestions ?? 0,
+          });
+          if (data?.remainingSeconds) {
+            setRemainingSeconds(data.remainingSeconds);
+          }
+          setFlowStep("quiz");
+        },
+        onError: (err: any) => {
+          console.error("[RemedialTest] startRemedial ERROR:", err);
+          showToast.error(err.message || "Gagal memulai tes remedial");
+        },
+      }
+    );
+  };
+
+  const handleSelectRemedialOption = (optionId: string) => {
+    if (discussionShow) return;
+    setSelectedRemedialOptionId(optionId);
+  };
+
+  const handleCorrectRemedial = () => {
+    if (!remedialAttemptId || !currentVariant || !selectedRemedialOptionId) return;
+
+    submitRemedialVariantMutation.mutate(
+      {
+        remedialAttemptId,
+        input: {
+          variantId: currentVariant.variantId,
+          selectedOptionId: selectedRemedialOptionId,
+        },
+      },
+      {
+        onSuccess: (data) => {
+          console.log("[RemedialTest] submitRemedialVariant SUCCESS:", data);
+          
+          setRemedialAnswers((prev) => [
+            ...prev,
+            {
+              questionNumber: currentVariant.questionNumber,
+              packageLabel: currentVariant.packageLabel,
+              isCorrect: data.isCorrect,
+            },
+          ]);
+
+          if (data.isCompleted) {
+            setRemedialSummary(data.summary);
+            setFlowStep("completed");
+          } else if (!data.isCorrect && data.discussion) {
+            setDiscussionData(data.discussion);
+            setDiscussionShow(true);
+            setNextVariantData(data.nextVariant ?? null);
+            if (!data.discussion.videoUrl) {
+              setDiscussionVideoWatched(true);
+            } else {
+              setDiscussionVideoWatched(false);
+            }
+          } else {
+            if (data.nextVariant) {
+              setCurrentVariant(data.nextVariant ?? null);
+              setSelectedRemedialOptionId(null);
+              setDiscussionShow(false);
+              setDiscussionData(null);
+              setNextVariantData(null);
+            }
+          }
+        },
+        onError: (err: any) => {
+          console.error("[RemedialTest] submitRemedialVariant ERROR:", err);
+          showToast.error(err.message || "Gagal mengoreksi jawaban");
+        },
+      }
+    );
+  };
+
+  const handleNextRemedialStep = () => {
+    if (nextVariantData) {
+      setCurrentVariant(nextVariantData);
+      setSelectedRemedialOptionId(null);
+      setDiscussionShow(false);
+      setDiscussionData(null);
+      setNextVariantData(null);
+      setDiscussionVideoWatched(false);
+    }
   };
 
   const handleSelectAnswer = (questionId: string, optionId: string) => {
@@ -429,11 +571,15 @@ export default function ClassDiagnosisContentPageTemplate({
             <h2 className="mt-4 text-lg font-bold text-[#0F172A]">
               {hasPassedAnyAttempt
                 ? "Kamu Sudah Lulus Tes Ini"
-                : "Batas Percobaan Habis"}
+                : isRemedial
+                  ? "Batas Percobaan Remedial Habis"
+                  : "Batas Percobaan Habis"}
             </h2>
             <p className="mt-2 text-sm text-[#64748B]">
               {hasPassedAnyAttempt
-                ? "Kamu telah menyelesaikan tes diagnostik ini dengan tuntas."
+                ? isRemedial
+                  ? "Kamu telah menyelesaikan tes remedial ini dengan tuntas."
+                  : "Kamu telah menyelesaikan tes diagnostik ini dengan tuntas."
                 : `Kamu sudah menggunakan 3 dari 3 kesempatan. Hubungi guru untuk mendapat bantuan lebih lanjut.`}
             </p>
             <Link
@@ -463,7 +609,7 @@ export default function ClassDiagnosisContentPageTemplate({
           <div className="mt-4 space-y-3">
             <p className="text-sm leading-6 text-[#475569]">
               Sebelum tes dimulai, aktifkan kamera untuk memastikan proses
-              diagnosis berjalan tertib.
+              pengerjaan berjalan tertib.
             </p>
 
             <ul className="space-y-2">
@@ -502,6 +648,10 @@ export default function ClassDiagnosisContentPageTemplate({
   }
 
   if (flowStep === "briefing") {
+    const totalQCount = isRemedial
+      ? (remedialTestData?.questions?.length ?? 0)
+      : apiModule?.nextPackage?.totalQuestions;
+
     return (
       <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
         <div className="mx-auto max-w-[760px] space-y-4">
@@ -509,7 +659,9 @@ export default function ClassDiagnosisContentPageTemplate({
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">
               Step 2 dari 2
             </p>
-            <h1 className="mt-2 text-xl font-semibold">Tes Diagnostik</h1>
+            <h1 className="mt-2 text-xl font-semibold">
+              {isRemedial ? "Tes Remedial" : "Tes Diagnostik"}
+            </h1>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
               <div className="rounded-2xl border border-white/30 bg-white/15 px-3 py-3 text-white">
@@ -520,7 +672,7 @@ export default function ClassDiagnosisContentPageTemplate({
                   <div>
                     <p className="text-[11px] text-white/75">Jumlah Soal</p>
                     <p className="text-sm font-semibold">
-                      {apiModule?.nextPackage?.totalQuestions} Soal
+                      {totalQCount} Soal
                     </p>
                   </div>
                 </div>
@@ -594,7 +746,7 @@ export default function ClassDiagnosisContentPageTemplate({
 
             <button
               type="button"
-              onClick={handleStartDiagnostic}
+              onClick={isRemedial ? handleStartRemedial : handleStartDiagnostic}
               disabled={!allRulesConfirmed || cameraState !== "granted"}
               className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -603,11 +755,15 @@ export default function ClassDiagnosisContentPageTemplate({
 
             <div className="mt-4 rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] p-3">
               <h3 className="text-sm font-semibold text-[#1E3A8A]">
-                Rule Parsing KKM
+                Rule Passing KKM
               </h3>
               <ul className="mt-2 space-y-1.5 text-sm text-[#1E3A8A]">
                 <li>Nilai dihitung dari jumlah jawaban benar.</li>
-                <li>Rumus: (Benar / {diagnosticQuestions.length}) x 100.</li>
+                {isRemedial ? (
+                  <li>Siswa harus menuntaskan seluruh paket soal remedial.</li>
+                ) : (
+                  <li>Rumus: (Benar / {diagnosticQuestions.length}) x 100.</li>
+                )}
                 <li>
                   Jika nilai &lt; {kkmScore}: status tidak tuntas (merah).
                 </li>
@@ -621,12 +777,28 @@ export default function ClassDiagnosisContentPageTemplate({
   }
 
   if (flowStep === "completed") {
+    const isPassedKKMResolved = isRemedial
+      ? (remedialSummary ? remedialSummary.isPassed : false)
+      : isPassedKKM;
+
+    const totalQuestionsResolved = isRemedial
+      ? (remedialSummary?.totalQuestions ?? remedialTestInfo?.totalQuestions ?? 0)
+      : (submitResult?.totalQuestions ?? diagnosticQuestions.length);
+
+    const correctCountResolved = isRemedial
+      ? (remedialSummary?.correctAnswers ?? 0)
+      : correctCount;
+
+    const scorePercentResolved = isRemedial
+      ? (remedialSummary?.score ?? 0)
+      : scorePercent;
+
     return (
       <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
         <div
           className={cn(
             "mx-auto max-w-xl rounded-3xl border p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]",
-            isPassedKKM
+            isPassedKKMResolved
               ? "border-[#BFDBFE] bg-[#EFF6FF]"
               : "border-[#FECACA] bg-[#FEF2F2]",
           )}
@@ -634,7 +806,7 @@ export default function ClassDiagnosisContentPageTemplate({
           <div
             className={cn(
               "inline-flex h-12 w-12 items-center justify-center rounded-2xl",
-              isPassedKKM
+              isPassedKKMResolved
                 ? "bg-[#DBEAFE] text-[#2563EB]"
                 : "bg-[#FECACA] text-[#DC2626]",
             )}
@@ -643,15 +815,17 @@ export default function ClassDiagnosisContentPageTemplate({
           </div>
 
           <h1 className="mt-4 text-xl font-bold text-[#0F172A] sm:text-2xl">
-            {apiModule?.testName ?? "Tes Diagnostik Selesai"}
+            {isRemedial
+              ? (remedialTestInfo?.testName ?? "Tes Remedial Selesai")
+              : (apiModule?.testName ?? "Tes Diagnostik Selesai")}
           </h1>
           <p
             className={cn(
               "mt-2 text-sm leading-6",
-              isPassedKKM ? "text-[#1E3A8A]" : "text-[#B91C1C]",
+              isPassedKKMResolved ? "text-[#1E3A8A]" : "text-[#B91C1C]",
             )}
           >
-            {isPassedKKM
+            {isPassedKKMResolved
               ? "Jawaban kamu telah tersimpan. Status kamu tuntas sesuai KKM."
               : "Jawaban kamu telah tersimpan. Status kamu belum tuntas karena nilai masih di bawah KKM."}
           </p>
@@ -659,29 +833,28 @@ export default function ClassDiagnosisContentPageTemplate({
           <div
             className={cn(
               "mt-5 rounded-2xl border p-4",
-              isPassedKKM
+              isPassedKKMResolved
                 ? "border-[#BFDBFE] bg-white"
                 : "border-[#FECACA] bg-white",
             )}
           >
             <p className="text-sm text-[#475569]">Ringkasan Hasil</p>
             <p className="mt-1 text-xl font-semibold text-[#0F172A]">
-              {answeredCount}/
-              {submitResult?.totalQuestions ?? diagnosticQuestions.length} soal
-              terjawab
+              {isRemedial ? totalQuestionsResolved : answeredCount}/
+              {totalQuestionsResolved} soal terjawab
             </p>
             <p className="mt-1 text-sm text-[#334155]">
-              Benar: {correctCount} soal • Nilai: {scorePercent}
+              Benar: {correctCountResolved} soal • Nilai: {scorePercentResolved}
             </p>
             <p
               className={cn(
                 "mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-                isPassedKKM
+                isPassedKKMResolved
                   ? "bg-[#DBEAFE] text-[#1E40AF]"
                   : "bg-[#FEE2E2] text-[#B91C1C]",
               )}
             >
-              {isPassedKKM
+              {isPassedKKMResolved
                 ? `Lulus KKM (${kkmScore})`
                 : `Belum Lulus KKM (${kkmScore})`}
             </p>
@@ -689,104 +862,131 @@ export default function ClassDiagnosisContentPageTemplate({
 
           <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-white p-4">
             <h2 className="text-sm font-semibold text-[#0F172A]">
-              Pembahasan per Soal
+              {isRemedial ? "Riwayat Pengerjaan Remedial" : "Pembahasan per Soal"}
             </h2>
 
             <div className="mt-3 space-y-2.5">
-              {diagnosticQuestions.map((question, index) => {
-                const selectedOption = question.options.find(
-                  (option) => option.id === answers[question.id],
-                );
-                const isOpen = openedDiscussionIds.includes(question.id);
-                const panelId = `discussion-panel-${question.id}`;
-
-                return (
-                  <article
-                    key={question.id}
-                    className="overflow-hidden rounded-xl border border-[#E2E8F0]"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleToggleDiscussion(question.id)}
-                      aria-expanded={isOpen}
-                      aria-controls={panelId}
-                      className="flex w-full items-start justify-between gap-3 bg-[#F8FAFC] px-3 py-3 text-left transition hover:bg-[#F1F5F9]"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
-                          Soal {index + 1}
-                        </p>
-                        <p className="mt-1 text-sm font-medium text-[#0F172A]">
-                          <MathText text={question.prompt} />
-                        </p>
-                      </div>
-
-                      <div className="flex shrink-0 items-center gap-2">
-                        <span
-                          className={cn(
-                            "inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold",
-                            selectedOption
-                              ? "border-[#DBEAFE] bg-[#EFF6FF] text-[#1D4ED8]"
-                              : "border-[#E2E8F0] bg-white text-[#64748B]",
-                          )}
-                        >
-                          {selectedOption
-                            ? `Dijawab: ${selectedOption.label}`
-                            : "Belum Dijawab"}
-                        </span>
-
-                        <ChevronLeftIcon
-                          className={cn(
-                            "h-4 w-4 text-[#64748B] transition-transform",
-                            isOpen ? "-rotate-90" : "rotate-90",
-                          )}
-                        />
-                      </div>
-                    </button>
-
-                    {isOpen ? (
-                      <div
-                        id={panelId}
-                        className="border-t border-[#E2E8F0] px-3 py-3"
+              {isRemedial ? (
+                remedialAnswers.length > 0 ? (
+                  <ul className="space-y-2">
+                    {remedialAnswers.map((ans, idx) => (
+                      <li
+                        key={idx}
+                        className={cn(
+                          "flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-medium",
+                          ans.isCorrect
+                            ? "border-[#D1FAE5] bg-[#ECFDF5] text-[#065F46]"
+                            : "border-[#FEE2E2] bg-[#FEF2F2] text-[#991B1B]",
+                        )}
                       >
-                        <div className="space-y-2 text-sm text-[#334155]">
-                          <p>
-                            <span className="font-semibold text-[#0F172A]">
-                              Jawaban kamu:
-                            </span>{" "}
-                            {selectedOption ? (
-                              <>
-                                {selectedOption.label}.{" "}
-                                <MathText text={selectedOption.text} />
-                              </>
-                            ) : (
-                              "Belum menjawab soal ini."
-                            )}
+                        <span>
+                          Soal {ans.questionNumber} (Paket {ans.packageLabel})
+                        </span>
+                        <span className="font-bold">
+                          {ans.isCorrect ? "Benar ✅" : "Salah ❌"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-[#64748B] italic">Tidak ada riwayat pengerjaan.</p>
+                )
+              ) : (
+                diagnosticQuestions.map((question, index) => {
+                  const selectedOption = question.options.find(
+                    (option) => option.id === answers[question.id],
+                  );
+                  const isOpen = openedDiscussionIds.includes(question.id);
+                  const panelId = `discussion-panel-${question.id}`;
+
+                  return (
+                    <article
+                      key={question.id}
+                      className="overflow-hidden rounded-xl border border-[#E2E8F0]"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDiscussion(question.id)}
+                        aria-expanded={isOpen}
+                        aria-controls={panelId}
+                        className="flex w-full items-start justify-between gap-3 bg-[#F8FAFC] px-3 py-3 text-left transition hover:bg-[#F1F5F9]"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+                            Soal {index + 1}
                           </p>
-                          {question.discussion ? (
-                            <p className="leading-6">
-                              <span className="font-semibold text-[#0F172A]">
-                                Pembahasan:
-                              </span>{" "}
-                              <MathText text={question.discussion} />
-                            </p>
-                          ) : null}
-                          {question.videoUrl ? (
-                            <a
-                              href={question.videoUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[#2563EB] underline"
-                            >
-                              Lihat video pembahasan
-                            </a>
-                          ) : null}
+                          <p className="mt-1 text-sm font-medium text-[#0F172A]">
+                            <MathText text={question.prompt} />
+                          </p>
                         </div>
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
+
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold",
+                              selectedOption
+                                ? "border-[#DBEAFE] bg-[#EFF6FF] text-[#1D4ED8]"
+                                : "border-[#E2E8F0] bg-white text-[#64748B]",
+                            )}
+                          >
+                            {selectedOption
+                              ? `Dijawab: ${selectedOption.label}`
+                              : "Belum Dijawab"}
+                          </span>
+
+                          <ChevronLeftIcon
+                            className={cn(
+                              "h-4 w-4 text-[#64748B] transition-transform",
+                              isOpen ? "-rotate-90" : "rotate-90",
+                            )}
+                          />
+                        </div>
+                      </button>
+
+                      {isOpen ? (
+                        <div
+                          id={panelId}
+                          className="border-t border-[#E2E8F0] px-3 py-3"
+                        >
+                          <div className="space-y-2 text-sm text-[#334155]">
+                            <p>
+                              <span className="font-semibold text-[#0F172A]">
+                                Jawaban kamu:
+                              </span>{" "}
+                              {selectedOption ? (
+                                <>
+                                  {selectedOption.label}.{" "}
+                                  <MathText text={selectedOption.text} />
+                                </>
+                              ) : (
+                                "Belum menjawab soal ini."
+                              )}
+                            </p>
+                            {question.discussion ? (
+                              <p className="leading-6">
+                                <span className="font-semibold text-[#0F172A]">
+                                  Pembahasan:
+                                </span>{" "}
+                                <MathText text={question.discussion} />
+                              </p>
+                            ) : null}
+                            {question.videoUrl ? (
+                              <a
+                                href={question.videoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[#2563EB] underline"
+                              >
+                                Lihat video pembahasan
+                              </a>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -797,12 +997,14 @@ export default function ClassDiagnosisContentPageTemplate({
             >
               Kembali ke Materi
             </Link>
-            <Link
-              href={diagnosticHref}
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
-            >
-              Kerjakan Ulang
-            </Link>
+            {!isRemedial && (
+              <Link
+                href={diagnosticHref}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
+              >
+                Kerjakan Ulang
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -813,6 +1015,203 @@ export default function ClassDiagnosisContentPageTemplate({
   const canSubmitCurrentQuestion = Boolean(
     activeQuestion && answers[activeQuestion.id],
   );
+
+  if (isRemedial) {
+    return (
+      <section className="mx-auto w-full max-w-[1200px] py-2 sm:py-4">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
+          <div className="space-y-4">
+            {/* Header Card */}
+            <div className="rounded-2xl bg-[#2563EB] p-4 text-white shadow-[0_16px_35px_rgba(37,99,235,0.26)] sm:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/85">
+                  Soal Remedial
+                </p>
+                <span className="rounded-full border border-white/35 bg-white/15 px-3 py-1 text-xs font-semibold">
+                  Soal {currentVariant?.questionNumber ?? 1} • Paket {currentVariant?.packageLabel ?? "A"}
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold">Sesi remedial sedang berjalan</p>
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/35 bg-white/15 px-3 py-1.5 text-sm font-semibold">
+                  <ClockIcon className="h-4 w-4" />
+                  {timeLabel}
+                </span>
+              </div>
+            </div>
+
+            {/* Question Card */}
+            <div className="rounded-3xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
+                  Remedial
+                </span>
+                <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#475569]">
+                  Paket {currentVariant?.packageLabel ?? "A"}
+                </span>
+                <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#475569]">
+                  Soal {currentVariant?.questionNumber ?? 1}
+                </span>
+              </div>
+
+              <h2 className="mt-4 text-lg font-semibold leading-7 text-[#0F172A]">
+                <MathText text={currentVariant?.textQuestion ?? ""} />
+              </h2>
+
+              <div className="mt-4 space-y-2.5">
+                {(currentVariant?.options ?? []).map((option) => {
+                  const isSelected = selectedRemedialOptionId === option.id;
+
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      disabled={discussionShow}
+                      onClick={() => handleSelectRemedialOption(option.id)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition",
+                        isSelected
+                          ? "border-[#93C5FD] bg-[#EFF6FF]"
+                          : "border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]",
+                        discussionShow && "cursor-not-allowed opacity-60"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
+                          isSelected
+                            ? "border-[#2563EB] bg-[#2563EB] text-white"
+                            : "border-[#CBD5E1] bg-white text-[#64748B]",
+                        )}
+                      >
+                        {option.option}
+                      </span>
+                      <span className="text-sm text-[#334155]">
+                        <MathText text={option.textAnswer ?? ""} />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Discussion / Video Panel (Only visible when student answered incorrectly) */}
+              {discussionShow && (
+                <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <AlertIcon className="mt-1 h-5 w-5 shrink-0 text-red-600" />
+                    <div>
+                      <h3 className="text-sm font-bold text-red-800">Jawaban Kurang Tepat</h3>
+                      <p className="mt-1 text-sm text-red-700 leading-6">
+                        <MathText text={discussionData?.text ?? ""} />
+                      </p>
+                    </div>
+                  </div>
+
+                  {discussionData?.videoUrl && (
+                    <div className="mt-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-red-800/80 mb-2">
+                        Video Pembahasan Pendukung
+                      </p>
+                      <div className="rounded-2xl overflow-hidden border border-red-200/50 bg-black shadow-md">
+                        <iframe
+                          id="youtube-remedial-player"
+                          src={`https://www.youtube.com/embed/${getYouTubeId(discussionData.videoUrl)}?enablejsapi=1&controls=1&rel=0`}
+                          title="Video Pembahasan"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full aspect-video"
+                        />
+                      </div>
+                      {!discussionVideoWatched && (
+                        <p className="mt-2 text-xs font-medium text-red-600 animate-pulse">
+                          ℹ️ Tonton video pembahasan di atas sampai selesai untuk melanjutkan ke paket berikutnya.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Navigation Button */}
+            <div className="flex items-center justify-end gap-3">
+              {discussionShow ? (
+                <button
+                  type="button"
+                  onClick={handleNextRemedialStep}
+                  disabled={!discussionVideoWatched}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Lanjut ke Langkah Berikutnya
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCorrectRemedial}
+                  disabled={!selectedRemedialOptionId || submitRemedialVariantMutation.isPending}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitRemedialVariantMutation.isPending ? "Mengoreksi..." : "Kirim Jawaban"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <aside className="h-fit rounded-3xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
+            <div className="rounded-2xl border border-[#E2E8F0] bg-[#0F172A] p-2">
+              <video
+                ref={previewRef}
+                autoPlay
+                playsInline
+                muted
+                className="h-28 w-full rounded-xl bg-[#0B1120] object-cover"
+              />
+            </div>
+
+            {/* Remedial Steps Feed */}
+            <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+                Riwayat Remedial
+              </p>
+              {remedialAnswers.length > 0 ? (
+                <div className="mt-2 space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                  {remedialAnswers.map((ans, idx) => (
+                    <div
+                      key={idx}
+                      className={cn(
+                        "flex items-center justify-between rounded-lg border px-2.5 py-2 text-xs font-semibold",
+                        ans.isCorrect
+                          ? "border-green-200 bg-green-50 text-green-700"
+                          : "border-red-200 bg-red-50 text-red-700",
+                      )}
+                    >
+                      <span>Soal {ans.questionNumber} (Paket {ans.packageLabel})</span>
+                      <span>{ans.isCorrect ? "✅" : "❌"}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-[#64748B] italic">
+                  Mulai kirim jawaban untuk melihat riwayat.
+                </p>
+              )}
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+                Kamera
+              </p>
+              <p className="mt-1 text-sm font-medium text-[#0F172A]">
+                {cameraState === "granted" ? "Aktif" : "Belum aktif"}
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto w-full max-w-[1200px] py-2 sm:py-4">
