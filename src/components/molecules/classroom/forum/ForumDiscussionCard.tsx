@@ -13,6 +13,7 @@ import {
 } from "@/utils/classForum";
 import ForumAvatar from "./ForumAvatar";
 import ForumBadge, { ForumPinnedBadge } from "./ForumBadge";
+import { useGsModuleById } from "@/services/hooks/useGsCourseModule";
 
 type ForumDiscussionCardVariant = "list" | "detail";
 
@@ -44,6 +45,18 @@ export default function ForumDiscussionCard({
     ? buildClassForumDiscussionRoute(slug, discussion.id)
     : undefined;
 
+  const { data: moduleData } = useGsModuleById(
+    discussion.materialId !== "umum" ? discussion.materialId : "",
+  );
+
+  const materialLabel = moduleData
+    ? ((moduleData as any).subjectName ??
+        moduleData.subject?.subjectName ??
+        moduleData.testName ??
+        moduleData.diagnosticTest?.testName ??
+        `Modul ${moduleData.order ?? ""}`)
+    : (discussion.materialName ?? getForumMaterialLabel(discussion.materialId));
+
   return (
     <article className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-[0px_16px_32px_rgba(148,163,184,0.12)] sm:p-6">
       <div className="flex items-start gap-4">
@@ -68,9 +81,15 @@ export default function ForumDiscussionCard({
                 >
                   {getRoleLabel(discussion.author.role)}
                 </ForumBadge>
-                <ForumBadge tone="material">
-                  {discussion.materialName ?? getForumMaterialLabel(discussion.materialId)}
-                </ForumBadge>
+                {discussion.materialId !== "umum" ? (
+                  <ForumBadge tone="material">
+                    Bab: {materialLabel}
+                  </ForumBadge>
+                ) : (
+                  <ForumBadge tone="material">
+                    Topik Umum
+                  </ForumBadge>
+                )}
                 {discussion.status === "inactive" ? (
                   <ForumBadge tone="inactive">Nonaktif</ForumBadge>
                 ) : null}

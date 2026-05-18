@@ -30,6 +30,11 @@ export interface GsForumDiscussion {
   isLiked?: boolean;
   commentCount?: number;
   totalComments?: number;
+  courseModule?: {
+    id: string;
+    order?: number;
+    type?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

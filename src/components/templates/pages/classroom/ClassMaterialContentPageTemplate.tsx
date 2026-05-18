@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import BookIcon from "@/components/atoms/icons/BookIcon";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import CheckCircleIcon from "@/components/atoms/icons/CheckCircleIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
@@ -370,6 +371,31 @@ export default function ClassMaterialContentPageTemplate({
   const toggleModule = (moduleId: string) => {
     setOpenModuleId((cur) => (cur === moduleId ? null : moduleId));
   };
+
+  /* ---------- Derived Progress Data ---------- */
+  const totalModules = modules.length;
+  const completedModules = modules.filter(
+    (m) => m.steps.length > 0 && m.steps.every((s) => s.status === "completed"),
+  ).length;
+
+  const totalStepsAll = modules.reduce((sum, m) => sum + m.steps.length, 0);
+  const completedStepsAll = modules.reduce(
+    (sum, m) => sum + m.steps.filter((s) => s.status === "completed").length,
+    0,
+  );
+
+  const overallProgress =
+    totalModules > 0
+      ? Math.round(
+          modules.reduce((sum, m) => {
+            const mTotal = m.steps.length;
+            const mCompleted = m.steps.filter(
+              (s) => s.status === "completed",
+            ).length;
+            return sum + (mTotal > 0 ? (mCompleted / mTotal) * 100 : 0);
+          }, 0) / totalModules,
+        )
+      : 0;
 
   /* ---------- Breadcrumb ---------- */
   const currentModuleTitle =
@@ -844,11 +870,51 @@ export default function ClassMaterialContentPageTemplate({
 
         {/* ==================== RIGHT SIDEBAR ==================== */}
         <aside className="sticky top-4 h-fit rounded-2xl border border-[#E2E8F0] bg-white p-4 sm:p-5">
+          
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[#94A3B8]">
             Daftar Modul
           </p>
 
-          <ul className="mt-3 space-y-2">
+          {/* Header Progress (Ukuran Kecil) */}
+          <div className="mt-3 overflow-hidden rounded-2xl bg-[#1F2375] p-4 text-white shadow-[0px_10px_20px_rgba(39,48,132,0.28)]">
+            <div className="flex flex-col gap-3">
+              <div>
+                <p className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/90">
+                  <BookIcon className="h-3 w-3" />
+                  Materi Pembelajaran
+                </p>
+                <h1 className="mt-2 text-base font-bold">Daftar Materi Kelas</h1>
+                <p className="mt-1 text-xs text-white/70">
+                  Pelajari semua modul secara berurutan.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] text-white/90">
+                  {completedModules}/{totalModules} Modul Selesai
+                </span>
+                <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] text-white/90">
+                  {completedStepsAll}/{totalStepsAll} Langkah
+                </span>
+              </div>
+            </div>
+
+            {/* Overall progress */}
+            <div className="mt-4">
+              <div className="flex items-center justify-between text-[10px] font-medium text-white/85">
+                <span>Progres keseluruhan</span>
+                <span>{overallProgress}%</span>
+              </div>
+              <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/20">
+                <div
+                  className="h-full rounded-full bg-[#DCE3FF] transition-all duration-500"
+                  style={{ width: `${overallProgress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <ul className="mt-4 space-y-2">
             {modules.map((module, moduleIndex) => {
               const isOpen = openModuleId === module.id;
               const containsActive = module.steps.some(

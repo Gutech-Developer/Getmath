@@ -12,6 +12,7 @@ import {
   useGsCurrentUser,
   useGsMyEnrollments,
   useGsEnrollCourse,
+  useGsSchoolCourses,
 } from "@/services";
 
 // ─── Deterministic symbol helper ─────────────────────────────────────────────
@@ -123,37 +124,58 @@ const StudentDashboardTemplate = () => {
   // ── Data ────────────────────────────────────────────────────────────────────
   const { data: me } = useGsCurrentUser();
   const { data: enrollmentsData } = useGsMyEnrollments({ limit: 50 });
+  const { data: schoolCoursesData } = useGsSchoolCourses({ limit: 50, search: searchValue });
 
-  // ── Enrolled courses from enrollment records ────────────────────────────────
-  const enrolledClasses: EnrolledClass[] = useMemo(
-    () =>
-      (enrollmentsData?.enrollments ?? [])
-        .filter((e) => e.course)
-        .map((e) => {
-          const course = e.course!;
-          const { symbol, color } = symbolForId(course.id);
-          return {
-            id: course.id,
-            slug: course.slug,
-            title: course.courseName,
-            teacher: course.teacher?.fullName ?? "–",
-            institution: course.schoolName ?? "–",
-            academicYear: "–",
-            progress: 0,
-            totalMaterials: 0,
-            totalStudents: 0,
-            symbol: <span className="text-xl">{symbol}</span>,
-            symbolColor: color,
-            progressVariant: "primary" as const,
-          };
-        }),
-    [enrollmentsData],
-  );
+  const enrolledClasses: EnrolledClass[] = useMemo(() => {
+    const schoolCoursesMap = new Map(
+      (schoolCoursesData?.courses ?? []).map((c) => [c.id, c])
+    );
 
-  // ── Available courses: tidak ada endpoint publik untuk browse kelas ──────────
-  // GET /courses hanya untuk ADMIN — student tidak bisa browse semua kelas.
-  // Student bergabung via kode kelas menggunakan modal "Gabung Kelas".
-  const availableClasses: AvailableClass[] = [];
+    return (enrollmentsData?.enrollments ?? [])
+      .filter((e) => e.course)
+      .map((e) => {
+        const course = e.course!;
+        const schoolCourse = schoolCoursesMap.get(course.id);
+        const { symbol, color } = symbolForId(course.id);
+
+        return {
+          id: course.id,
+          slug: course.slug,
+          title: course.courseName,
+          teacher: course.teacher?.fullName ?? "–",
+          institution: course.schoolName ?? "–",
+          academicYear: schoolCourse?.schoolYear ?? "–",
+          progress: 0,
+          totalMaterials: schoolCourse?.subjectCount ?? (course as any).subjectCount ?? 0,
+          totalStudents: schoolCourse?.enrolledCount ?? (course as any).enrolledCount ?? 0,
+          symbol: <span className="text-xl">{symbol}</span>,
+          symbolColor: color,
+          progressVariant: "primary" as const,
+        };
+      });
+  }, [enrollmentsData, schoolCoursesData]);
+
+
+  // ── Available courses: classes in school that user hasn't joined ──────────
+  const availableClasses: AvailableClass[] = useMemo(() => {
+    const enrolledIds = new Set(enrolledClasses.map(c => c.id));
+    return (schoolCoursesData?.courses ?? [])
+      .filter(c => !enrolledIds.has(c.id))
+      .map(course => {
+        const { symbol, color } = symbolForId(course.id);
+        return {
+          id: course.id,
+          title: course.courseName,
+          teacher: course.teacher?.fullName ?? "–",
+          institution: course.schoolName ?? "–",
+          academicYear: course.schoolYear ?? "–",
+          totalMaterials: course.subjectCount ?? course.modules?.length ?? 0,
+          totalStudents: course.enrolledCount ?? 0,
+          symbol: <span className="text-xl">{symbol}</span>,
+          symbolColor: color,
+        };
+      });
+  }, [schoolCoursesData, enrolledClasses]);
 
   // ── Filter ──────────────────────────────────────────────────────────────────
   const filteredEnrolled = enrolledClasses.filter((cls) => {

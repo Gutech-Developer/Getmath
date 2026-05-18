@@ -120,23 +120,23 @@ export default function ForumSection({
 
 
   const materialOptions = useMemo(() => {
-    const list = modulesData || [];
+    const list = (modulesData || []).filter((m) => m.type === "SUBJECT");
     return [
       { value: "all", label: "Semua Materi" },
-      ...list.map((m) => ({
-        value: m.id,
-        label: m.subject?.subjectName ?? m.diagnosticTest?.testName ?? "Materi",
+      ...list.map((m, index) => ({
+        value: m.id || (m as any).courseModuleId,
+        label: (m as any).subjectName ?? m.subject?.subjectName ?? `Materi ${m.order ?? index + 1}`,
       })),
     ];
   }, [modulesData]);
 
   const createModuleOptions = useMemo(() => {
-    const list = modulesData || [];
+    const list = (modulesData || []).filter((m) => m.type === "SUBJECT");
     return [
       { value: "umum", label: "Umum (Tanpa Materi)" },
-      ...list.map((m) => ({
-        value: m.id,
-        label: m.subject?.subjectName ?? m.diagnosticTest?.testName ?? "Materi",
+      ...list.map((m, index) => ({
+        value: m.id || (m as any).courseModuleId,
+        label: (m as any).subjectName ?? m.subject?.subjectName ?? `Materi ${m.order ?? index + 1}`,
       })),
     ];
   }, [modulesData]);
