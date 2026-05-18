@@ -29,17 +29,18 @@ import { formatBreadcrumbLabel, formatContentTitle } from "@/utils";
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
-type StepKind = "PDF" | "VIDEO" | "ELKPD" | "DIAGNOSTIC";
+type StepKind = "PDF" | "VIDEO" | "ELKPD" | "DIAGNOSTIC" | "REMEDIAL";
 
 interface IFlatStep {
   id: string;
   moduleId: string;
   diagnosticTestId?: string;
+  remedialTestId?: string;
   moduleTitle: string;
   kind: StepKind;
   typeLabel: string;
   title: string;
-  /** URL embed yang siap dimasukkan ke <iframe>. Untuk DIAGNOSTIC: kosong. */
+  /** URL embed yang siap dimasukkan ke <iframe>. Untuk DIAGNOSTIC & REMEDIAL: kosong. */
   url: string | null;
   /** URL asli (sebelum di-rewrite ke /embed) untuk tombol "Buka di tab baru". */
   rawUrl: string | null;
@@ -71,7 +72,47 @@ function buildModuleView(
   if (moduleType === "DIAGNOSTIC_TEST") {
     return moduleFromDiagnostic(module, index);
   }
+  if (moduleType === "REMEDIAL") {
+    return moduleFromRemedial(module, index);
+  }
   return null;
+}
+
+function moduleFromRemedial(
+  module: GsCourseModule,
+  index: number,
+): IModuleView {
+  const moduleId = getModuleId(module);
+  const flat = module as any;
+  const remedialTestId = module.remedialTestId ?? flat.remedialTestId ?? "";
+  const title =
+    flat.testName ??
+    `Tes Remedial ${module.order ?? index + 1}`;
+
+  return {
+    id: moduleId,
+    title,
+    description: flat.description ?? "",
+    steps: [
+      {
+        id: `${moduleId}-remedial`,
+        moduleId,
+        remedialTestId,
+        moduleTitle: title,
+        kind: "REMEDIAL",
+        typeLabel: "Tes Remedial",
+        title,
+        url: null,
+        rawUrl: null,
+        state: index === 0 ? "active" : "upcoming",
+        status: flat.completed
+          ? "completed"
+          : flat.accessible === false
+            ? "locked"
+            : "in-progress",
+      },
+    ],
+  };
 }
 
 function getModuleId(module: GsCourseModule): string {
@@ -187,7 +228,7 @@ function moduleFromSubject(
       rawUrl: subject.eLKPDFileUrl || null,
       state: "upcoming",
       // Lock ELKPD only when prevDone is explicitly false (backend returned it)
-      status: flat.eLKPDGraded
+      status: (flat.eLKPDSubmitted || flat.eLKPDGraded)
         ? "completed"
         : prevDone === false
           ? "locked"
@@ -254,6 +295,7 @@ function getStepIcon(kind: StepKind) {
     case "ELKPD":
       return DocumentIcon;
     case "DIAGNOSTIC":
+    case "REMEDIAL":
       return CheckCircleIcon;
     case "PDF":
     default:
@@ -269,6 +311,8 @@ function getStepTone(kind: StepKind): { bg: string; fg: string } {
       return { bg: "bg-[#D1FAE5]", fg: "text-[#059669]" };
     case "DIAGNOSTIC":
       return { bg: "bg-[#FEE2E2]", fg: "text-[#DC2626]" };
+    case "REMEDIAL":
+      return { bg: "bg-[#F5F3FF]", fg: "text-[#7C3AED]" };
     case "PDF":
     default:
       return { bg: "bg-[#DBEAFE]", fg: "text-[#2563EB]" };
@@ -327,7 +371,7 @@ export default function ClassMaterialContentPageTemplate({
     return (courseModules ?? [])
       .filter(
         (m: GsCourseModule) =>
-          m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST",
+          m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST" || m.type === "REMEDIAL",
       )
       .map((m: GsCourseModule, i: number) => {
         const mId = m.id ?? (m as any).courseModuleId;
@@ -433,13 +477,19 @@ export default function ClassMaterialContentPageTemplate({
     );
   }, [flatSteps, selectedStepId, contentId]);
 
-  const { data: activeDiagnosticModule } = useGsModuleById(
-    activeStep?.kind === "DIAGNOSTIC" ? activeStep.moduleId : "",
+  const { data: activeModuleData } = useGsModuleById(
+    (activeStep?.kind === "DIAGNOSTIC" || activeStep?.kind === "REMEDIAL") ? activeStep.moduleId : "",
   );
+  const activeModuleDataAny = activeModuleData as any;
   const resolvedDiagnosticTestId =
-    activeStep?.diagnosticTestId ??
-    activeDiagnosticModule?.diagnosticTestId ??
-    activeDiagnosticModule?.diagnosticTest?.id ??
+    activeStep?.diagnosticTestId ||
+    activeModuleDataAny?.diagnosticTestId ||
+    activeModuleDataAny?.diagnosticTest?.id ||
+    "";
+
+  const resolvedRemedialTestId =
+    activeStep?.remedialTestId ||
+    activeModuleDataAny?.remedialTestId ||
     "";
 
   const activeIndex = activeStep
@@ -479,19 +529,24 @@ export default function ClassMaterialContentPageTemplate({
       setSelectedStepId(step.id);
       setOpenModuleId(step.moduleId);
 
-      // Update URL when navigating to a different module's step
-      if (step.moduleId !== contentId && slug) {
-        router.push(
-          `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}`,
-        );
+      if (slug) {
+        if (step.kind === "DIAGNOSTIC") {
+          router.push(
+            `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}/${step.diagnosticTestId}`,
+          );
+          return;
+        } else if (step.moduleId !== contentId) {
+          router.push(
+            `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}`,
+          );
+        }
       }
 
       // ── Auto-track progress when navigating ──────────────────────────
       if (step.moduleId === contentId) {
         if (step.kind === "PDF") {
-          markFileRead.mutate();
+          markFileRead.mutate({ target: "SUBJECT" });
         }
-        // VIDEO is now marked when YT player ends
       }
     },
     [contentId, slug, router, markFileRead],
@@ -562,6 +617,7 @@ export default function ClassMaterialContentPageTemplate({
       (entries) => {
         if (entries[0].isIntersecting) {
           setElkpdFinished((prev) => ({ ...prev, [activeStep.id]: true }));
+          markFileRead.mutate({ target: "ELKPD" });
         }
       },
       { threshold: 1.0 },
@@ -572,7 +628,7 @@ export default function ClassMaterialContentPageTemplate({
     }
 
     return () => observer.disconnect();
-  }, [activeStep?.id, activeStep?.kind, elkpdFinished]);
+  }, [activeStep?.id, activeStep?.kind, elkpdFinished, markFileRead]);
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -601,6 +657,7 @@ export default function ClassMaterialContentPageTemplate({
   const isVideo = activeKind === "VIDEO";
   const isElkpd = activeKind === "ELKPD";
   const isDiagnostic = activeKind === "DIAGNOSTIC";
+  const isRemedial = activeKind === "REMEDIAL";
 
   return (
     <section className="min-h-screen rounded-3xl sm:p-3 lg:p-0">
@@ -824,7 +881,99 @@ export default function ClassMaterialContentPageTemplate({
               </>
             )}
 
-            {!activeStep?.url && !isDiagnostic && (
+            {isRemedial && (
+              <>
+                <ContentBadge icon={CheckCircleIcon} label="Tes Remedial" />
+                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#94A3B8]">
+                    Tes Remedial
+                  </p>
+                  <h1 className="mt-1 text-xl font-bold text-[#0F172A] sm:text-2xl">
+                    {activeStep?.title}
+                  </h1>
+                  {activeStep?.moduleTitle && (
+                    <p className="mt-1 text-sm text-[#64748B]">
+                      Modul: {activeStep.moduleTitle}
+                    </p>
+                  )}
+
+                  {activeModuleDataAny?.hasCompleted && (
+                    <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-[#0F172A]">
+                          Hasil Terakhir
+                        </p>
+                        <span
+                          className={cn(
+                            "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                            activeModuleDataAny.isPassed
+                              ? "bg-[#DCFCE7] text-[#166534]"
+                              : "bg-[#FEE2E2] text-[#B91C1C]",
+                          )}
+                        >
+                          {activeModuleDataAny.isPassed ? "Tuntas" : "Belum Tuntas"}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center gap-6">
+                        <div>
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
+                            Skor
+                          </p>
+                          <p className="text-xl font-bold text-[#0F172A]">
+                            {activeModuleDataAny.score ?? 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
+                            Status
+                          </p>
+                          <p className="text-xl font-bold text-[#0F172A]">
+                            {activeModuleDataAny.isPassed ? "Lulus" : "Belum Lulus"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {slug &&
+                    resolvedRemedialTestId &&
+                    (() => {
+                      if (activeModuleDataAny?.isPassed) {
+                        return (
+                          <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-5 py-3 text-sm font-semibold text-[#166534]">
+                            <CheckCircleIcon className="h-4 w-4" />
+                            Kamu sudah lulus tes remedial ini
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          href={`/student/dashboard/class/${encodeURIComponent(
+                            slug,
+                          )}/materi/${encodeURIComponent(
+                            activeStep?.moduleId ?? contentId,
+                          )}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
+                          className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
+                        >
+                          {activeModuleDataAny?.hasCompleted
+                            ? "Kerjakan Ulang Remedial"
+                            : "Mulai Tes Remedial"}
+                        </Link>
+                      );
+                    })()}
+
+                  {slug && !resolvedRemedialTestId && (
+                    <p className="mt-4 text-sm font-medium text-[#DC2626]">
+                      Tes remedial belum bisa dibuka karena ID remedial
+                      tidak ditemukan.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {!activeStep?.url && !isDiagnostic && !isRemedial && (
               <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-white p-5">
                 <p className="text-sm text-[#64748B]">
                   Materi ini belum memiliki tautan yang dapat ditampilkan.

@@ -3,6 +3,7 @@
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import {
   DiagnosticPreviewBody,
+  RemedialPreviewBody,
   ELKPDGradingPanel,
   MaterialPreviewPanel,
 } from "@/components/organisms/learningAnalytics/ClassAnalyticsSequenceComponents";
@@ -24,10 +25,12 @@ interface IMateriModuleDetailModalProps {
   onClose: () => void;
   module?: GsCourseModule;
   diagnosticTest?: GsDiagnosticTestType;
+  remedialTest?: any; // I'll use any or import GsRemedialTest later. Actually, wait! Let's import GsRemedialTest.
   elkpds?: IELKPDPreview[];
   students?: ILearningAnalyticsStudentListItem[];
   isLoading?: boolean;
   isDiagnosticLoading?: boolean;
+  isRemedialLoading?: boolean;
   deadlineDraft: string;
   onDeadlineChange: (value: string) => void;
   onSaveDeadline: () => void;
@@ -43,10 +46,12 @@ export const MateriModuleDetailModal: React.FC<
   onClose,
   module,
   diagnosticTest,
+  remedialTest,
   elkpds = [],
   students = [],
   isLoading,
   isDiagnosticLoading,
+  isRemedialLoading,
   deadlineDraft,
   onDeadlineChange,
   onSaveDeadline,
@@ -135,6 +140,32 @@ export const MateriModuleDetailModal: React.FC<
               ) : diagnosticTest ? (
                 <>
                   <DiagnosticPreviewBody test={diagnosticTest} />
+
+                  <div className="space-y-2 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                    <label className="block text-sm font-semibold text-[#374151]">
+                      Deadline
+                    </label>
+                    <input
+                      type="date"
+                      value={deadlineDraft}
+                      onChange={(event) => onDeadlineChange(event.target.value)}
+                      className="h-11 w-full rounded-xl border border-[#D1D5DB] px-3 text-sm text-[#1F2937] transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10"
+                    />
+                  </div>
+                </>
+              ) : null}
+            </div>
+          ) : module?.type === "REMEDIAL" ? (
+            <div className="space-y-4">
+              {isRemedialLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <p className="text-sm text-[#6B7280]">
+                    Memuat preview tes remedial...
+                  </p>
+                </div>
+              ) : remedialTest ? (
+                <>
+                  <RemedialPreviewBody test={remedialTest} />
 
                   <div className="space-y-2 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
                     <label className="block text-sm font-semibold text-[#374151]">

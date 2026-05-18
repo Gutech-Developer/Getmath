@@ -29,3 +29,4 @@ export * from "./gs-subject";
 export * from "./gs-health";
 export * from "./gs-notification";
 export * from "./gs-forum";
+export * from "./gs-remedial";

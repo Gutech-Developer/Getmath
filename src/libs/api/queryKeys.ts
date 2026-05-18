@@ -146,6 +146,26 @@ export const queryKeys = {
       [...queryKeys.gsDiagnosticTests.details(), id] as const,
   },
 
+  // Remedial Tests
+  gsRemedialTests: {
+    all: ["gs", "remedialTests"] as const,
+    lists: () => [...queryKeys.gsRemedialTests.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsRemedialTests.lists(), filters] as const,
+    myList: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsRemedialTests.all, "my", filters] as const,
+    byTeacher: (teacherId: string, filters?: Record<string, unknown>) =>
+      [
+        ...queryKeys.gsRemedialTests.all,
+        "byTeacher",
+        teacherId,
+        filters,
+      ] as const,
+    details: () => [...queryKeys.gsRemedialTests.all, "detail"] as const,
+    detail: (id: string) =>
+      [...queryKeys.gsRemedialTests.details(), id] as const,
+  },
+
   // Subjects
   gsSubjects: {
     all: ["gs", "subjects"] as const,

@@ -6,13 +6,13 @@ import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import { showToast } from "@/libs/toast";
 import { useRouter } from "next/navigation";
-import { useGsMyDiagnosticTests, useGsDeleteDiagnosticTest } from "@/services";
-import type { GsDiagnosticTest } from "@/types/gs-diagnostic-test";
+import { useGsMyRemedialTests, useGsDeleteRemedialTest } from "@/services";
+import type { GsRemedialTest } from "@/types/gs-remedial";
 
 /* ------------------------------------------------------------------ */
 /*  Mapper                                                             */
 /* ------------------------------------------------------------------ */
-interface IDiagnosticItem {
+interface IRemedialItem {
   id: string;
   title: string;
   description: string;
@@ -26,27 +26,34 @@ interface IDiagnosticItem {
   dateLabel: string;
 }
 
-function mapGsDiagnosticToItem(dt: GsDiagnosticTest): IDiagnosticItem {
-  // Prefer backend-provided totalQuestions or questions length
-  const totalQuestions =
-    dt.questions?.length ?? dt.totalQuestions ?? 0;
+function mapGsRemedialToItem(rt: GsRemedialTest): IRemedialItem {
+  const questions = rt.questions ?? [];
+  const packageSet = new Set<string>();
+  const packageCountMap: Record<string, number> = {};
 
-  const packageSummaries = [
-    {
-      label: "Soal",
-      questionCount: totalQuestions,
-    },
-  ];
+  questions.forEach((q) => {
+    (q.variants ?? []).forEach((v) => {
+      packageSet.add(v.packageLabel);
+      packageCountMap[v.packageLabel] = (packageCountMap[v.packageLabel] || 0) + 1;
+    });
+  });
+
+  const packageSummaries = Array.from(packageSet).map((label) => ({
+    label: `Paket ${label}`,
+    questionCount: packageCountMap[label],
+  }));
+
+  const totalQuestions = questions.length;
 
   return {
-    id: dt.id,
-    title: dt.testName,
-    description: dt.description ?? "",
+    id: rt.id,
+    title: rt.testName,
+    description: rt.description ?? "",
     packageSummaries,
     totalQuestions,
-    durationMinutes: dt.durationMinutes,
-    kkm: dt.passingScore,
-    dateLabel: new Date(dt.createdAt).toLocaleDateString("id-ID", {
+    durationMinutes: rt.durationMinutes,
+    kkm: rt.passingScore,
+    dateLabel: new Date(rt.createdAt).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -57,24 +64,24 @@ function mapGsDiagnosticToItem(dt: GsDiagnosticTest): IDiagnosticItem {
 /* ------------------------------------------------------------------ */
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
-export default function TeacherManageDiagnosticsContent() {
+export default function TeacherManageRemedialContent() {
   const router = useRouter();
   // Use pagination defaults (page=1, limit=10) to match list endpoints
-  const { data: diagnosticTestsData, isLoading } = useGsMyDiagnosticTests({
+  const { data: remedialTestsData, isLoading } = useGsMyRemedialTests({
     page: 1,
     limit: 10,
   });
-  const deleteMutation = useGsDeleteDiagnosticTest();
+  const deleteMutation = useGsDeleteRemedialTest();
 
-  const diagnostics: IDiagnosticItem[] = (
-    diagnosticTestsData?.diagnosticTests ?? []
-  ).map(mapGsDiagnosticToItem);
+  const remedials: IRemedialItem[] = (
+    remedialTestsData?.remedialTests ?? []
+  ).map(mapGsRemedialToItem);
 
   const handleDelete = (id: string, title: string) => {
     if (!confirm(`Hapus "${title}"?`)) return;
     deleteMutation.mutate(id, {
-      onSuccess: () => showToast.success("Tes diagnostik berhasil dihapus"),
-      onError: () => showToast.error("Gagal menghapus tes diagnostik"),
+      onSuccess: () => showToast.success("Tes remedial berhasil dihapus"),
+      onError: () => showToast.error("Gagal menghapus tes remedial"),
     });
   };
 
@@ -84,10 +91,10 @@ export default function TeacherManageDiagnosticsContent() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold leading-tight text-[#111827]">
-            Kelola Tes Diagnostik
+            Kelola Tes Remedial
           </h1>
           <p className="mt-1 text-sm text-[#9CA3AF]">
-            {diagnostics.length} tes tersedia · Tes ini dapat dipilih ke dalam
+            {remedials.length} tes tersedia · Tes ini dapat dipilih ke dalam
             tiap kelas
           </p>
         </div>
@@ -95,42 +102,42 @@ export default function TeacherManageDiagnosticsContent() {
         <button
           type="button"
           onClick={() =>
-            router.push("/teacher/dashboard/manage-diagnostics/create")
+            router.push("/teacher/dashboard/manage-remedial/create")
           }
           className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
         >
           <PlusIcon className="h-5 w-5" />
-          <span>Tambah Tes Diagnostik</span>
+          <span>Tambah Tes Remedial</span>
         </button>
       </header>
 
       <ul className="space-y-3">
         {isLoading && (
           <li className="py-10 text-center text-sm text-[#9CA3AF]">
-            Memuat tes diagnostik…
+            Memuat tes remedial…
           </li>
         )}
-        {!isLoading && diagnostics.length === 0 && (
+        {!isLoading && remedials.length === 0 && (
           <li className="py-10 text-center text-sm text-[#9CA3AF]">
-            Belum ada tes diagnostik. Klik &quot;Tambah Tes Diagnostik&quot;
+            Belum ada tes remedial. Klik &quot;Tambah Tes Remedial&quot;
             untuk membuat.
           </li>
         )}
-        {diagnostics.map((diagnostic) => (
+        {remedials.map((remedial) => (
           <li
-            key={diagnostic.id}
+            key={remedial.id}
             className="flex flex-wrap items-start gap-4 rounded-3xl border border-[#E5E7EB] bg-white px-5 py-5"
           >
             {/* Info */}
             <div className="min-w-0 flex-1">
               <h2 className="truncate text-base font-semibold leading-tight text-[#111827]">
-                {diagnostic.title}
+                {remedial.title}
               </h2>
               <p className="mt-1 truncate text-sm text-[#6B7280]">
-                {diagnostic.description}
+                {remedial.description}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                {diagnostic.packageSummaries.map((pkg) => (
+                {remedial.packageSummaries.map((pkg) => (
                   <span
                     key={pkg.label}
                     className="inline-flex rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#2563EB]"
@@ -139,7 +146,7 @@ export default function TeacherManageDiagnosticsContent() {
                   </span>
                 ))}
                 <span className="text-xs text-[#9CA3AF]">
-                  {diagnostic.dateLabel}
+                  {remedial.dateLabel}
                 </span>
               </div>
             </div>
@@ -150,19 +157,19 @@ export default function TeacherManageDiagnosticsContent() {
                 <div className="rounded-2xl border border-[#E5E7EB] px-4 py-2">
                   <p className="text-xs uppercase text-[#9CA3AF]">Soal</p>
                   <p className="mt-0.5 text-base font-semibold text-[#111827]">
-                    {diagnostic.totalQuestions}
+                    {remedial.totalQuestions}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[#E5E7EB] px-4 py-2">
                   <p className="text-xs uppercase text-[#9CA3AF]">KKM</p>
                   <p className="mt-0.5 text-base font-semibold text-[#F97316]">
-                    {diagnostic.kkm}
+                    {remedial.kkm}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[#E5E7EB] px-4 py-2">
                   <p className="text-xs uppercase text-[#9CA3AF]">Menit</p>
                   <p className="mt-0.5 text-base font-semibold text-[#111827]">
-                    {diagnostic.durationMinutes}
+                    {remedial.durationMinutes}
                   </p>
                 </div>
               </div>
@@ -172,11 +179,11 @@ export default function TeacherManageDiagnosticsContent() {
                   type="button"
                   onClick={() =>
                     router.push(
-                      `/teacher/dashboard/manage-diagnostics/${diagnostic.id}`,
+                      `/teacher/dashboard/manage-remedial/${remedial.id}`,
                     )
                   }
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
-                  aria-label={`Preview ${diagnostic.title}`}
+                  aria-label={`Preview ${remedial.title}`}
                 >
                   <EyeIcon className="h-5 w-5" />
                 </button>
@@ -184,19 +191,19 @@ export default function TeacherManageDiagnosticsContent() {
                   type="button"
                   onClick={() =>
                     router.push(
-                      `/teacher/dashboard/manage-diagnostics/${diagnostic.id}/edit`,
+                      `/teacher/dashboard/manage-remedial/${remedial.id}/edit`,
                     )
                   }
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
-                  aria-label={`Edit ${diagnostic.title}`}
+                  aria-label={`Edit ${remedial.title}`}
                 >
                   <EditIcon className="h-5 w-5" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDelete(diagnostic.id, diagnostic.title)}
+                  onClick={() => handleDelete(remedial.id, remedial.title)}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2]"
-                  aria-label={`Hapus ${diagnostic.title}`}
+                  aria-label={`Hapus ${remedial.title}`}
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>

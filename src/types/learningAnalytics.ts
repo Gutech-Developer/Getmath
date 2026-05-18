@@ -89,7 +89,7 @@ export type IClassLearningAnalyticsDetail = ILearningAnalyticsClassDetail;
 export type ITeacherClassLearningAnalyticsDetail =
   ILearningAnalyticsClassDetail;
 
-export type MateriSequenceType = "Modul" | "Tes Diagnostik";
+export type MateriSequenceType = "Modul" | "Tes Diagnostik" | "Tes Remedial";
 export type MateriAssetKind = "PDF" | "Video" | "E-LKPD";
 
 export interface IMateriAssetItem {
@@ -107,6 +107,7 @@ export interface IMateriSequenceItem {
   assets: IMateriAssetItem[];
   questionCount?: number;
   durationMinutes?: number;
+  passingScore?: number;
 }
 
 export interface ILearningAnalyticsDiagnosticOption {

@@ -10,7 +10,6 @@ import MathText from "@/components/atoms/MathText";
 import { cn } from "@/libs/utils";
 import type {
   GsDiagnosticTest,
-  GsTestQuestionPackage,
 } from "@/types/gs-diagnostic-test";
 import type {
   IMateriSequenceItem,
@@ -140,31 +139,16 @@ export function MaterialPreviewPanel({
 }
 
 export function DiagnosticPreviewBody({ test }: { test: GsDiagnosticTest }) {
-  const [activePackageId, setActivePackageId] = useState<string | null>(null);
-
-  const totalQuestions =
-    test.packages?.reduce(
-      (sum, pkg) => sum + (pkg.questions?.length ?? 0),
-      0,
-    ) ?? 0;
-
-  const packages = test.packages ?? [];
-  const activePackage: GsTestQuestionPackage | undefined = useMemo(() => {
-    if (packages.length === 0) {
-      return undefined;
-    }
-
-    return packages.find((pkg) => pkg.id === activePackageId) ?? packages[0];
-  }, [activePackageId, packages]);
+  const questions = test.questions ?? [];
+  const totalQuestions = questions.length;
 
   return (
     <div className="space-y-6">
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
           { label: "Total Soal", value: totalQuestions },
           { label: "Durasi", value: `${test.durationMinutes} menit` },
           { label: "KKM", value: test.passingScore },
-          { label: "Tipe Paket", value: packages.length },
         ].map(({ label, value }) => (
           <div
             key={label}
@@ -189,42 +173,10 @@ export function DiagnosticPreviewBody({ test }: { test: GsDiagnosticTest }) {
         </section>
       )}
 
-      {packages.length > 0 && activePackage ? (
+      {questions.length > 0 ? (
         <section className="overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white">
-          <div className="flex overflow-x-auto border-b border-[#E5E7EB] bg-[#F9FAFB]">
-            {packages.map((pkg, index) => {
-              const isActive = pkg.id === activePackage.id;
-
-              return (
-                <button
-                  key={pkg.id}
-                  type="button"
-                  onClick={() => setActivePackageId(pkg.id)}
-                  className={cn(
-                    "relative shrink-0 whitespace-nowrap px-5 py-3 text-sm font-semibold transition",
-                    isActive
-                      ? "border-b-2 border-[#2563EB] bg-white text-[#2563EB]"
-                      : "text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#374151]",
-                  )}
-                >
-                  {pkg.packageName ?? `Paket ${index + 1}`}
-                  <span
-                    className={cn(
-                      "ml-1.5 rounded-full px-1.5 py-0.5 text-xs",
-                      isActive
-                        ? "bg-[#DBEAFE] text-[#1D4ED8]"
-                        : "bg-[#E5E7EB] text-[#6B7280]",
-                    )}
-                  >
-                    {pkg.questions?.length ?? 0}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
           <div className="space-y-3 p-4">
-            {(activePackage.questions ?? []).map((question, questionIndex) => (
+            {questions.map((question, questionIndex) => (
               <div
                 key={question.id}
                 className="rounded-2xl border border-[#E5E7EB] bg-white"
@@ -269,43 +221,6 @@ export function DiagnosticPreviewBody({ test }: { test: GsDiagnosticTest }) {
                     <p className="whitespace-pre-wrap text-sm text-[#78350F]">
                       <MathText text={question.pembahasan} />
                     </p>
-                    {(() => {
-                      const embedUrl = toEmbedUrl(
-                        question.videoUrl ?? "",
-                        "video"
-                      );
-
-                      // toEmbedUrl returns the original URL if it can't embed it.
-                      // If it is the original URL and it's not a youtube embed URL (since we want an iframe), we should probably just show the link.
-                      // Wait, toEmbedUrl for video always returns a youtube embed link if it's youtube.
-                      // Let's just check if it contains /embed/ to be safe.
-                      const isEmbeddable = embedUrl.includes("/embed/");
-
-                      if (!isEmbeddable) {
-                        return question.videoUrl ? (
-                          <a
-                            href={question.videoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] hover:underline"
-                          >
-                            Tonton video pembahasan
-                          </a>
-                        ) : null;
-                      }
-
-                      return (
-                        <div className="overflow-hidden rounded-xl border border-[#FDE68A]">
-                          <iframe
-                            src={embedUrl}
-                            title="Video pembahasan"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="aspect-video w-full"
-                          />
-                        </div>
-                      );
-                    })()}
                   </div>
                 )}
               </div>
@@ -316,6 +231,132 @@ export function DiagnosticPreviewBody({ test }: { test: GsDiagnosticTest }) {
     </div>
   );
 }
+
+export function RemedialPreviewBody({ test }: { test: any }) {
+  const questions = test.questions ?? [];
+  const totalQuestions = questions.length;
+
+  return (
+    <div className="space-y-6">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {[
+          { label: "Total Soal", value: totalQuestions },
+          { label: "Durasi", value: `${test.durationMinutes} menit` },
+          { label: "KKM", value: test.passingScore },
+        ].map(({ label, value }) => (
+          <div
+            key={label}
+            className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 text-center"
+          >
+            <p className="text-xs font-medium uppercase tracking-wide text-[#9CA3AF]">
+              {label}
+            </p>
+            <p className="mt-1 text-2xl font-semibold text-[#111827]">
+              {value}
+            </p>
+          </div>
+        ))}
+      </section>
+
+      {test.description && (
+        <section className="rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4">
+          <p className="text-sm font-semibold text-[#374151]">Deskripsi</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-[#6B7280]">
+            {test.description}
+          </p>
+        </section>
+      )}
+
+      {questions.length > 0 ? (
+        <section className="overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white">
+          <div className="space-y-4 p-4 bg-gray-50">
+            {questions.map((question: any, questionIndex: number) => (
+              <div
+                key={question.id}
+                className="rounded-2xl border border-[#E5E7EB] bg-white overflow-hidden shadow-sm"
+              >
+                {/* Question Header */}
+                <div className="bg-[#FAF5FF] border-b border-[#E9D5FF] px-4 py-3 flex items-center gap-3">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#7C3AED] text-sm font-semibold text-white">
+                    {questionIndex + 1}
+                  </span>
+                  <span className="text-sm font-bold text-[#6B21A8]">
+                    Soal ke-{question.questionNumber}
+                  </span>
+                </div>
+
+                {/* Variants inside the question */}
+                <div className="divide-y divide-gray-100">
+                  {(question.variants ?? []).map((variant: any) => (
+                    <div key={variant.id} className="p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex px-2 py-0.5 rounded-md bg-[#F3E8FF] text-xs font-bold text-[#7C3AED]">
+                          Paket {variant.packageLabel}
+                        </span>
+                      </div>
+
+                      <p className="whitespace-pre-wrap text-sm text-[#111827]">
+                        <MathText
+                          text={
+                            variant.textQuestion ?? `Pertanyaan Paket ${variant.packageLabel}`
+                          }
+                        />
+                      </p>
+
+                      {/* Options */}
+                      <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
+                        {(variant.options ?? []).map((option: any) => (
+                          <div
+                            key={option.id}
+                            className={cn(
+                              "flex items-center gap-2 rounded-xl px-3 py-2 text-sm",
+                              option.isCorrect
+                                ? "border border-[#86EFAC] bg-[#F0FDF4] font-semibold text-[#15803D]"
+                                : "border border-[#E5E7EB] bg-[#F9FAFB] text-[#374151]",
+                            )}
+                          >
+                            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#374151] shadow-sm">
+                              {option.option}
+                            </span>
+                            <MathText text={option.textAnswer ?? "–"} />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Discussion */}
+                      {(variant.discussionText || variant.discussionVideoUrl) && (
+                        <div className="mt-3 space-y-2 rounded-xl bg-[#FFFBEB] border border-[#FEF3C7] p-3 text-xs text-[#92400E]">
+                          <p className="font-bold uppercase tracking-wide">
+                            Pembahasan Paket {variant.packageLabel}
+                          </p>
+                          {variant.discussionText && (
+                            <p className="whitespace-pre-wrap text-[#B45309]">
+                              {variant.discussionText}
+                            </p>
+                          )}
+                          {variant.discussionVideoUrl && (
+                            <p className="truncate font-medium text-[#2563EB]">
+                              Video: <a href={variant.discussionVideoUrl} target="_blank" rel="noopener noreferrer" className="underline">{variant.discussionVideoUrl}</a>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-[#CBD5E1] p-8 text-center text-sm text-[#6B7280]">
+          Belum ada soal remedial yang dikonfigurasi.
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 export function MateriSequenceItemCard({
   item,
@@ -383,7 +424,9 @@ export function MateriSequenceItemCard({
             "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
             item.type === "Modul"
               ? "bg-[#DBEAFE] text-[#2563EB]"
-              : "bg-[#EDE9FE] text-[#7C3AED]",
+              : item.type === "Tes Remedial"
+                ? "bg-[#FFEDD5] text-[#EA580C]"
+                : "bg-[#EDE9FE] text-[#7C3AED]",
           )}
         >
           {item.type === "Modul" ? (
@@ -400,7 +443,9 @@ export function MateriSequenceItemCard({
                 "rounded-full px-2 py-0.5 font-semibold",
                 item.type === "Modul"
                   ? "bg-[#DBEAFE] text-[#2563EB]"
-                  : "bg-[#EDE9FE] text-[#6D28D9]",
+                  : item.type === "Tes Remedial"
+                    ? "bg-[#FFEDD5] text-[#EA580C]"
+                    : "bg-[#EDE9FE] text-[#6D28D9]",
               )}
             >
               {item.type}
@@ -440,8 +485,8 @@ export function MateriSequenceItemCard({
             </div>
           ) : (
             <p className="mt-2 text-xs font-medium text-[#9CA3AF]">
-              KKM 80 · Durasi: {item.durationMinutes ?? 60} menit ·{" "}
-              {item.questionCount ?? 5} soal acak 2 tipe soal
+              KKM {item.passingScore ?? 80} · Durasi: {item.durationMinutes ?? 60} menit ·{" "}
+              {item.questionCount ?? 5} soal
             </p>
           )}
         </div>

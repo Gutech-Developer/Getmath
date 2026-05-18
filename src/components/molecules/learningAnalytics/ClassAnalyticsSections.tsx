@@ -41,10 +41,16 @@ import {
   useGsReorderCourseModules,
   useGsUpdateCourseModule,
 } from "@/services";
+import {
+  useGsMyRemedialTests,
+  useGsRemedialTestById,
+} from "@/services/hooks/useGsRemedialTest";
 import type { GsCourseModule } from "@/types/gs-course";
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/libs/api";
 import type {
   ClassAnalyticsViewType,
   IClassAnalyticsReportSummaryCard,
@@ -547,8 +553,8 @@ function buildCourseModuleSequenceItems(
 
     if (module.type === "DIAGNOSTIC_TEST") {
       const diagnosticTitle =
-        module.diagnosticTest?.testName ?? `Tes Diagnostik ${index + 1}`;
-      const diagnosticDescription = module.diagnosticTest?.description?.trim();
+        module.testName ?? `Tes Diagnostik ${index + 1}`;
+      const diagnosticDescription = module.description?.trim();
 
       return {
         id: module.id,
@@ -558,7 +564,28 @@ function buildCourseModuleSequenceItems(
           ? `${diagnosticDescription} · ${deadlineLabel}`
           : deadlineLabel,
         assets: [],
-        durationMinutes: module.diagnosticTest?.durationMinutes,
+        durationMinutes: module.diagnosticTest?.durationMinutes ?? module.durationMinutes,
+        passingScore: module.diagnosticTest?.passingScore ?? module.passingScore,
+        questionCount: (module.diagnosticTest as any)?.totalQuestions ?? 5,
+      } satisfies IMateriSequenceItem;
+    }
+
+    if (module.type === "REMEDIAL") {
+      const remedialTitle =
+        module.testName ?? `Tes Remedial ${index + 1}`;
+      const remedialDescription = module.description?.trim();
+
+      return {
+        id: module.id,
+        type: "Tes Remedial",
+        title: remedialTitle,
+        description: remedialDescription
+          ? `${remedialDescription} · ${deadlineLabel}`
+          : deadlineLabel,
+        assets: [],
+        durationMinutes: module.remedialTest?.durationMinutes ?? module.durationMinutes,
+        passingScore: module.remedialTest?.passingScore ?? module.passingScore,
+        questionCount: (module.remedialTest as any)?.totalQuestions ?? 5,
       } satisfies IMateriSequenceItem;
     }
 
@@ -1095,12 +1122,16 @@ export function BaseMateriSection({
   onViewSequenceItem,
 }: IBaseMateriSectionProps) {
   const isApiMode = Boolean(courseId);
+  const queryClient = useQueryClient();
+  const [localApiModules, setLocalApiModules] = useState<GsCourseModule[]>([]);
+
   const isControlled = !isApiMode && Array.isArray(sequenceItemsProp);
   const [localSequenceItems, setLocalSequenceItems] = useState<
     IMateriSequenceItem[]
   >(() => buildInitialMateriSequence(materials));
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
+  const [isRemedialModalOpen, setIsRemedialModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailModuleId, setDetailModuleId] = useState("");
   const [moduleToDelete, setModuleToDelete] = useState<{
@@ -1113,12 +1144,27 @@ export function BaseMateriSection({
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [diagnosticPage, setDiagnosticPage] = useState(1);
   const [diagnosticItemsPerPage, setDiagnosticItemsPerPage] = useState(10);
+  const [remedialPage, setRemedialPage] = useState(1);
+  const [remedialItemsPerPage, setRemedialItemsPerPage] = useState(10);
 
   const {
     data: courseModules = [],
     isLoading: isCourseModulesLoading,
     error: courseModulesError,
   } = useGsModulesByCourse(courseId ?? "");
+
+  useEffect(() => {
+    if (courseModules) {
+      setLocalApiModules(
+        [...courseModules].sort((a, b) => {
+          const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+          const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+          return orderA - orderB;
+        }),
+      );
+    }
+  }, [courseModules]);
+
   const { data: subjectsData, isLoading: isSubjectsLoading } = useGsMySubjects(
     { limit: 200 },
     { enabled: isApiMode },
@@ -1126,6 +1172,11 @@ export function BaseMateriSection({
   const { data: diagnosticTestsData, isLoading: isDiagnosticTestsLoading } =
     useGsMyDiagnosticTests(
       { page: diagnosticPage, limit: diagnosticItemsPerPage },
+      { enabled: isApiMode },
+    );
+  const { data: remedialTestsData, isLoading: isRemedialTestsLoading } =
+    useGsMyRemedialTests(
+      { page: remedialPage, limit: remedialItemsPerPage },
       { enabled: isApiMode },
     );
   const createCourseModuleMutation = useGsCreateCourseModule();
@@ -1141,15 +1192,14 @@ export function BaseMateriSection({
     data: selectedDiagnosticTest,
     isLoading: isSelectedDiagnosticTestLoading,
   } = useGsDiagnosticTestById(selectedModule?.diagnosticTestId ?? "");
+  const {
+    data: selectedRemedialTest,
+    isLoading: isSelectedRemedialTestLoading,
+  } = useGsRemedialTestById(selectedModule?.remedialTestId ?? "");
 
   const orderedCourseModules = useMemo(
-    () =>
-      [...courseModules].sort((a, b) => {
-        const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
-        const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
-        return orderA - orderB;
-      }),
-    [courseModules],
+    () => [...localApiModules],
+    [localApiModules],
   );
 
   const nextOrder = useMemo(() => {
@@ -1185,8 +1235,23 @@ export function BaseMateriSection({
     [diagnosticTestsData],
   );
 
+  const apiRemedialOptions = useMemo<ILearningAnalyticsDiagnosticOption[]>(
+    () =>
+      (remedialTestsData?.remedialTests ?? []).map((test) => ({
+        id: test.id,
+        title: test.testName,
+        questionCount: test.totalQuestions ?? 0,
+        totalQuestions: test.totalQuestions ?? 0,
+        durationMinutes: test.durationMinutes,
+      })),
+    [remedialTestsData],
+  );
+
   const diagnosticPagination = diagnosticTestsData?.pagination;
   const diagnosticTotalPages = diagnosticPagination?.totalPages ?? 1;
+
+  const remedialPagination = remedialTestsData?.pagination;
+  const remedialTotalPages = remedialPagination?.totalPages ?? 1;
 
   const usedSubjectIds = useMemo(
     () =>
@@ -1211,12 +1276,26 @@ export function BaseMateriSection({
     [orderedCourseModules],
   );
 
+  const usedRemedialIds = useMemo(
+    () =>
+      new Set(
+        orderedCourseModules
+          .filter(
+            (module) =>
+              module.type === "REMEDIAL" && module.remedialTestId,
+          )
+          .map((module) => module.remedialTestId as string),
+      ),
+    [orderedCourseModules],
+  );
+
   const resolvedAssetOptions = isApiMode
     ? apiAssetOptions
     : (assetOptions ?? MODULE_ASSET_OPTIONS);
   const resolvedDiagnosticOptions = isApiMode
     ? apiDiagnosticOptions
     : (diagnosticOptions ?? DIAGNOSTIC_TEST_OPTIONS);
+  const resolvedRemedialOptions = isApiMode ? apiRemedialOptions : [];
   const sequenceItems = isApiMode
     ? apiSequenceItems
     : (sequenceItemsProp ?? localSequenceItems);
@@ -1231,7 +1310,7 @@ export function BaseMateriSection({
     reorderCourseModulesMutation.isPending ||
     deleteCourseModuleMutation.isPending;
 
-  const hasOpenPopup = isModuleModalOpen || isDiagnosticModalOpen;
+  const hasOpenPopup = isModuleModalOpen || isDiagnosticModalOpen || isRemedialModalOpen;
 
   useEffect(() => {
     if (!isDiagnosticModalOpen) {
@@ -1240,6 +1319,14 @@ export function BaseMateriSection({
 
     setDiagnosticPage(1);
   }, [isDiagnosticModalOpen]);
+
+  useEffect(() => {
+    if (!isRemedialModalOpen) {
+      return;
+    }
+
+    setRemedialPage(1);
+  }, [isRemedialModalOpen]);
 
   useEffect(() => {
     if (!diagnosticPagination) {
@@ -1252,6 +1339,16 @@ export function BaseMateriSection({
   }, [diagnosticPage, diagnosticPagination]);
 
   useEffect(() => {
+    if (!remedialPagination) {
+      return;
+    }
+
+    if (remedialPage > remedialPagination.totalPages) {
+      setRemedialPage(remedialPagination.totalPages || 1);
+    }
+  }, [remedialPage, remedialPagination]);
+
+  useEffect(() => {
     if (!hasOpenPopup) {
       return undefined;
     }
@@ -1260,6 +1357,7 @@ export function BaseMateriSection({
       if (event.key === "Escape") {
         setIsModuleModalOpen(false);
         setIsDiagnosticModalOpen(false);
+        setIsRemedialModalOpen(false);
       }
     };
 
@@ -1355,6 +1453,10 @@ export function BaseMateriSection({
     setIsDiagnosticModalOpen(false);
   };
 
+  const closeRemedialModal = () => {
+    setIsRemedialModalOpen(false);
+  };
+
   const closeDetailModal = () => {
     setIsDetailModalOpen(false);
     setDetailModuleId("");
@@ -1374,6 +1476,55 @@ export function BaseMateriSection({
     );
   };
 
+  const originalOrderIds = useMemo(() => {
+    return [...courseModules]
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((m) => m.id);
+  }, [courseModules]);
+
+  const currentOrderIds = useMemo(() => {
+    return localApiModules.map((m) => m.id);
+  }, [localApiModules]);
+
+  const hasOrderChanged = useMemo(() => {
+    if (originalOrderIds.length !== currentOrderIds.length) return false;
+    return originalOrderIds.some((id, index) => id !== currentOrderIds[index]);
+  }, [originalOrderIds, currentOrderIds]);
+
+  const handleSaveReorder = async () => {
+    if (!courseId) return;
+    try {
+      await reorderCourseModulesMutation.mutateAsync({
+        courseId,
+        data: {
+          modules: localApiModules.map((module, index) => ({
+            id: module.id,
+            order: index + 1,
+          })),
+        },
+      });
+      showToast.success("Urutan materi berhasil diperbarui");
+    } catch (error) {
+      showErrorToast(error);
+      // On error/failure, force a refetch to correct positions
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseModules.byCourse(courseId),
+      });
+    }
+  };
+
+  const handleCancelReorder = () => {
+    if (courseModules) {
+      setLocalApiModules(
+        [...courseModules].sort((a, b) => {
+          const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+          const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+          return orderA - orderB;
+        }),
+      );
+    }
+  };
+
   const moveSequenceItem = async (itemIndex: number, direction: -1 | 1) => {
     const sourceItem = sequenceItems[itemIndex];
     if (!sourceItem) {
@@ -1381,7 +1532,7 @@ export function BaseMateriSection({
     }
 
     if (isApiMode && courseId) {
-      const currentIndex = orderedCourseModules.findIndex(
+      const currentIndex = localApiModules.findIndex(
         (module) => module.id === sourceItem.id,
       );
       const targetIndex = currentIndex + direction;
@@ -1389,30 +1540,18 @@ export function BaseMateriSection({
       if (
         currentIndex < 0 ||
         targetIndex < 0 ||
-        targetIndex >= orderedCourseModules.length
+        targetIndex >= localApiModules.length
       ) {
         return;
       }
 
-      const reorderedModules = [...orderedCourseModules];
+      const reorderedModules = [...localApiModules];
       const currentModule = reorderedModules[currentIndex];
       reorderedModules[currentIndex] = reorderedModules[targetIndex];
       reorderedModules[targetIndex] = currentModule;
 
-      try {
-        await reorderCourseModulesMutation.mutateAsync({
-          courseId,
-          data: {
-            modules: reorderedModules.map((module, index) => ({
-              id: module.id,
-              order: index + 1,
-            })),
-          },
-        });
-      } catch (error) {
-        showErrorToast(error);
-      }
-
+      // Update local state immediately for instant feedback
+      setLocalApiModules(reorderedModules);
       return;
     }
 
@@ -1547,6 +1686,12 @@ export function BaseMateriSection({
         return;
       }
 
+      const lastModule = orderedCourseModules[orderedCourseModules.length - 1];
+      if (orderedCourseModules.length > 0 && lastModule?.type !== "REMEDIAL") {
+        showErrorToast(new Error("Tes Diagnostik hanya dapat ditempatkan di awal atau setelah Tes Remedial."));
+        return;
+      }
+
       try {
         await createCourseModuleMutation.mutateAsync({
           courseId,
@@ -1594,6 +1739,41 @@ export function BaseMateriSection({
     });
 
     closeDiagnosticModal();
+  };
+
+  const selectRemedialTest = async (
+    option: ILearningAnalyticsDiagnosticOption,
+  ) => {
+    if (isApiMode && courseId) {
+      if (usedRemedialIds.has(option.id)) {
+        return;
+      }
+
+      const lastModule = orderedCourseModules[orderedCourseModules.length - 1];
+      if (!lastModule || lastModule.type !== "SUBJECT") {
+        showErrorToast(new Error("Tes Remedial hanya dapat ditambahkan setelah Modul (SUBJECT)."));
+        return;
+      }
+
+      try {
+        await createCourseModuleMutation.mutateAsync({
+          courseId,
+          data: {
+            order: nextOrder,
+            type: "REMEDIAL",
+            remedialTestId: option.id,
+          },
+        });
+        showToast.success("Tes remedial berhasil ditambahkan");
+        closeRemedialModal();
+      } catch (error) {
+        showErrorToast(error);
+      }
+
+      return;
+    }
+    
+    closeRemedialModal();
   };
 
   const openSequenceItemDetail = (itemId: string) => {
@@ -1649,6 +1829,50 @@ export function BaseMateriSection({
           berdiri sendiri di luar modul.
         </p>
 
+        {/* Info Aturan Pengurutan */}
+        <div className="mt-3 rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] p-4 text-[#1E40AF]">
+          <div className="flex gap-2.5">
+            <AlertIcon className="h-5 w-5 shrink-0 text-[#2563EB]" />
+            <div className="space-y-1 text-xs md:text-sm">
+              <span className="font-semibold text-[#1E40AF]">Aturan Penyusunan Alur Pembelajaran:</span>
+              <ul className="list-disc pl-4 space-y-0.5 text-[#2563EB]">
+                <li><span className="font-semibold">Tes Diagnostik:</span> Hanya boleh diletakkan di paling awal (urutan ke-1) ATAU tepat setelah modul Remedial.</li>
+                <li><span className="font-semibold">Materi (Subject):</span> Dapat diletakkan bebas di urutan mana saja.</li>
+                <li><span className="font-semibold">Tes Remedial:</span> Hanya boleh diletakkan tepat setelah modul Materi.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Bar Simpan Urutan */}
+        {isApiMode && hasOrderChanged && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-4 text-[#92400E]">
+            <div className="flex items-center gap-2">
+              <AlertIcon className="h-5 w-5 shrink-0 text-[#D97706]" />
+              <p className="text-xs font-semibold md:text-sm">
+                Urutan telah diubah. Simpan perubahan untuk memperbarui alur belajar siswa!
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCancelReorder}
+                className="rounded-xl border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] transition hover:bg-[#F8FAFC]"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveReorder}
+                disabled={reorderCourseModulesMutation.isPending}
+                className="rounded-xl bg-[#2563EB] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60"
+              >
+                {reorderCourseModulesMutation.isPending ? "Menyimpan..." : "Simpan Urutan"}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-4 space-y-2.5">
           {courseModulesError ? (
             <article className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-4 text-sm text-[#B91C1C]">
@@ -1698,6 +1922,16 @@ export function BaseMateriSection({
           >
             <PlusIcon className="h-4 w-4" />
             Tambah Tes Diagnostik
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsRemedialModalOpen(true)}
+            disabled={isMutatingCourseModules}
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#FDBA74] bg-[#FFF7ED] px-4 text-sm font-semibold text-[#C2410C] transition hover:bg-[#FFEDD5]"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Tambah Tes Remedial
           </button>
         </div>
       </article>
@@ -2005,11 +2239,122 @@ export function BaseMateriSection({
         </div>
       )}
 
+      {isRemedialModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4">
+          <button
+            type="button"
+            onClick={closeRemedialModal}
+            className="absolute inset-0 bg-[#0F172A]/45"
+            aria-label="Tutup pilih tes"
+          />
+
+          <section className="relative z-10 w-full max-w-[670px] rounded-3xl bg-white p-4 shadow-[0_24px_48px_rgba(15,23,42,0.24)] md:p-5">
+            <div className="mb-3 flex items-center justify-between gap-4 px-1">
+              <h3 className="text-2xl font-bold leading-none text-[#1F2937]">
+                Pilih Tes Remedial
+              </h3>
+              <button
+                type="button"
+                onClick={closeRemedialModal}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#94A3B8] transition hover:bg-[#F8FAFC] hover:text-[#64748B]"
+                aria-label="Tutup popup"
+              >
+                <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5">
+                  <path
+                    d="M5 5L15 15M15 5L5 15"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {isApiMode && isRemedialTestsLoading ? (
+                <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-8 text-center text-sm text-[#94A3B8]">
+                  Memuat tes remedial...
+                </div>
+              ) : resolvedRemedialOptions.length === 0 ? (
+                <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-8 text-center text-sm text-[#94A3B8]">
+                  Belum ada tes remedial yang tersedia.
+                </div>
+              ) : (
+                resolvedRemedialOptions.map((option) => {
+                  const alreadyAdded = isApiMode
+                    ? usedRemedialIds.has(option.id)
+                    : sequenceItems.some(
+                        (item) =>
+                          item.type === "Tes Remedial" &&
+                          item.title === option.title,
+                      );
+
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => void selectRemedialTest(option)}
+                      disabled={
+                        alreadyAdded || createCourseModuleMutation.isPending
+                      }
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
+                        alreadyAdded
+                          ? "cursor-not-allowed border-[#E5E7EB] bg-[#F8FAFC] opacity-60"
+                          : "border-[#E5E7EB] bg-white hover:border-[#FDBA74] hover:bg-[#FFF7ED]",
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#EA580C]">
+                          <NotebookIcon className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="text-lg font-bold text-[#1F2937]">
+                            {option.title}
+                          </p>
+                          <p className="text-sm text-[#94A3B8]">
+                            {option.totalQuestions} soal ·
+                            {option.durationMinutes} menit
+                          </p>
+                        </div>
+                      </div>
+
+                      {alreadyAdded && (
+                        <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#2563EB]">
+                          Sudah ditambahkan
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {isApiMode && remedialTotalPages > 1 && (
+              <div className="mt-4 border-t border-[#E5E7EB] pt-3">
+                <TablePagination
+                  currentPage={remedialPage}
+                  totalPages={remedialTotalPages}
+                  itemsPerPage={remedialItemsPerPage}
+                  onPageChange={setRemedialPage}
+                  onItemsPerPageChange={(items) => {
+                    setRemedialItemsPerPage(items);
+                    setRemedialPage(1);
+                  }}
+                  className="py-0"
+                />
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
       <MateriModuleDetailModal
         isOpen={isDetailModalOpen}
         onClose={closeDetailModal}
         module={selectedModule}
         diagnosticTest={selectedDiagnosticTest}
+        remedialTest={selectedRemedialTest}
         elkpds={
           selectedModule?.subject?.eLKPDTitle
             ? [
@@ -2025,6 +2370,7 @@ export function BaseMateriSection({
         students={students}
         isLoading={isSelectedModuleLoading}
         isDiagnosticLoading={isSelectedDiagnosticTestLoading}
+        isRemedialLoading={isSelectedRemedialTestLoading}
         deadlineDraft={deadlineDraft}
         onDeadlineChange={setDeadlineDraft}
         onSaveDeadline={() => void saveModuleDeadline()}
