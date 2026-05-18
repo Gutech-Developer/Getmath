@@ -13,6 +13,7 @@ export type DashboardSidebarRouteKey =
   | "profil"
   | "manage-material"
   | "manage-diagnostics"
+  | "manage-remedial"
   | "notifications"
   | "profile"
   | "learning analytics"
@@ -78,6 +79,12 @@ const teacherDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
     key: "manage-diagnostics",
     label: "Kelola Diagnostik",
     href: "/teacher/dashboard/manage-diagnostics",
+    icon: DocumentIcon,
+  },
+  {
+    key: "manage-remedial",
+    label: "Kelola Remedial",
+    href: "/teacher/dashboard/manage-remedial",
     icon: DocumentIcon,
   },
   {
@@ -239,6 +246,10 @@ export function resolveDashboardSidebarRouteKey(
       normalizedPathname.includes("/dashboard/lad")
     ) {
       return "manage-diagnostics";
+    }
+
+    if (normalizedPathname.includes("/dashboard/manage-remedial")) {
+      return "manage-remedial";
     }
 
     if (normalizedPathname.includes("/dashboard/notifikasi")) {

@@ -10,7 +10,7 @@ export type { GsPaginationMeta, GsPaginationParams };
 
 export interface GsTestOption {
   id: string;
-  questionId: string;
+  questionId?: string;
   option: string;
   textAnswer: string | null;
   imageAnswerUrl: string | null;
@@ -18,29 +18,20 @@ export interface GsTestOption {
 }
 
 export interface GsTestQuestionDiscussion {
-  id: string;
-  questionId: string;
+  id?: string;
+  questionId?: string;
   textDiscussion: string | null;
-  videoUrl: string | null;
 }
 
 export interface GsTestQuestion {
   id: string;
-  packageId: string;
+  diagnosticTestId?: string;
   questionNumber: number;
   textQuestion: string | null;
   imageQuestionUrl: string | null;
   pembahasan: string;
-  videoUrl: string;
   options: GsTestOption[];
   discussion?: GsTestQuestionDiscussion | null;
-}
-
-export interface GsTestQuestionPackage {
-  id: string;
-  diagnosticTestId: string;
-  packageName: string | null;
-  questions: GsTestQuestion[];
 }
 
 export interface GsDiagnosticTest {
@@ -52,7 +43,7 @@ export interface GsDiagnosticTest {
   passingScore: number;
   /** Optional: precomputed total question count returned by some list endpoints */
   totalQuestions?: number;
-  packages?: GsTestQuestionPackage[];
+  questions?: GsTestQuestion[];
   createdAt: string;
   updatedAt: string;
 }
@@ -75,7 +66,6 @@ export interface GsCreateTestOptionInput {
 
 export interface GsCreateTestQuestionDiscussionInput {
   textDiscussion?: string;
-  videoUrl?: string;
 }
 
 export interface GsCreateTestQuestionInput {
@@ -83,14 +73,8 @@ export interface GsCreateTestQuestionInput {
   textQuestion?: string;
   imageQuestionUrl?: string;
   pembahasan: string;
-  videoUrl?: string;
   options: GsCreateTestOptionInput[];
   discussion?: GsCreateTestQuestionDiscussionInput;
-}
-
-export interface GsCreateTestQuestionPackageInput {
-  packageName?: string;
-  questions: GsCreateTestQuestionInput[];
 }
 
 export interface GsCreateDiagnosticTestInput {
@@ -98,7 +82,7 @@ export interface GsCreateDiagnosticTestInput {
   description?: string;
   durationMinutes: number;
   passingScore: number;
-  packages: GsCreateTestQuestionPackageInput[];
+  questions: GsCreateTestQuestionInput[];
 }
 
 // ─── Input: Update (upsert — id opsional) ────────────────────────────────────
@@ -113,7 +97,6 @@ export interface GsUpsertTestOptionInput {
 
 export interface GsUpsertTestQuestionDiscussionInput {
   textDiscussion?: string;
-  videoUrl?: string;
 }
 
 export interface GsUpsertTestQuestionInput {
@@ -122,15 +105,8 @@ export interface GsUpsertTestQuestionInput {
   textQuestion?: string;
   imageQuestionUrl?: string;
   pembahasan: string;
-  videoUrl?: string;
   options: GsUpsertTestOptionInput[];
   discussion?: GsUpsertTestQuestionDiscussionInput | null;
-}
-
-export interface GsUpsertTestQuestionPackageInput {
-  id?: string;
-  packageName?: string;
-  questions: GsUpsertTestQuestionInput[];
 }
 
 export interface GsUpdateDiagnosticTestInput {
@@ -138,5 +114,5 @@ export interface GsUpdateDiagnosticTestInput {
   description?: string | null;
   durationMinutes?: number;
   passingScore?: number;
-  packages?: GsUpsertTestQuestionPackageInput[];
+  questions?: GsUpsertTestQuestionInput[];
 }

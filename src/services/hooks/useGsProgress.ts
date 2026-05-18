@@ -65,10 +65,12 @@ export interface DiagnosticAttemptItem {
 export interface StartTestAttemptResult {
   attemptId: string;
   attemptNumber: number;
-  testQuestionPackageId: string;
+  testQuestionPackageId?: string;
   passingScore: number;
   durationMinutes: number;
   startedAt: string;
+  deadlineAt?: string;
+  remainingSeconds?: number;
   questions: Array<{
     id: string;
     questionNumber: number;
@@ -84,7 +86,7 @@ export interface StartTestAttemptResult {
 }
 
 export interface StartTestAttemptInput {
-  packageId: string;
+  packageId?: string;
 }
 
 export interface SubmitTestAttemptInput {
@@ -101,6 +103,63 @@ export interface SubmitTestAttemptResult {
   correctAnswers: number;
   remainingAttempts: number;
   completedAt: string;
+}
+
+// ─── Remedial Test Types ──────────────────────────────────────────────────
+
+export interface RemedialOption {
+  id: string;
+  option: string;
+  textAnswer: string | null;
+  imageAnswerUrl: string | null;
+}
+
+export interface RemedialVariant {
+  variantId: string;
+  questionNumber: number;
+  packageLabel: "A" | "B" | "C";
+  textQuestion: string | null;
+  imageQuestionUrl: string | null;
+  options: RemedialOption[];
+}
+
+export interface StartRemedialAttemptResult {
+  attemptId: string;
+  testName: string;
+  durationMinutes: number;
+  passingScore: number;
+  totalQuestions: number;
+  startedAt: string;
+  deadlineAt: string;
+  remainingSeconds: number;
+  currentVariant: RemedialVariant | null;
+}
+
+export interface SubmitRemedialVariantInput {
+  variantId: string;
+  selectedOptionId: string | null;
+  startedAt?: string;
+  completedAt?: string;
+  emotion?: string;
+}
+
+export interface SubmitRemedialVariantResult {
+  isCorrect: boolean;
+  isCompleted: boolean;
+  discussion?: {
+    text: string;
+    videoUrl: string;
+  } | null;
+  nextVariant?: RemedialVariant | null;
+  summary?: {
+    attemptId: string;
+    score: number;
+    passingScore: number;
+    isPassed: boolean;
+    totalQuestions: number;
+    correctAnswers: number;
+    completedAt: string;
+  } | null;
 }
 
 // ─── ELKPD Grading Types ──────────────────────────────────────────────────
@@ -139,16 +198,17 @@ export interface GradeELKPDInput {
 export function useMarkFileRead(courseModuleId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async () => {
+  return useMutation<any, Error, { target: "SUBJECT" | "ELKPD" }>({
+    mutationFn: async ({ target }) => {
+      const body = { target };
       gsLogger.request(
         "POST",
         `/progress/modules/${courseModuleId}/mark-file-read`,
-        {},
+        body,
       );
       const response = await gsPost(
         `/progress/modules/${courseModuleId}/mark-file-read`,
-        {},
+        body,
       );
       gsLogger.response(
         "POST",
@@ -298,6 +358,94 @@ export function useSubmitTestAttempt(courseModuleId: string) {
         attemptId: data?.attemptId,
         score: data?.score,
         isPassed: data?.isPassed,
+      });
+    },
+  });
+}
+
+// ─── POST /api/progress/modules/:courseModuleId/remedial/start ──────────────────
+
+export function useStartRemedialAttempt(courseModuleId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      gsLogger.request(
+        "POST",
+        `/progress/modules/${courseModuleId}/remedial/start`,
+        {},
+      );
+      const response = await gsPost<StartRemedialAttemptResult>(
+        `/progress/modules/${courseModuleId}/remedial/start`,
+        {},
+      );
+      gsLogger.response(
+        "POST",
+        `/progress/modules/${courseModuleId}/remedial/start`,
+        200,
+        response,
+      );
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.testAttempts(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.moduleProgress(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseModules.all,
+      });
+      gsLogger.info("Remedial attempt started", { attemptId: data?.attemptId });
+    },
+  });
+}
+
+// ─── POST /api/progress/modules/:courseModuleId/remedial/attempts/:remedialAttemptId/variants/submit ───
+
+export function useSubmitRemedialVariant(courseModuleId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      remedialAttemptId,
+      input,
+    }: {
+      remedialAttemptId: string;
+      input: SubmitRemedialVariantInput;
+    }) => {
+      gsLogger.request(
+        "POST",
+        `/progress/modules/${courseModuleId}/remedial/attempts/${remedialAttemptId}/variants/submit`,
+        {},
+        input,
+      );
+      const response = await gsPost<SubmitRemedialVariantResult>(
+        `/progress/modules/${courseModuleId}/remedial/attempts/${remedialAttemptId}/variants/submit`,
+        input,
+      );
+      gsLogger.response(
+        "POST",
+        `/progress/modules/${courseModuleId}/remedial/attempts/${remedialAttemptId}/variants/submit`,
+        200,
+        response,
+      );
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.testAttempts(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.moduleProgress(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseModules.all,
+      });
+      gsLogger.info("Remedial variant submitted", {
+        isCorrect: data?.isCorrect,
+        isCompleted: data?.isCompleted,
       });
     },
   });

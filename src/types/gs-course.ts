@@ -100,7 +100,7 @@ export interface GsCourseModuleDiagnosticTest {
   passingScore: number;
 }
 
-export type GsModuleType = "SUBJECT" | "DIAGNOSTIC_TEST";
+export type GsModuleType = "SUBJECT" | "DIAGNOSTIC_TEST" | "REMEDIAL";
 
 export interface GsModuleNextPackage {
   packageId: string;
@@ -138,7 +138,8 @@ export interface GsModuleByPackageResponse {
   courseId: string;
   order: number;
   type: string;
-  diagnosticTestId: string;
+  diagnosticTestId?: string;
+  remedialTestId?: string;
   testName: string;
   durationMinutes: number;
   passingScore: number;
@@ -164,10 +165,11 @@ export interface GsCourseModule {
   courseId: string;
   subjectId: string | null;
   diagnosticTestId: string | null;
+  remedialTestId?: string | null;
   /** ISO datetime string atau null */
   deadline: string | null;
 
-  // Diagnostic Test Extra Info (Expanded)
+  // Diagnostic Test / Remedial Test Extra Info (Expanded)
   testName?: string;
   description?: string | null;
   durationMinutes?: number;
@@ -179,6 +181,7 @@ export interface GsCourseModule {
 
   subject?: GsCourseModuleSubject;
   diagnosticTest?: GsCourseModuleDiagnosticTest;
+  remedialTest?: GsCourseModuleDiagnosticTest;
 }
 
 /**
@@ -195,6 +198,8 @@ export interface GsCreateCourseModuleInput {
   subjectId?: string;
   /** Wajib jika type === "DIAGNOSTIC_TEST" */
   diagnosticTestId?: string;
+  /** Wajib jika type === "REMEDIAL" */
+  remedialTestId?: string;
   /** ISO datetime string opsional */
   deadline?: string;
 }

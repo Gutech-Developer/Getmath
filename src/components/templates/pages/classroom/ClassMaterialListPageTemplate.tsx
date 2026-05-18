@@ -102,6 +102,46 @@ function mapModuleToMaterial(
     };
   }
 
+  // Handle remedial test modules
+  if (module.type === "REMEDIAL") {
+    const title =
+      flat.testName ??
+      `Tes Remedial ${module.order ?? index + 1}`;
+
+    const steps: IMaterialStep[] = [
+      {
+        id: module.remedialTestId ?? `${moduleId}-remedial`,
+        typeLabel: "Tes Remedial",
+        title,
+        status: flat.completed
+          ? "completed"
+          : flat.accessible
+            ? "in-progress"
+            : "locked",
+      },
+    ];
+
+    const completedSteps = flat.completed ? 1 : 0;
+
+    return {
+      id: moduleId,
+      title,
+      description: flat.description ?? "",
+      totalSteps: steps.length,
+      completedSteps,
+      progressPercent:
+        steps.length > 0
+          ? Math.round((completedSteps / steps.length) * 100)
+          : 0,
+      status: flat.completed
+        ? "completed"
+        : flat.accessible
+          ? "in-progress"
+          : "locked",
+      steps,
+    };
+  }
+
   // SUBJECT modules
   const subject = module.subject;
   const title =
@@ -144,7 +184,7 @@ function mapModuleToMaterial(
       id: `${moduleId}-elkpd`,
       typeLabel: "E-LKPD",
       title: `E-LKPD: ${title}`,
-      status: flat.eLKPDGraded
+      status: (flat.eLKPDSubmitted || flat.eLKPDGraded)
         ? "completed"
         : prevCompleted
           ? "in-progress"
@@ -199,7 +239,11 @@ const STATUS_CONFIG: Record<
 function getStepIcon(typeLabel: string) {
   if (typeLabel === "Video") return VideoIcon;
   if (typeLabel === "E-LKPD") return DocumentIcon;
-  if (typeLabel === "Test Diagnosis" || typeLabel === "Tes")
+  if (
+    typeLabel === "Test Diagnosis" ||
+    typeLabel === "Tes" ||
+    typeLabel === "Tes Remedial"
+  )
     return CheckCircleIcon;
   return PDFIcon;
 }
@@ -211,6 +255,8 @@ function getStepIconTone(typeLabel: string): { bg: string; fg: string } {
     return { bg: "bg-[#D1FAE5]", fg: "text-[#059669]" };
   if (typeLabel === "Test Diagnosis" || typeLabel === "Tes")
     return { bg: "bg-[#FEE2E2]", fg: "text-[#DC2626]" };
+  if (typeLabel === "Tes Remedial")
+    return { bg: "bg-[#F5F3FF]", fg: "text-[#7C3AED]" };
   return { bg: "bg-[#DBEAFE]", fg: "text-[#2563EB]" };
 }
 
@@ -229,7 +275,12 @@ export default function ClassMaterialListPageTemplate({
   // console.log("course module : ", courseModules);
 
   const modules: IMaterialModule[] = (courseModules ?? [])
-    .filter((m) => m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST")
+    .filter(
+      (m) =>
+        m.type === "SUBJECT" ||
+        m.type === "DIAGNOSTIC_TEST" ||
+        m.type === "REMEDIAL",
+    )
     .map((m, i) => mapModuleToMaterial(m, i));
 
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
@@ -544,7 +595,11 @@ export default function ClassMaterialListPageTemplate({
                             </div>
                           ) : (
                             <Link
-                              href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${module.id}${step.typeLabel === "Test Diagnosis" || step.typeLabel === "Tes" ? `/${module.id}` : ""}`}
+                              href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${module.id}${
+                                step.typeLabel === "Test Diagnosis" || step.typeLabel === "Tes"
+                                  ? `/${step.id}`
+                                  : ""
+                              }`}
                               className={cn(
                                 "flex items-center gap-3 rounded-xl border px-3 py-2.5 transition",
                                 step.status === "in-progress"

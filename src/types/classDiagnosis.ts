@@ -1,7 +1,8 @@
 export interface IClassDiagnosisContentPageTemplateProps {
   slug: string;
   contentId: string;
-  diagnotisId: string;
+  diagnotisId?: string;
+  remediaId?: string;
 }
 
 export interface IDiagnosticOption {

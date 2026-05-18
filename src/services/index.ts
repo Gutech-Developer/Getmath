@@ -18,3 +18,4 @@ export * from "./hooks/useGsNotification";
 export * from "./hooks/useLegacyStubs";
 export * from "./hooks/useSchoolSearch";
 export * from "./hooks/useGsParent";
+export * from "./hooks/useGsRemedialTest";

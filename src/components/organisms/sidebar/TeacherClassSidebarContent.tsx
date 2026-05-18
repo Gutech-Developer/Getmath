@@ -32,6 +32,7 @@ const TEACHER_CLASS_SIDEBAR_ITEMS: ITeacherClassSidebarItem[] = [
   { type: "Materi", label: "Materi", icon: NotebookIcon },
   { type: "Kelola E-LKPD", label: "Kelola E-LKPD", icon: ClipboardIcon },
   { type: "Laporan", label: "Laporan", icon: TrendUpIcon },
+  { type: "Remedial", label: "Remedial", icon: NotebookIcon },
 ];
 
 function validViewType(value: string | null): string | null {
