@@ -22,7 +22,7 @@ export default function RootLayout({
         className={`font-parkinsans antialiased bg-grey-lightest overflow-x-hidden overflow-y-auto thin-scrollbar`}
       >
         <NextTopLoader
-          color="#A0AC67"
+          color="#1F2375"
           initialPosition={0.08}
           crawlSpeed={200}
           height={3}

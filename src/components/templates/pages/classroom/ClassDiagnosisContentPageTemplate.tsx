@@ -71,22 +71,30 @@ export default function ClassDiagnosisContentPageTemplate({
 
   // ─── Remedial States ──────────────────────────────────────────────────────
   const isRemedial = apiModule?.type === "REMEDIAL";
-  const [remedialAttemptId, setRemedialAttemptId] = useState<string | null>(null);
-  const [currentVariant, setCurrentVariant] = useState<RemedialVariant | null>(null);
+  const [remedialAttemptId, setRemedialAttemptId] = useState<string | null>(
+    null,
+  );
+  const [currentVariant, setCurrentVariant] = useState<RemedialVariant | null>(
+    null,
+  );
   const [remedialTestInfo, setRemedialTestInfo] = useState<{
     testName: string;
     passingScore: number;
     totalQuestions: number;
   } | null>(null);
-  const [selectedRemedialOptionId, setSelectedRemedialOptionId] = useState<string | null>(null);
+  const [selectedRemedialOptionId, setSelectedRemedialOptionId] = useState<
+    string | null
+  >(null);
   const [discussionShow, setDiscussionShow] = useState<boolean>(false);
   const [discussionData, setDiscussionData] = useState<{
     text: string;
     videoUrl?: string;
   } | null>(null);
-  const [discussionVideoWatched, setDiscussionVideoWatched] = useState<boolean>(false);
+  const [discussionVideoWatched, setDiscussionVideoWatched] =
+    useState<boolean>(false);
   const [remedialSummary, setRemedialSummary] = useState<any | null>(null);
-  const [nextVariantData, setNextVariantData] = useState<RemedialVariant | null>(null);
+  const [nextVariantData, setNextVariantData] =
+    useState<RemedialVariant | null>(null);
   const [remedialAnswers, setRemedialAnswers] = useState<
     Array<{ questionNumber: number; packageLabel: string; isCorrect: boolean }>
   >([]);
@@ -95,12 +103,13 @@ export default function ClassDiagnosisContentPageTemplate({
   const submitRemedialVariantMutation = useSubmitRemedialVariant(contentId);
 
   const { data: remedialTestData } = useGsRemedialTestById(
-    isRemedial ? (apiModule?.remedialTestId ?? "") : ""
+    isRemedial ? (apiModule?.remedialTestId ?? "") : "",
   );
 
   const getYouTubeId = (url: string): string | null => {
     if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return match && match[2].length === 11 ? match[2] : null;
   };
@@ -180,7 +189,8 @@ export default function ClassDiagnosisContentPageTemplate({
   useEffect(() => {
     console.log("[DiagnosticTest] attemptsData:", attemptsData);
     console.log("[DiagnosticTest] activeAttempt:", activeAttempt);
-  }, [attemptsData, activeAttempt]);  useEffect(() => {
+  }, [attemptsData, activeAttempt]);
+  useEffect(() => {
     if (!discussionShow || !discussionData?.videoUrl) return;
 
     const tagId = "yt-iframe-api";
@@ -204,7 +214,9 @@ export default function ClassDiagnosisContentPageTemplate({
           onStateChange: (event: any) => {
             if (event.data === (window as any).YT.PlayerState.ENDED) {
               setDiscussionVideoWatched(true);
-              showToast.success("Video selesai ditonton! Anda dapat melanjutkan.");
+              showToast.success(
+                "Video selesai ditonton! Anda dapat melanjutkan.",
+              );
             }
           },
         },
@@ -386,66 +398,38 @@ export default function ClassDiagnosisContentPageTemplate({
       );
     };
 
-    // If there's an unsubmitted attempt from a previous session, submit it with
-    // empty answers first (backend will mark it completed with score=0), then start fresh.
-    if (activeAttempt?.attemptId) {
-      console.log(
-        "[DiagnosticTest] Submitting stale unfinished attempt before starting new one:",
-        activeAttempt.attemptId,
-      );
-      submitAttempt.mutate(
-        { attemptId: activeAttempt.attemptId, input: { answers: [] } },
-        {
-          onSuccess: () => {
-            console.log(
-              "[DiagnosticTest] Stale attempt submitted, starting new attempt...",
-            );
-            doStart();
-          },
-          onError: (err: any) => {
-            console.error(
-              "[DiagnosticTest] Failed to submit stale attempt:",
-              err,
-            );
-            // Try starting anyway — backend might allow it now or return a different error
-            doStart();
-          },
-        },
-      );
-      return;
-    }
-
+    // Do NOT auto-submit a stale unfinished attempt with empty answers —
+    // that would incorrectly mark the diagnostic as completed (score=0) and
+    // waste one of the student's 3 allowed attempts.
+    // Just start fresh; the backend will handle any conflict.
     doStart();
   };
 
   const handleStartRemedial = () => {
-    startRemedialMutation.mutate(
-      undefined,
-      {
-        onSuccess: (data) => {
-          console.log("[RemedialTest] startRemedial SUCCESS:", data);
-          if (data?.attemptId) {
-            setRemedialAttemptId(data.attemptId);
-          }
-          if (data?.currentVariant) {
-            setCurrentVariant(data.currentVariant ?? null);
-          }
-          setRemedialTestInfo({
-            testName: data?.testName ?? "Tes Remedial",
-            passingScore: data?.passingScore ?? 70,
-            totalQuestions: data?.totalQuestions ?? 0,
-          });
-          if (data?.remainingSeconds) {
-            setRemainingSeconds(data.remainingSeconds);
-          }
-          setFlowStep("quiz");
-        },
-        onError: (err: any) => {
-          console.error("[RemedialTest] startRemedial ERROR:", err);
-          showToast.error(err.message || "Gagal memulai tes remedial");
-        },
-      }
-    );
+    startRemedialMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        console.log("[RemedialTest] startRemedial SUCCESS:", data);
+        if (data?.attemptId) {
+          setRemedialAttemptId(data.attemptId);
+        }
+        if (data?.currentVariant) {
+          setCurrentVariant(data.currentVariant ?? null);
+        }
+        setRemedialTestInfo({
+          testName: data?.testName ?? "Tes Remedial",
+          passingScore: data?.passingScore ?? 70,
+          totalQuestions: data?.totalQuestions ?? 0,
+        });
+        if (data?.remainingSeconds) {
+          setRemainingSeconds(data.remainingSeconds);
+        }
+        setFlowStep("quiz");
+      },
+      onError: (err: any) => {
+        console.error("[RemedialTest] startRemedial ERROR:", err);
+        showToast.error(err.message || "Gagal memulai tes remedial");
+      },
+    });
   };
 
   const handleSelectRemedialOption = (optionId: string) => {
@@ -454,7 +438,8 @@ export default function ClassDiagnosisContentPageTemplate({
   };
 
   const handleCorrectRemedial = () => {
-    if (!remedialAttemptId || !currentVariant || !selectedRemedialOptionId) return;
+    if (!remedialAttemptId || !currentVariant || !selectedRemedialOptionId)
+      return;
 
     submitRemedialVariantMutation.mutate(
       {
@@ -467,7 +452,7 @@ export default function ClassDiagnosisContentPageTemplate({
       {
         onSuccess: (data) => {
           console.log("[RemedialTest] submitRemedialVariant SUCCESS:", data);
-          
+
           setRemedialAnswers((prev) => [
             ...prev,
             {
@@ -503,7 +488,7 @@ export default function ClassDiagnosisContentPageTemplate({
           console.error("[RemedialTest] submitRemedialVariant ERROR:", err);
           showToast.error(err.message || "Gagal mengoreksi jawaban");
         },
-      }
+      },
     );
   };
 
@@ -671,9 +656,7 @@ export default function ClassDiagnosisContentPageTemplate({
                   </span>
                   <div>
                     <p className="text-[11px] text-white/75">Jumlah Soal</p>
-                    <p className="text-sm font-semibold">
-                      {totalQCount} Soal
-                    </p>
+                    <p className="text-sm font-semibold">{totalQCount} Soal</p>
                   </div>
                 </div>
               </div>
@@ -778,11 +761,15 @@ export default function ClassDiagnosisContentPageTemplate({
 
   if (flowStep === "completed") {
     const isPassedKKMResolved = isRemedial
-      ? (remedialSummary ? remedialSummary.isPassed : false)
+      ? remedialSummary
+        ? remedialSummary.isPassed
+        : false
       : isPassedKKM;
 
     const totalQuestionsResolved = isRemedial
-      ? (remedialSummary?.totalQuestions ?? remedialTestInfo?.totalQuestions ?? 0)
+      ? (remedialSummary?.totalQuestions ??
+        remedialTestInfo?.totalQuestions ??
+        0)
       : (submitResult?.totalQuestions ?? diagnosticQuestions.length);
 
     const correctCountResolved = isRemedial
@@ -862,7 +849,9 @@ export default function ClassDiagnosisContentPageTemplate({
 
           <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-white p-4">
             <h2 className="text-sm font-semibold text-[#0F172A]">
-              {isRemedial ? "Riwayat Pengerjaan Remedial" : "Pembahasan per Soal"}
+              {isRemedial
+                ? "Riwayat Pengerjaan Remedial"
+                : "Pembahasan per Soal"}
             </h2>
 
             <div className="mt-3 space-y-2.5">
@@ -889,7 +878,9 @@ export default function ClassDiagnosisContentPageTemplate({
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-[#64748B] italic">Tidak ada riwayat pengerjaan.</p>
+                  <p className="text-sm text-[#64748B] italic">
+                    Tidak ada riwayat pengerjaan.
+                  </p>
                 )
               ) : (
                 diagnosticQuestions.map((question, index) => {
@@ -1028,11 +1019,14 @@ export default function ClassDiagnosisContentPageTemplate({
                   Soal Remedial
                 </p>
                 <span className="rounded-full border border-white/35 bg-white/15 px-3 py-1 text-xs font-semibold">
-                  Soal {currentVariant?.questionNumber ?? 1} • Paket {currentVariant?.packageLabel ?? "A"}
+                  Soal {currentVariant?.questionNumber ?? 1} • Paket{" "}
+                  {currentVariant?.packageLabel ?? "A"}
                 </span>
               </div>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm font-semibold">Sesi remedial sedang berjalan</p>
+                <p className="text-sm font-semibold">
+                  Sesi remedial sedang berjalan
+                </p>
                 <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/35 bg-white/15 px-3 py-1.5 text-sm font-semibold">
                   <ClockIcon className="h-4 w-4" />
                   {timeLabel}
@@ -1073,7 +1067,7 @@ export default function ClassDiagnosisContentPageTemplate({
                         isSelected
                           ? "border-[#93C5FD] bg-[#EFF6FF]"
                           : "border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]",
-                        discussionShow && "cursor-not-allowed opacity-60"
+                        discussionShow && "cursor-not-allowed opacity-60",
                       )}
                     >
                       <span
@@ -1100,7 +1094,9 @@ export default function ClassDiagnosisContentPageTemplate({
                   <div className="flex items-start gap-3">
                     <AlertIcon className="mt-1 h-5 w-5 shrink-0 text-red-600" />
                     <div>
-                      <h3 className="text-sm font-bold text-red-800">Jawaban Kurang Tepat</h3>
+                      <h3 className="text-sm font-bold text-red-800">
+                        Jawaban Kurang Tepat
+                      </h3>
                       <p className="mt-1 text-sm text-red-700 leading-6">
                         <MathText text={discussionData?.text ?? ""} />
                       </p>
@@ -1125,7 +1121,8 @@ export default function ClassDiagnosisContentPageTemplate({
                       </div>
                       {!discussionVideoWatched && (
                         <p className="mt-2 text-xs font-medium text-red-600 animate-pulse">
-                          ℹ️ Tonton video pembahasan di atas sampai selesai untuk melanjutkan ke paket berikutnya.
+                          ℹ️ Tonton video pembahasan di atas sampai selesai
+                          untuk melanjutkan ke paket berikutnya.
                         </p>
                       )}
                     </div>
@@ -1149,10 +1146,15 @@ export default function ClassDiagnosisContentPageTemplate({
                 <button
                   type="button"
                   onClick={handleCorrectRemedial}
-                  disabled={!selectedRemedialOptionId || submitRemedialVariantMutation.isPending}
+                  disabled={
+                    !selectedRemedialOptionId ||
+                    submitRemedialVariantMutation.isPending
+                  }
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submitRemedialVariantMutation.isPending ? "Mengoreksi..." : "Kirim Jawaban"}
+                  {submitRemedialVariantMutation.isPending
+                    ? "Mengoreksi..."
+                    : "Kirim Jawaban"}
                 </button>
               )}
             </div>
@@ -1187,7 +1189,9 @@ export default function ClassDiagnosisContentPageTemplate({
                           : "border-red-200 bg-red-50 text-red-700",
                       )}
                     >
-                      <span>Soal {ans.questionNumber} (Paket {ans.packageLabel})</span>
+                      <span>
+                        Soal {ans.questionNumber} (Paket {ans.packageLabel})
+                      </span>
                       <span>{ans.isCorrect ? "✅" : "❌"}</span>
                     </div>
                   ))}

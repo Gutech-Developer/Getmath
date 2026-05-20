@@ -56,14 +56,26 @@ function createEmptyQuestion(index: number): IQuestionDraft {
 
 function latexTextToTiptapHtml(text: string): string {
   if (!text) return "";
+
+  // Convert each line into a Tiptap <p> block so newlines are preserved in the editor
   return text
-    .split(/(\$[^$\n]+\$)/g)
-    .map((part) => {
-      if (/^\$[^$\n]+\$$/.test(part)) {
-        const latex = part.slice(1, -1).replace(/"/g, "&quot;");
-        return `<span data-type="inline-math" data-latex="${latex}"></span>`;
-      }
-      return part;
+    .split("\n")
+    .map((line) => {
+      const lineHtml = line
+        .split(/(\$[^$\n]+\$)/g)
+        .map((part) => {
+          if (/^\$[^$\n]+\$$/.test(part)) {
+            const latex = part.slice(1, -1).replace(/"/g, "&quot;");
+            return `<span data-type="inline-math" data-latex="${latex}"></span>`;
+          }
+          // Escape HTML special chars in plain text
+          return part
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        })
+        .join("");
+      return `<p>${lineHtml || "<br>"}</p>`;
     })
     .join("");
 }
@@ -85,18 +97,20 @@ function tiptapHtmlToLatexText(html: string): string {
         const l = el.getAttribute("data-latex") ?? "";
         return l ? `$$${l}$$` : "";
       }
-      return Array.from(el.childNodes).map(processNode).join("");
+      const tag = el.tagName.toLowerCase();
+      const inner = Array.from(el.childNodes).map(processNode).join("");
+      // Tiptap wraps each paragraph in <p> — treat as a line break
+      if (tag === "p") return inner + "\n";
+      if (tag === "br") return "\n";
+      return inner;
     }
     return "";
   }
   return Array.from(doc.body.childNodes)
     .map(processNode)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
+    .join("")
+    .replace(/\n+$/, ""); // trim trailing newlines only
 }
-
-
 
 function prefillQuestions(dt: GsDiagnosticTest): IQuestionDraft[] {
   if (!dt.questions?.length) return [createEmptyQuestion(1)];
@@ -148,7 +162,9 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
   const [durationMinutes, setDurationMinutes] = useState("60");
   const [kkm, setKkm] = useState<number>(75);
   const [description, setDescription] = useState("");
-  const [questions, setQuestions] = useState<IQuestionDraft[]>(() => [createEmptyQuestion(1)]);
+  const [questions, setQuestions] = useState<IQuestionDraft[]>(() => [
+    createEmptyQuestion(1),
+  ]);
   const [openQuestionIds, setOpenQuestionIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
@@ -191,8 +207,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
   const updateQuestion = (
     qId: string,
     updater: (q: IQuestionDraft) => IQuestionDraft,
-  ) =>
-    setQuestions((prev) => prev.map((q) => (q.id === qId ? updater(q) : q)));
+  ) => setQuestions((prev) => prev.map((q) => (q.id === qId ? updater(q) : q)));
 
   /* ── build payload ── */
   const buildPayload = (isUpsert: boolean) =>
@@ -374,175 +389,162 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
         </div>
 
         <div className="space-y-3 p-4">
-                {questions.map((question, qi) => {
-                  const isOpen = openQuestionIds.includes(question.id);
-                  const preview = tiptapHtmlToLatexText(question.prompt);
-                  return (
-                    <div
-                      key={question.id}
-                      className="overflow-hidden rounded-2xl border border-[#E5E7EB]"
-                    >
-                      {/* Accordion header */}
-                      <button
-                        type="button"
-                        onClick={() => toggleQuestion(question.id)}
-                        className="flex w-full justify-between items-center gap-3 bg-[#F9FAFB] px-4 py-3 text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-sm font-semibold text-white">
-                            {qi + 1}
-                          </span>
-                          <p className="max-w-md">
-                            <MathText text={preview ?? `Soal ${qi + 1}`} />
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="shrink-0 rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
-                            Benar: {question.correctAnswer}
-                          </span>
-                          <ChevronLeftIcon
-                            className={cn(
-                              "h-5 w-5 shrink-0 text-[#6B7280] transition-transform",
-                              isOpen ? "-rotate-90" : "rotate-90",
-                            )}
-                          />
-                        </div>
-                      </button>
-
-                      {/* Accordion body */}
-                      {isOpen && (
-                        <div className="space-y-5 border-t border-[#E5E7EB] p-4">
-                          {/* Pertanyaan */}
-                          <div className="space-y-1.5">
-                            <label className="block text-sm font-semibold text-[#4B5563]">
-                              Pertanyaan{" "}
-                              <span className="text-[#EF4444]">*</span>
-                            </label>
-                            <MathEditor
-                              value={question.prompt}
-                              onChange={(v) =>
-                                updateQuestion(question.id, (q) => ({
-                                  ...q,
-                                  prompt: v,
-                                }))
-                              }
-                              placeholder="Masukkan teks soal…"
-                            />
-                          </div>
-
-                          {/* Pilihan Jawaban */}
-                          <div className="space-y-2">
-                            <p className="text-sm font-semibold text-[#4B5563]">
-                              Pilihan Jawaban (A – D)
-                            </p>
-                            <div className="space-y-2">
-                              {CHOICE_KEYS.map((key) => {
-                                const isCorrect =
-                                  question.correctAnswer === key;
-                                return (
-                                  <div
-                                    key={key}
-                                    className={cn(
-                                      "rounded-2xl border p-3",
-                                      isCorrect
-                                        ? "border-[#93C5FD] bg-[#EFF6FF]"
-                                        : "border-[#E5E7EB] bg-white",
-                                    )}
-                                  >
-                                    <div className="mb-2 flex items-center gap-2">
-                                      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F3F4F6] text-sm font-semibold text-[#374151]">
-                                        {key}
-                                      </span>
-                                      <label className="flex items-center gap-1.5 text-xs font-medium text-[#4B5563]">
-                                        <input
-                                          type="radio"
-                                          name={`correct-${question.id}`}
-                                          checked={isCorrect}
-                                          onChange={() =>
-                                            updateQuestion(
-                                              question.id,
-                                              (q) => ({
-                                                ...q,
-                                                correctAnswer: key,
-                                              }),
-                                            )
-                                          }
-                                          className="h-4 w-4 accent-[#2563EB]"
-                                        />
-                                        Jawaban benar
-                                      </label>
-                                    </div>
-                                    <MathEditor
-                                      value={question.options[key].text}
-                                      onChange={(v) =>
-                                        updateQuestion(
-                                          question.id,
-                                          (q) => ({
-                                            ...q,
-                                            options: {
-                                              ...q.options,
-                                              [key]: { text: v },
-                                            },
-                                          }),
-                                        )
-                                      }
-                                      placeholder={`Pilihan ${key}`}
-                                      className="min-h-14"
-                                    />
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* Pembahasan */}
-                          <div className="space-y-1.5">
-                            <label className="block text-sm font-semibold text-[#4B5563]">
-                              Pembahasan{" "}
-                              <span className="text-[#EF4444]">*</span>
-                            </label>
-                            <MathEditor
-                              value={question.pembahasan}
-                              onChange={(v) =>
-                                updateQuestion(question.id, (q) => ({
-                                  ...q,
-                                  pembahasan: v,
-                                }))
-                              }
-                              placeholder="Tuliskan pembahasan…"
-                            />
-                          </div>
-
-
-
-                          {/* Hapus soal */}
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeQuestion(question.id)
-                              }
-                              className="inline-flex items-center gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                              Hapus Soal
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
+          {questions.map((question, qi) => {
+            const isOpen = openQuestionIds.includes(question.id);
+            const preview = tiptapHtmlToLatexText(question.prompt);
+            return (
+              <div
+                key={question.id}
+                className="overflow-hidden rounded-2xl border border-[#E5E7EB]"
+              >
+                {/* Accordion header */}
                 <button
                   type="button"
-                  onClick={() => addQuestion()}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#93C5FD] bg-[#F0F9FF] py-3 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                  onClick={() => toggleQuestion(question.id)}
+                  className="flex w-full justify-between items-center gap-3 bg-[#F9FAFB] px-4 py-3 text-left"
                 >
-                  <PlusIcon className="h-4 w-4" />
-                  Tambah Soal
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-sm font-semibold text-white">
+                      {qi + 1}
+                    </span>
+                    <p className="max-w-md">
+                      <MathText text={preview ?? `Soal ${qi + 1}`} />
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
+                      Benar: {question.correctAnswer}
+                    </span>
+                    <ChevronLeftIcon
+                      className={cn(
+                        "h-5 w-5 shrink-0 text-[#6B7280] transition-transform",
+                        isOpen ? "-rotate-90" : "rotate-90",
+                      )}
+                    />
+                  </div>
                 </button>
+
+                {/* Accordion body */}
+                {isOpen && (
+                  <div className="space-y-5 border-t border-[#E5E7EB] p-4">
+                    {/* Pertanyaan */}
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-semibold text-[#4B5563]">
+                        Pertanyaan <span className="text-[#EF4444]">*</span>
+                      </label>
+                      <MathEditor
+                        value={question.prompt}
+                        onChange={(v) =>
+                          updateQuestion(question.id, (q) => ({
+                            ...q,
+                            prompt: v,
+                          }))
+                        }
+                        placeholder="Masukkan teks soal…"
+                      />
+                    </div>
+
+                    {/* Pilihan Jawaban */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-[#4B5563]">
+                        Pilihan Jawaban (A – D)
+                      </p>
+                      <div className="space-y-2">
+                        {CHOICE_KEYS.map((key) => {
+                          const isCorrect = question.correctAnswer === key;
+                          return (
+                            <div
+                              key={key}
+                              className={cn(
+                                "rounded-2xl border p-3",
+                                isCorrect
+                                  ? "border-[#93C5FD] bg-[#EFF6FF]"
+                                  : "border-[#E5E7EB] bg-white",
+                              )}
+                            >
+                              <div className="mb-2 flex items-center gap-2">
+                                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F3F4F6] text-sm font-semibold text-[#374151]">
+                                  {key}
+                                </span>
+                                <label className="flex items-center gap-1.5 text-xs font-medium text-[#4B5563]">
+                                  <input
+                                    type="radio"
+                                    name={`correct-${question.id}`}
+                                    checked={isCorrect}
+                                    onChange={() =>
+                                      updateQuestion(question.id, (q) => ({
+                                        ...q,
+                                        correctAnswer: key,
+                                      }))
+                                    }
+                                    className="h-4 w-4 accent-[#2563EB]"
+                                  />
+                                  Jawaban benar
+                                </label>
+                              </div>
+                              <MathEditor
+                                value={question.options[key].text}
+                                onChange={(v) =>
+                                  updateQuestion(question.id, (q) => ({
+                                    ...q,
+                                    options: {
+                                      ...q.options,
+                                      [key]: { text: v },
+                                    },
+                                  }))
+                                }
+                                placeholder={`Pilihan ${key}`}
+                                className="min-h-14"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Pembahasan */}
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-semibold text-[#4B5563]">
+                        Pembahasan <span className="text-[#EF4444]">*</span>
+                      </label>
+                      <MathEditor
+                        value={question.pembahasan}
+                        onChange={(v) =>
+                          updateQuestion(question.id, (q) => ({
+                            ...q,
+                            pembahasan: v,
+                          }))
+                        }
+                        placeholder="Tuliskan pembahasan…"
+                      />
+                    </div>
+
+                    {/* Hapus soal */}
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => removeQuestion(question.id)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                        Hapus Soal
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => addQuestion()}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#93C5FD] bg-[#F0F9FF] py-3 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Tambah Soal
+          </button>
+        </div>
       </section>
 
       {/* Footer */}

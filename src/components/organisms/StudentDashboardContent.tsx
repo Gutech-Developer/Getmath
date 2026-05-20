@@ -18,7 +18,7 @@ export interface EnrolledClass {
   teacher: string;
   institution: string;
   academicYear: string;
-  progress: number;
+  progressPercent: number;
   totalMaterials: number;
   totalStudents: number;
   symbol: ReactNode;
@@ -131,7 +131,7 @@ export const StudentDashboardContent: React.FC<
                 teacher={cls.teacher}
                 institution={cls.institution}
                 academicYear={cls.academicYear}
-                progress={cls.progress}
+                progressPercent={cls.progressPercent}
                 totalMaterials={cls.totalMaterials}
                 totalStudents={cls.totalStudents}
                 symbol={cls.symbol}

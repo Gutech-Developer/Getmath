@@ -76,14 +76,25 @@ function createEmptyQuestion(): IRemedialQuestionDraft {
 
 function latexTextToTiptapHtml(text: string): string {
   if (!text) return "";
+
+  // Convert each line into a Tiptap <p> block so newlines are preserved in the editor
   return text
-    .split(/(\$[^$\n]+\$)/g)
-    .map((part) => {
-      if (/^\$[^$\n]+\$$/.test(part)) {
-        const latex = part.slice(1, -1).replace(/"/g, "&quot;");
-        return `<span data-type="inline-math" data-latex="${latex}"></span>`;
-      }
-      return part;
+    .split("\n")
+    .map((line) => {
+      const lineHtml = line
+        .split(/(\$[^$\n]+\$)/g)
+        .map((part) => {
+          if (/^\$[^$\n]+\$$/.test(part)) {
+            const latex = part.slice(1, -1).replace(/"/g, "&quot;");
+            return `<span data-type="inline-math" data-latex="${latex}"></span>`;
+          }
+          return part
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        })
+        .join("");
+      return `<p>${lineHtml || "<br>"}</p>`;
     })
     .join("");
 }
@@ -105,15 +116,18 @@ function tiptapHtmlToLatexText(html: string): string {
         const l = el.getAttribute("data-latex") ?? "";
         return l ? `$$${l}$$` : "";
       }
-      return Array.from(el.childNodes).map(processNode).join("");
+      const tag = el.tagName.toLowerCase();
+      const inner = Array.from(el.childNodes).map(processNode).join("");
+      if (tag === "p") return inner + "\n";
+      if (tag === "br") return "\n";
+      return inner;
     }
     return "";
   }
   return Array.from(doc.body.childNodes)
     .map(processNode)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
+    .join("")
+    .replace(/\n+$/, ""); // trim trailing newlines only
 }
 
 function getYouTubeEmbedUrl(url: string): string | null {
@@ -198,7 +212,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
   const [durationMinutes, setDurationMinutes] = useState("60");
   const [kkm, setKkm] = useState<number>(75);
   const [description, setDescription] = useState("");
-  
+
   const [questions, setQuestions] = useState<IRemedialQuestionDraft[]>([
     createEmptyQuestion(),
   ]);
@@ -272,12 +286,16 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
         return {
           ...(isUpsert && variant.id ? { id: variant.id } : {}),
           packageLabel: label,
-          textQuestion: tiptapHtmlToLatexText(variant.prompt) || `Soal ${label} ${qi + 1}`,
+          textQuestion:
+            tiptapHtmlToLatexText(variant.prompt) || `Soal ${label} ${qi + 1}`,
           discussionText:
-            tiptapHtmlToLatexText(variant.pembahasan) || `Pembahasan soal ${label} ${qi + 1}`,
+            tiptapHtmlToLatexText(variant.pembahasan) ||
+            `Pembahasan soal ${label} ${qi + 1}`,
           discussionVideoUrl: variant.videoUrl || undefined,
           options: CHOICE_KEYS.map((key) => ({
-            ...(isUpsert && variant.options[key].id ? { id: variant.options[key].id } : {}),
+            ...(isUpsert && variant.options[key].id
+              ? { id: variant.options[key].id }
+              : {}),
             option: key,
             textAnswer: tiptapHtmlToLatexText(variant.options[key].text),
             isCorrect: variant.correctAnswer === key,
@@ -292,7 +310,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       showToast.error("Judul tes tidak boleh kosong");
       return;
     }
-    
+
     // Validate each variant of each question
     for (let qi = 0; qi < questions.length; qi++) {
       const q = questions[qi];
@@ -524,8 +542,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                     {/* Pertanyaan */}
                     <div className="space-y-1.5">
                       <label className="block text-sm font-semibold text-[#4B5563]">
-                        Pertanyaan{" "}
-                        <span className="text-[#EF4444]">*</span>
+                        Pertanyaan <span className="text-[#EF4444]">*</span>
                       </label>
                       <MathEditor
                         value={variant.prompt}
@@ -600,8 +617,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                     {/* Pembahasan */}
                     <div className="space-y-1.5">
                       <label className="block text-sm font-semibold text-[#4B5563]">
-                        Pembahasan{" "}
-                        <span className="text-[#EF4444]">*</span>
+                        Pembahasan <span className="text-[#EF4444]">*</span>
                       </label>
                       <MathEditor
                         value={variant.pembahasan}
