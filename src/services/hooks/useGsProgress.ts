@@ -218,7 +218,7 @@ export function useMarkFileRead(courseModuleId: string) {
       );
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsProgress.moduleProgress(courseModuleId),
       });
@@ -226,7 +226,19 @@ export function useMarkFileRead(courseModuleId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
       });
-      gsLogger.info("File marked as read", { courseModuleId });
+      // When ELKPD is read, also invalidate ELKPD submission queries
+      if (variables.target === "ELKPD") {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.gsELkpdSubmissions.byModule(courseModuleId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.gsSubjects.moduleSubmissions(courseModuleId),
+        });
+      }
+      gsLogger.info("File marked as read", {
+        courseModuleId,
+        target: variables.target,
+      });
     },
   });
 }
@@ -443,6 +455,12 @@ export function useSubmitRemedialVariant(courseModuleId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
       });
+      // Invalidate remediations list when a remedial attempt is completed
+      if (data?.isCompleted) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.gsRemediations.all,
+        });
+      }
       gsLogger.info("Remedial variant submitted", {
         isCorrect: data?.isCorrect,
         isCompleted: data?.isCompleted,

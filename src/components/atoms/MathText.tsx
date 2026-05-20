@@ -19,12 +19,11 @@ export default function MathText({
   displayMode = false,
 }: IMathTextProps) {
   if (!text) return null;
-
   // Split on $...$ patterns (non-greedy, no newlines inside)
   const parts = text.split(/(\$[^$\n]+\$)/g);
 
   return (
-    <span className={className}>
+    <span className={className} style={{ whiteSpace: "pre-line" }}>
       {parts.map((part, i) => {
         if (/^\$[^$\n]+\$$/.test(part)) {
           const latex = part.slice(1, -1);
@@ -39,7 +38,17 @@ export default function MathText({
             return <span key={i}>{part}</span>;
           }
         }
-        return <span key={i}>{part}</span>;
+        // Preserve newlines: split by \n and join with <br />
+        return (
+          <span key={i}>
+            {part.split("\n").map((line, j, arr) => (
+              <span key={j}>
+                {line}
+                {j < arr.length - 1 && <br />}
+              </span>
+            ))}
+          </span>
+        );
       })}
     </span>
   );

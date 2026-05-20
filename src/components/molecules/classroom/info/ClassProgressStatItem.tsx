@@ -3,7 +3,7 @@ import type { ClassInfoProgressTone } from "@/types";
 
 interface IClassProgressStatItemProps {
   label: string;
-  value: string;
+  value: number;
   tone: ClassInfoProgressTone;
 }
 
