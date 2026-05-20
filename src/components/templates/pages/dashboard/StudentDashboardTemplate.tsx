@@ -124,11 +124,14 @@ const StudentDashboardTemplate = () => {
   // ── Data ────────────────────────────────────────────────────────────────────
   const { data: me } = useGsCurrentUser();
   const { data: enrollmentsData } = useGsMyEnrollments({ limit: 50 });
-  const { data: schoolCoursesData } = useGsSchoolCourses({ limit: 50, search: searchValue });
+  const { data: schoolCoursesData } = useGsSchoolCourses({
+    limit: 50,
+    search: searchValue,
+  });
 
   const enrolledClasses: EnrolledClass[] = useMemo(() => {
     const schoolCoursesMap = new Map(
-      (schoolCoursesData?.courses ?? []).map((c) => [c.id, c])
+      (schoolCoursesData?.courses ?? []).map((c) => [c.id, c]),
     );
 
     return (enrollmentsData?.enrollments ?? [])
@@ -137,7 +140,6 @@ const StudentDashboardTemplate = () => {
         const course = e.course!;
         const schoolCourse = schoolCoursesMap.get(course.id);
         const { symbol, color } = symbolForId(course.id);
-
         return {
           id: course.id,
           slug: course.slug,
@@ -145,9 +147,11 @@ const StudentDashboardTemplate = () => {
           teacher: course.teacher?.fullName ?? "–",
           institution: course.schoolName ?? "–",
           academicYear: schoolCourse?.schoolYear ?? "–",
-          progress: 0,
-          totalMaterials: schoolCourse?.subjectCount ?? (course as any).subjectCount ?? 0,
-          totalStudents: schoolCourse?.enrolledCount ?? (course as any).enrolledCount ?? 0,
+          progressPercent: +(e as any).progressPercent,
+          totalMaterials:
+            schoolCourse?.subjectCount ?? (course as any).subjectCount ?? 0,
+          totalStudents:
+            schoolCourse?.enrolledCount ?? (course as any).enrolledCount ?? 0,
           symbol: <span className="text-xl">{symbol}</span>,
           symbolColor: color,
           progressVariant: "primary" as const,
@@ -155,13 +159,12 @@ const StudentDashboardTemplate = () => {
       });
   }, [enrollmentsData, schoolCoursesData]);
 
-
   // ── Available courses: classes in school that user hasn't joined ──────────
   const availableClasses: AvailableClass[] = useMemo(() => {
-    const enrolledIds = new Set(enrolledClasses.map(c => c.id));
+    const enrolledIds = new Set(enrolledClasses.map((c) => c.id));
     return (schoolCoursesData?.courses ?? [])
-      .filter(c => !enrolledIds.has(c.id))
-      .map(course => {
+      .filter((c) => !enrolledIds.has(c.id))
+      .map((course) => {
         const { symbol, color } = symbolForId(course.id);
         return {
           id: course.id,
@@ -184,8 +187,8 @@ const StudentDashboardTemplate = () => {
       cls.title.toLowerCase().includes(searchValue.toLowerCase());
     const matchTab =
       activeTab === "all" ||
-      (activeTab === "in_progress" && cls.progress < 100) ||
-      (activeTab === "completed" && cls.progress >= 100);
+      (activeTab === "in_progress" && cls.progressPercent < 100) ||
+      (activeTab === "completed" && cls.progressPercent >= 100);
     return matchSearch && matchTab;
   });
 

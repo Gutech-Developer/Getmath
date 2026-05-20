@@ -18,7 +18,7 @@ interface ClassCardProps {
   teacher: string;
   institution: string;
   academicYear: string;
-  progress: number;
+  progressPercent: number;
   totalMaterials: number;
   totalStudents: number;
   symbol: ReactNode;
@@ -35,7 +35,7 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
   teacher,
   institution,
   academicYear,
-  progress,
+  progressPercent,
   totalMaterials,
   totalStudents,
   symbol,
@@ -82,10 +82,10 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
         <div className="flex items-center justify-between">
           <span className="text-xs text-grey">Progress Belajar</span>
           <span className="text-xs font-semibold text-neutral-02">
-            {progress}%
+            {progressPercent}%
           </span>
         </div>
-        <ProgressBar value={progress} variant={"primary"} size="sm" />
+        <ProgressBar value={progressPercent} variant={"primary"} size="sm" />
       </div>
 
       {/* Footer */}

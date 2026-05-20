@@ -47,6 +47,7 @@ export interface GsCourse {
   /** Batas maksimal siswa — dapat null (tidak terbatas) */
   totalStudentLimit?: number | null;
   isArchived: boolean;
+  progressPercent: number;
   slug: string;
   courseCode: string;
   joinLink: string;

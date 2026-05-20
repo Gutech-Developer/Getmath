@@ -17,18 +17,21 @@ import ClassStudentMemberCard from "@/components/molecules/classroom/info/ClassS
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
-import { useGsCourseBySlug } from "@/services";
+import { useGsCourseBySlug, useStudentDashboard } from "@/services";
 import { CLASS_INFO_STUDENTS as STATIC_STUDENTS } from "@/constant/classInfo";
 
 export default function ClassInfoPageTemplate({
   slug,
 }: IClassInfoPageTemplateProps) {
   const classTitle = formatClassTitleFromSlug(slug);
-
   const { data: course, isLoading, error } = useGsCourseBySlug(slug);
+  const { data: dashboardMetrics } = useStudentDashboard(course?.id ?? "", {
+    enabled: !!course?.id,
+  });
 
   const teacherName = course?.teacher?.fullName ?? "Guru Kelas";
   const totalStudents = course?.enrolledCount ?? STATIC_STUDENTS.length;
+  const studentList = dashboardMetrics?.enrolledStudentNames;
 
   const detailItems = getClassInfoDetailItems(classTitle, {
     teacherName,
@@ -94,27 +97,33 @@ export default function ClassInfoPageTemplate({
               <div className="flex items-center justify-between gap-3">
                 <p className="text-base text-[#64748B]">Progress Keseluruhan</p>
                 <p className="text-lg font-bold text-[#232B89]">
-                  {CLASS_INFO_PROGRESS_PERCENT}%
+                  {course?.progressPercent}%
                 </p>
               </div>
 
               <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E5E7EB]">
                 <div
                   className="h-full rounded-full bg-[linear-gradient(90deg,#232B89_0%,#3943A8_100%)]"
-                  style={{ width: `${CLASS_INFO_PROGRESS_PERCENT}%` }}
+                  style={{ width: `${course?.progressPercent}%` }}
                 />
               </div>
             </div>
 
             <div className="mt-8 space-y-4">
-              {CLASS_INFO_PROGRESS_ITEMS.map((item) => (
+              {course?.subjectCount && (
                 <ClassProgressStatItem
-                  key={item.id}
-                  label={item.label}
-                  value={item.value}
-                  tone={item.tone}
+                  label={"Jumlah Materi"}
+                  value={course.subjectCount ?? 0}
+                  tone={"neutral"}
                 />
-              ))}
+              )}
+              {course?.diagnosticTestCount && (
+                <ClassProgressStatItem
+                  label={"Jumlah Tes Diagnostik"}
+                  value={course.diagnosticTestCount ?? 0}
+                  tone={"neutral"}
+                />
+              )}
             </div>
           </section>
         </div>
@@ -127,14 +136,25 @@ export default function ClassInfoPageTemplate({
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {STATIC_STUDENTS.map((student) => (
-              <ClassStudentMemberCard
-                key={student.id}
-                name={student.name}
-                toneClassName={student.toneClassName}
-                isCurrentUser={student.isCurrentUser}
-              />
-            ))}
+            {studentList &&
+              studentList?.length > 0 &&
+              studentList.map((student, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#F8FAFC] transition-colors"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0F172A] text-sm font-semibold text-white">
+                    {student.fullName?.charAt(0).toUpperCase()}
+                  </div>
+
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium text-[#0F172A]">
+                      {student.fullName}
+                    </p>
+                    <p className="text-xs text-[#94A3B8]">Siswa</p>
+                  </div>
+                </div>
+              ))}
           </div>
         </section>
       </section>

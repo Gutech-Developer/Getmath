@@ -224,7 +224,7 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = (props) => {
                 {streakDays} Hari Berturut
               </Badge>
             )}
-            {rank && (
+            {rank! > 0 && (
               <Badge
                 variant="ghost"
                 icon={<TrophyIcon className="w-3.5 h-3.5" />}

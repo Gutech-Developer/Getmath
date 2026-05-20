@@ -25,6 +25,7 @@ import type {
   ModuleStepState,
 } from "@/types/classMaterial";
 import { formatBreadcrumbLabel, formatContentTitle } from "@/utils";
+import { showToast } from "@/libs/toast";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -85,9 +86,7 @@ function moduleFromRemedial(
   const moduleId = getModuleId(module);
   const flat = module as any;
   const remedialTestId = module.remedialTestId ?? flat.remedialTestId ?? "";
-  const title =
-    flat.testName ??
-    `Tes Remedial ${module.order ?? index + 1}`;
+  const title = flat.testName ?? `Tes Remedial ${module.order ?? index + 1}`;
 
   return {
     id: moduleId,
@@ -228,11 +227,12 @@ function moduleFromSubject(
       rawUrl: subject.eLKPDFileUrl || null,
       state: "upcoming",
       // Lock ELKPD only when prevDone is explicitly false (backend returned it)
-      status: (flat.eLKPDSubmitted || flat.eLKPDGraded)
-        ? "completed"
-        : prevDone === false
-          ? "locked"
-          : "in-progress",
+      status:
+        flat.eLKPDSubmitted || flat.eLKPDGraded
+          ? "completed"
+          : prevDone === false
+            ? "locked"
+            : "in-progress",
     });
   }
 
@@ -371,7 +371,9 @@ export default function ClassMaterialContentPageTemplate({
     return (courseModules ?? [])
       .filter(
         (m: GsCourseModule) =>
-          m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST" || m.type === "REMEDIAL",
+          m.type === "SUBJECT" ||
+          m.type === "DIAGNOSTIC_TEST" ||
+          m.type === "REMEDIAL",
       )
       .map((m: GsCourseModule, i: number) => {
         const mId = m.id ?? (m as any).courseModuleId;
@@ -396,6 +398,8 @@ export default function ClassMaterialContentPageTemplate({
       })
       .filter((m: IModuleView | null): m is IModuleView => m !== null);
   }, [courseModules, detailModule]);
+
+  console.log("MODULES: ", modules);
 
   // ── Reflect progress state on steps ──────────────────────────────────
   // @deprecated: progressData tracking [UNREADY] - removed
@@ -478,7 +482,9 @@ export default function ClassMaterialContentPageTemplate({
   }, [flatSteps, selectedStepId, contentId]);
 
   const { data: activeModuleData } = useGsModuleById(
-    (activeStep?.kind === "DIAGNOSTIC" || activeStep?.kind === "REMEDIAL") ? activeStep.moduleId : "",
+    activeStep?.kind === "DIAGNOSTIC" || activeStep?.kind === "REMEDIAL"
+      ? activeStep.moduleId
+      : "",
   );
   const activeModuleDataAny = activeModuleData as any;
   const resolvedDiagnosticTestId =
@@ -488,9 +494,7 @@ export default function ClassMaterialContentPageTemplate({
     "";
 
   const resolvedRemedialTestId =
-    activeStep?.remedialTestId ||
-    activeModuleDataAny?.remedialTestId ||
-    "";
+    activeStep?.remedialTestId || activeModuleDataAny?.remedialTestId || "";
 
   const activeIndex = activeStep
     ? flatSteps.findIndex((s) => s.id === activeStep.id)
@@ -525,7 +529,17 @@ export default function ClassMaterialContentPageTemplate({
 
   const goTo = useCallback(
     (step: IFlatStep | null) => {
-      if (!step) return;
+      if (!step) {
+        showToast.success(
+          "Selamat, Kamu menyelesaikan semua materi di kelas ini!",
+        );
+        if (slug) {
+          router.push(
+            `/student/dashboard/class/${encodeURIComponent(slug)}/materi`,
+          );
+        }
+        return;
+      }
       setSelectedStepId(step.id);
       setOpenModuleId(step.moduleId);
 
@@ -542,14 +556,15 @@ export default function ClassMaterialContentPageTemplate({
         }
       }
 
-      // ── Auto-track progress when navigating ──────────────────────────
-      if (step.moduleId === contentId) {
-        if (step.kind === "PDF") {
+      // ── Auto-track progress when LEAVING current step ────────────────
+      // Mark the step we're leaving, not the one we're navigating to
+      if (activeStep?.moduleId === contentId) {
+        if (activeStep?.kind === "PDF") {
           markFileRead.mutate({ target: "SUBJECT" });
         }
       }
     },
-    [contentId, slug, router, markFileRead],
+    [contentId, slug, router, markFileRead, activeStep],
   );
 
   useEffect(() => {
@@ -911,7 +926,9 @@ export default function ClassMaterialContentPageTemplate({
                               : "bg-[#FEE2E2] text-[#B91C1C]",
                           )}
                         >
-                          {activeModuleDataAny.isPassed ? "Tuntas" : "Belum Tuntas"}
+                          {activeModuleDataAny.isPassed
+                            ? "Tuntas"
+                            : "Belum Tuntas"}
                         </span>
                       </div>
                       <div className="mt-3 flex items-center gap-6">
@@ -928,7 +945,9 @@ export default function ClassMaterialContentPageTemplate({
                             Status
                           </p>
                           <p className="text-xl font-bold text-[#0F172A]">
-                            {activeModuleDataAny.isPassed ? "Lulus" : "Belum Lulus"}
+                            {activeModuleDataAny.isPassed
+                              ? "Lulus"
+                              : "Belum Lulus"}
                           </p>
                         </div>
                       </div>
@@ -965,8 +984,8 @@ export default function ClassMaterialContentPageTemplate({
 
                   {slug && !resolvedRemedialTestId && (
                     <p className="mt-4 text-sm font-medium text-[#DC2626]">
-                      Tes remedial belum bisa dibuka karena ID remedial
-                      tidak ditemukan.
+                      Tes remedial belum bisa dibuka karena ID remedial tidak
+                      ditemukan.
                     </p>
                   )}
                 </div>
@@ -1003,7 +1022,6 @@ export default function ClassMaterialContentPageTemplate({
               type="button"
               onClick={() => goTo(nextStep)}
               disabled={
-                !nextStep ||
                 (isVideo && !videoFinished[activeStep?.id || ""]) ||
                 (isElkpd && !elkpdFinished[activeStep?.id || ""])
               }
@@ -1019,7 +1037,6 @@ export default function ClassMaterialContentPageTemplate({
 
         {/* ==================== RIGHT SIDEBAR ==================== */}
         <aside className="sticky top-4 h-fit rounded-2xl border border-[#E2E8F0] bg-white p-4 sm:p-5">
-          
           <p className="text-[11px] font-semibold uppercase tracking-widest text-[#94A3B8]">
             Daftar Modul
           </p>
@@ -1032,7 +1049,9 @@ export default function ClassMaterialContentPageTemplate({
                   <BookIcon className="h-3 w-3" />
                   Materi Pembelajaran
                 </p>
-                <h1 className="mt-2 text-base font-bold">Daftar Materi Kelas</h1>
+                <h1 className="mt-2 text-base font-bold">
+                  Daftar Materi Kelas
+                </h1>
                 <p className="mt-1 text-xs text-white/70">
                   Pelajari semua modul secara berurutan.
                 </p>
