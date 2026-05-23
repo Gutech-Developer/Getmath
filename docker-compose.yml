@@ -32,8 +32,11 @@ services:
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
-    ports:
-      - "3000:3000"
+    # Port TIDAK di-publish ke host — Dokploy routing via Traefik internal network.
+    # Untuk test lokal yang butuh akses dari host (curl/browser), tambahkan
+    # override file `docker-compose.override.yml` dengan `ports: ["3000:3000"]`.
+    expose:
+      - "3000"
     # Runtime env — dibaca server-side saat request masuk.
     # Pakai interpolasi `${VAR}` (BUKAN env_file:) supaya tidak depend pada
     # file fisik di repo. Dokploy & compose-cli sama-sama isi nilainya.
@@ -51,3 +54,11 @@ services:
       timeout: 5s
       start_period: 20s
       retries: 3
+    # Sambungkan ke network Traefik Dokploy supaya domain routing bekerja.
+    # Network ini sudah ada di VPS yang ter-install Dokploy.
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
