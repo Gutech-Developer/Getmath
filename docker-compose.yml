@@ -1,30 +1,33 @@
 # ────────────────────────────────────────────────────────────────────────────────
-# docker-compose.yml — untuk test LOKAL sebelum deploy ke Dokploy.
+# docker-compose.yml — dipakai oleh Dokploy (Compose deployment) & test lokal.
 #
-# Pola env: semua var dibaca dari file `.env.local` (sudah ada di project).
-# - Var di `args:` di-forward ke `docker build --build-arg` (untuk NEXT_PUBLIC_*).
-# - Var di `environment:` di-inject ke container saat runtime (untuk server secret).
+# POLA ENV: semua var di-pass via interpolasi `${VAR}`.
+# - Di Dokploy: nilai datang dari tab "Environment" application (auto-inject).
+# - Di lokal: nilai datang dari file `.env` di working dir (compose default).
 #
-# Cara pakai:
-#   docker compose up --build              # build + run (foreground, lihat log)
-#   docker compose up -d --build           # detached
-#   docker compose logs -f                 # tail log
-#   docker compose down                    # stop & cleanup
-#   docker compose down --rmi local        # stop + hapus image
+# Cara pakai LOKAL:
+#   1. Buat `.env` (sekali saja):
+#        cp .env.local .env
+#   2. Build & run:
+#        docker compose up --build
 #
-# Catatan: file ini TIDAK dipakai Dokploy. Dokploy build langsung dari Dockerfile
-# dan inject env-nya sendiri lewat tab Environment.
+# Cara pakai DOKPLOY:
+#   1. Source Type: Git (GitHub) → branch main
+#   2. Compose Type: docker-compose
+#   3. Compose Path: ./docker-compose.yml
+#   4. Tab Environment: isi semua var (lihat README / chat).
+#      Dokploy otomatis membuat file `.env` di context compose.
 # ────────────────────────────────────────────────────────────────────────────────
 
 services:
   frontend:
     container_name: getsmart-frontend
-    image: getsmart-frontend:local
+    image: getsmart-frontend:latest
     build:
       context: .
       dockerfile: Dockerfile
       # Build args — di-inline ke bundle JS saat `next build`.
-      # Nilai diambil dari .env.local via interpolation ${VAR}.
+      # Nilai diambil dari env Dokploy / file `.env` lokal via ${VAR}.
       args:
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
@@ -32,13 +35,15 @@ services:
     ports:
       - "3000:3000"
     # Runtime env — dibaca server-side saat request masuk.
-    # `env_file` lebih praktis daripada list `environment:` satu per satu.
-    env_file:
-      - .env.local
+    # Pakai interpolasi `${VAR}` (BUKAN env_file:) supaya tidak depend pada
+    # file fisik di repo. Dokploy & compose-cli sama-sama isi nilainya.
     environment:
-      # Override `NODE_ENV` agar tetap production walau .env.local set "development".
-      # Tujuannya: meniru kondisi runtime Dokploy seakurat mungkin.
       NODE_ENV: production
+      GETSMART_API_URL: ${GETSMART_API_URL}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
