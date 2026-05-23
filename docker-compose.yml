@@ -1,0 +1,48 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# docker-compose.yml — untuk test LOKAL sebelum deploy ke Dokploy.
+#
+# Pola env: semua var dibaca dari file `.env.local` (sudah ada di project).
+# - Var di `args:` di-forward ke `docker build --build-arg` (untuk NEXT_PUBLIC_*).
+# - Var di `environment:` di-inject ke container saat runtime (untuk server secret).
+#
+# Cara pakai:
+#   docker compose up --build              # build + run (foreground, lihat log)
+#   docker compose up -d --build           # detached
+#   docker compose logs -f                 # tail log
+#   docker compose down                    # stop & cleanup
+#   docker compose down --rmi local        # stop + hapus image
+#
+# Catatan: file ini TIDAK dipakai Dokploy. Dokploy build langsung dari Dockerfile
+# dan inject env-nya sendiri lewat tab Environment.
+# ────────────────────────────────────────────────────────────────────────────────
+
+services:
+  frontend:
+    container_name: getsmart-frontend
+    image: getsmart-frontend:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Build args — di-inline ke bundle JS saat `next build`.
+      # Nilai diambil dari .env.local via interpolation ${VAR}.
+      args:
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
+    ports:
+      - "3000:3000"
+    # Runtime env — dibaca server-side saat request masuk.
+    # `env_file` lebih praktis daripada list `environment:` satu per satu.
+    env_file:
+      - .env.local
+    environment:
+      # Override `NODE_ENV` agar tetap production walau .env.local set "development".
+      # Tujuannya: meniru kondisi runtime Dokploy seakurat mungkin.
+      NODE_ENV: production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3

@@ -1,0 +1,68 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# .dockerignore — kecilkan build context & cegah file sensitif masuk image
+# ────────────────────────────────────────────────────────────────────────────────
+
+# Dependencies (akan di-install ulang di container)
+node_modules
+.pnp
+.pnp.*
+.yarn/cache
+.yarn/install-state.gz
+
+# Next.js build outputs
+.next
+out
+build
+dist
+
+# Testing & coverage
+coverage
+.nyc_output
+
+# Env files — JANGAN bake ke image, inject via Dokploy
+.env
+.env.*
+!.env.example
+
+# Git & VCS
+.git
+.gitignore
+.gitattributes
+
+# CI / tooling
+.github
+.gitlab-ci.yml
+.circleci
+
+# Editor & OS
+.vscode
+.idea
+.DS_Store
+*.swp
+*.swo
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Claude / agents / docs lokal
+.claude
+.agents
+.codex
+RESPONSIVE_DESIGN.md
+
+# Vercel
+.vercel
+
+# Docker meta itself
+Dockerfile
+.dockerignore
+docker-compose*.yml
