@@ -76,8 +76,13 @@ RUN pnpm build
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Stage 4: runner — image runtime minimal (standalone output)
+#
+# Tidak inherit dari `base` supaya pnpm/corepack TIDAK ikut ke image akhir.
+# Runtime hanya butuh Node + libc6-compat untuk menjalankan `server.js`.
 # ────────────────────────────────────────────────────────────────────────────────
-FROM base AS runner
+FROM node:${NODE_VERSION}-alpine AS runner
+
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
@@ -91,7 +96,7 @@ RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nextjs
 
 # Copy assets publik & build artifacts ke layout standalone Next.js
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # .next/standalone berisi server.js + minimal node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

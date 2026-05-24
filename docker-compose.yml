@@ -21,7 +21,8 @@
 
 services:
   frontend:
-    container_name: getsmart-frontend
+    # container_name SENGAJA tidak diset — replicas butuh nama unik per instance.
+    # Compose/Swarm akan generate <project>_frontend_1, _2, dst secara otomatis.
     image: getsmart-frontend:latest
     build:
       context: .
@@ -32,9 +33,13 @@ services:
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
-    # Port TIDAK di-publish ke host — Dokploy routing via Traefik internal network.
-    # Untuk test lokal yang butuh akses dari host (curl/browser), tambahkan
-    # override file `docker-compose.override.yml` dengan `ports: ["3000:3000"]`.
+    # Jalankan 2 replica identik. Traefik (dokploy-network) otomatis
+    # load-balance round-robin ke semua container yang match service ini.
+    # Port TIDAK di-publish ke host — routing via Traefik internal network.
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: unless-stopped
     expose:
       - "3000"
     # Runtime env — dibaca server-side saat request masuk.
@@ -47,7 +52,6 @@ services:
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
       interval: 30s
