@@ -129,7 +129,7 @@ export default function TeacherLearningAnalyticsClassTemplate({
       const elkpdItems: NonNullable<
         ITeacherClassLearningAnalyticsDetail["elkpdItems"]
       > = orderedModules
-        .filter((module) => module.type === "SUBJECT")
+        .filter((module) => module.type === "SUBJECT" && !!module.subject?.eLKPDTitle)
         .map((module, index) => ({
           id: module.id,
           title: `E-LKPD ${index + 1} - ${module.subject?.subjectName ?? "Materi"}`,

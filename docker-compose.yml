@@ -1,0 +1,68 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# docker-compose.yml — dipakai oleh Dokploy (Compose deployment) & test lokal.
+#
+# POLA ENV: semua var di-pass via interpolasi `${VAR}`.
+# - Di Dokploy: nilai datang dari tab "Environment" application (auto-inject).
+# - Di lokal: nilai datang dari file `.env` di working dir (compose default).
+#
+# Cara pakai LOKAL:
+#   1. Buat `.env` (sekali saja):
+#        cp .env.local .env
+#   2. Build & run:
+#        docker compose up --build
+#
+# Cara pakai DOKPLOY:
+#   1. Source Type: Git (GitHub) → branch main
+#   2. Compose Type: docker-compose
+#   3. Compose Path: ./docker-compose.yml
+#   4. Tab Environment: isi semua var (lihat README / chat).
+#      Dokploy otomatis membuat file `.env` di context compose.
+# ────────────────────────────────────────────────────────────────────────────────
+
+services:
+  frontend:
+    # container_name SENGAJA tidak diset — replicas butuh nama unik per instance.
+    # Compose/Swarm akan generate <project>_frontend_1, _2, dst secara otomatis.
+    image: getsmart-frontend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Build args — di-inline ke bundle JS saat `next build`.
+      # Nilai diambil dari env Dokploy / file `.env` lokal via ${VAR}.
+      args:
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
+    # Jalankan 2 replica identik. Traefik (dokploy-network) otomatis
+    # load-balance round-robin ke semua container yang match service ini.
+    # Port TIDAK di-publish ke host — routing via Traefik internal network.
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: unless-stopped
+    expose:
+      - "3000"
+    # Runtime env — dibaca server-side saat request masuk.
+    # Pakai interpolasi `${VAR}` (BUKAN env_file:) supaya tidak depend pada
+    # file fisik di repo. Dokploy & compose-cli sama-sama isi nilainya.
+    environment:
+      NODE_ENV: production
+      GETSMART_API_URL: ${GETSMART_API_URL}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    # Sambungkan ke network Traefik Dokploy supaya domain routing bekerja.
+    # Network ini sudah ada di VPS yang ter-install Dokploy.
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

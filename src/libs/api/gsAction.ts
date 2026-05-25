@@ -26,6 +26,8 @@ import {
   gsPublicPost as _gsPublicPost,
   gsRequest as _gsRequest,
   gsPublicRequest as _gsPublicRequest,
+  gsUploadFile as _gsUploadFile,
+  gsDeleteFile as _gsDeleteFile,
   type GsRequestConfig,
 } from "./getsmart";
 import { GsApiError } from "./getsmart.types";
@@ -69,6 +71,14 @@ export async function gsRequest<T>(
   config?: GsRequestConfig,
 ): Promise<T> {
   return unwrap(await _gsRequest<T>(path, config));
+}
+
+export async function gsUploadFile(formData: FormData): Promise<{ url: string }> {
+  return unwrap(await _gsUploadFile(formData));
+}
+
+export async function gsDeleteFile(url: string): Promise<void> {
+  return unwrap(await _gsDeleteFile(url));
 }
 
 // ── Public ────────────────────────────────────────────────────────────────────

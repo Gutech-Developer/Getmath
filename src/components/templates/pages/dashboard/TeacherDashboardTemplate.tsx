@@ -139,7 +139,7 @@ export default function TeacherDashboardTemplate() {
     title: c.courseName,
     classCode: c.courseCode,
     totalStudents: c.enrolledCount ?? 0,
-    progress: 0,
+    progress: c.averageProgressPercent ?? 0,
     progressVariant: "primary" as const,
     isActive: !c.isArchived,
   }));

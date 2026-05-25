@@ -106,6 +106,20 @@ export function resolveTopbarTitle({
     return explicitTitle;
   }
 
+  // Dynamic Remedial/Diagnostic paths
+  if (/\/teacher\/dashboard\/manage-remedial\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalizedPathname)) {
+    return "Detail Tes Remedial";
+  }
+  if (/\/teacher\/dashboard\/manage-remedial\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/edit$/i.test(normalizedPathname)) {
+    return "Edit Tes Remedial";
+  }
+  if (/\/teacher\/dashboard\/manage-diagnostics\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalizedPathname)) {
+    return "Detail Tes Diagnostik";
+  }
+  if (/\/teacher\/dashboard\/manage-diagnostics\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/edit$/i.test(normalizedPathname)) {
+    return "Edit Tes Diagnostik";
+  }
+
   const resolvedSidebar = resolveSidebarVariant(normalizedPathname);
   const slug = pickSlug(slugParam) ?? resolvedSidebar.classSlug;
 

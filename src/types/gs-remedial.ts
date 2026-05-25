@@ -26,6 +26,9 @@ export interface GsRemedialVariant {
 export interface GsRemedialQuestion {
   id: string;
   questionNumber: number;
+  discussionText?: string | null;
+  discussionVideoUrl?: string | null;
+  discussionImageUrl?: string | null;
   variants: GsRemedialVariant[];
 }
 

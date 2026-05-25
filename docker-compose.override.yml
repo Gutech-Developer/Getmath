@@ -1,0 +1,25 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# docker-compose.override.yml — LOKAL ONLY.
+#
+# Compose otomatis merge file ini di atas docker-compose.yml saat command
+# `docker compose ...` dijalankan di lokal. Dokploy TIDAK pakai file ini
+# (Dokploy hanya baca docker-compose.yml).
+#
+# Tujuan: expose port 3000 ke host supaya bisa diakses dari browser/curl
+# di mesin development, plus disable dependency ke dokploy-network yang
+# tidak ada di lokal.
+# ────────────────────────────────────────────────────────────────────────────────
+
+services:
+  frontend:
+    ports:
+      - "3000:3000"
+    networks: !reset []
+    # Lokal hanya butuh 1 instance — `replicas: 2` di base file akan bentrok
+    # port 3000 di host. Force ke 1 supaya `docker compose up` aman.
+    deploy:
+      replicas: 1
+
+networks:
+  dokploy-network:
+    external: false

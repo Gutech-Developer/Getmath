@@ -57,6 +57,7 @@ export interface GsCourse {
   enrolledCount?: number;
   diagnosticTestCount?: number;
   subjectCount?: number;
+  averageProgressPercent?: number;
   // ── Nested ────────────────────────────────────────────────────────────────
   /** Info guru — tersedia di semua course endpoints */
   teacher?: GsTeacherBasic;
@@ -179,6 +180,16 @@ export interface GsCourseModule {
   attemptsUsed?: number;
   maxAttempts?: number;
   nextPackage?: GsModuleNextPackage | null;
+  hasAttempted?: boolean;
+  attemptId?: string | null;
+  attemptHistory?: Array<{
+    attemptId: string;
+    attemptNumber: number;
+    score?: number;
+    isPassed: boolean;
+    startedAt?: string;
+    completedAt?: string;
+  }>;
 
   subject?: GsCourseModuleSubject;
   diagnosticTest?: GsCourseModuleDiagnosticTest;

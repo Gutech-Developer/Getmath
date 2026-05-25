@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Standalone output untuk Docker — menghasilkan .next/standalone/server.js
+  // yang membundle hanya runtime deps yang dipakai, image jadi kecil.
+  output: "standalone",
   reactCompiler: true,
   images: {
     remotePatterns: [

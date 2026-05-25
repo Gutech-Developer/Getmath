@@ -543,3 +543,47 @@ export async function gsPublicPost<T>(
 export async function gsPublicGet<T>(path: string): Promise<GsFetchResult<T>> {
   return gsPublicRequest<T>(path, { method: "GET" });
 }
+
+/** Upload file via FormData */
+export async function gsUploadFile(formData: FormData): Promise<GsFetchResult<{ url: string }>> {
+  const accessToken = await getAccessToken();
+  const endpoint = `${BASE_URL}/upload`;
+  const headers: Record<string, string> = {
+    "x-internal-api-key": process.env.INTERNAL_API_KEY ?? "",
+  };
+  if (accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: formData,
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      let message = `Upload failed with status ${res.status}`;
+      try {
+        const errJson = await res.json();
+        if (errJson?.message) message = errJson.message;
+      } catch {}
+      return { ok: false, message, status: res.status };
+    }
+
+    const json = await res.json();
+    return { ok: true, data: json.data };
+  } catch (err: any) {
+    return { ok: false, message: err.message || "Network error", status: 500 };
+  }
+}
+
+/** Delete uploaded file */
+export async function gsDeleteFile(url: string): Promise<GsFetchResult<void>> {
+  return gsRequest<void>("/upload", {
+    method: "DELETE",
+    body: { url },
+  });
+}
+
