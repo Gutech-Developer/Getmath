@@ -73,45 +73,7 @@ function buildModuleView(
   if (moduleType === "DIAGNOSTIC_TEST") {
     return moduleFromDiagnostic(module, index);
   }
-  if (moduleType === "REMEDIAL") {
-    return moduleFromRemedial(module, index);
-  }
   return null;
-}
-
-function moduleFromRemedial(
-  module: GsCourseModule,
-  index: number,
-): IModuleView {
-  const moduleId = getModuleId(module);
-  const flat = module as any;
-  const remedialTestId = module.remedialTestId ?? flat.remedialTestId ?? "";
-  const title = flat.testName ?? `Tes Remedial ${module.order ?? index + 1}`;
-
-  return {
-    id: moduleId,
-    title,
-    description: flat.description ?? "",
-    steps: [
-      {
-        id: `${moduleId}-remedial`,
-        moduleId,
-        remedialTestId,
-        moduleTitle: title,
-        kind: "REMEDIAL",
-        typeLabel: "Tes Remedial",
-        title,
-        url: null,
-        rawUrl: null,
-        state: index === 0 ? "active" : "upcoming",
-        status: flat.completed
-          ? "completed"
-          : flat.accessible === false
-            ? "locked"
-            : "in-progress",
-      },
-    ],
-  };
 }
 
 function getModuleId(module: GsCourseModule): string {
@@ -166,27 +128,20 @@ function moduleFromSubject(
   const flat = module as any;
   const steps: IFlatStep[] = [];
 
-  if (subject.subjectFileUrl || true) {
-    steps.push({
-      id: `${moduleId}-pdf`,
-      moduleId,
-      moduleTitle: subject.subjectName,
-      kind: "PDF",
-      typeLabel: "Materi",
-      title: subject.subjectName,
-      url: subject.subjectFileUrl
-        ? toEmbedUrl(subject.subjectFileUrl, "pdf")
-        : null,
-      rawUrl: subject.subjectFileUrl || null,
-      state: index === 0 ? "active" : "upcoming",
-      // accessible===false means explicitly locked; undefined (detail endpoint) → in-progress
-      status: flat.fileRead
-        ? "completed"
-        : flat.accessible === false
-          ? "locked"
-          : "in-progress",
-    });
-  }
+  steps.push({
+    id: `${moduleId}-pdf`,
+    moduleId,
+    moduleTitle: subject.subjectName,
+    kind: "PDF",
+    typeLabel: "Materi",
+    title: subject.subjectName,
+    url: subject.subjectFileUrl
+      ? toEmbedUrl(subject.subjectFileUrl, "pdf")
+      : null,
+    rawUrl: subject.subjectFileUrl || null,
+    state: index === 0 ? "active" : "upcoming",
+    status: flat.fileRead ? "completed" : "in-progress",
+  });
 
   if (subject.videoUrl || (subject as any)._hasVideo) {
     steps.push({
@@ -199,12 +154,7 @@ function moduleFromSubject(
       url: subject.videoUrl ? toEmbedUrl(subject.videoUrl, "video") : null,
       rawUrl: subject.videoUrl || null,
       state: "upcoming",
-      // Lock video only when fileRead is explicitly false (i.e. backend returned it as false)
-      status: flat.videoWatched
-        ? "completed"
-        : flat.fileRead === false
-          ? "locked"
-          : "in-progress",
+      status: flat.videoWatched ? "completed" : "in-progress",
     });
   }
 
@@ -212,8 +162,6 @@ function moduleFromSubject(
     (subject.eLKPDTitle && subject.eLKPDFileUrl) ||
     (subject as any)._hasELKPD
   ) {
-    const hasVideo = flat.hasVideo as boolean | undefined;
-    const prevDone = hasVideo ? flat.videoWatched : flat.fileRead;
     steps.push({
       id: `${moduleId}-elkpd-${subject.id || moduleId}`,
       moduleId,
@@ -226,13 +174,8 @@ function moduleFromSubject(
         : null,
       rawUrl: subject.eLKPDFileUrl || null,
       state: "upcoming",
-      // Lock ELKPD only when prevDone is explicitly false (backend returned it)
       status:
-        flat.eLKPDSubmitted || flat.eLKPDGraded
-          ? "completed"
-          : prevDone === false
-            ? "locked"
-            : "in-progress",
+        flat.eLKPDSubmitted || flat.eLKPDGraded ? "completed" : "in-progress",
     });
   }
 
@@ -257,31 +200,45 @@ function moduleFromDiagnostic(
     fallback.testName ??
     `Tes Diagnostik ${module.order ?? index + 1}`;
   const diagnosticTestId = module.diagnosticTestId ?? test?.id ?? "";
+  const remedialTestId = module.remedialTestId ?? flat.remedialTestId ?? "";
+
+  const steps: IFlatStep[] = [
+    {
+      id: `${moduleId}-diagnostic`,
+      moduleId,
+      diagnosticTestId,
+      moduleTitle: title,
+      kind: "DIAGNOSTIC",
+      typeLabel: "Test Diagnosis",
+      title,
+      url: null,
+      rawUrl: null,
+      state: index === 0 ? "active" : "upcoming",
+      status: flat.completed ? "completed" : "in-progress",
+    },
+  ];
+
+  if (remedialTestId) {
+    steps.push({
+      id: `${moduleId}-remedial`,
+      moduleId,
+      remedialTestId,
+      moduleTitle: title,
+      kind: "REMEDIAL",
+      typeLabel: "Tes Remedial",
+      title: `Tes Remedial: ${title}`,
+      url: null,
+      rawUrl: null,
+      state: "upcoming",
+      status: flat.remedialCompleted ? "completed" : "in-progress",
+    });
+  }
 
   return {
     id: moduleId,
     title,
     description: test?.description ?? fallback.description ?? "",
-    steps: [
-      {
-        id: `${moduleId}-diagnostic`,
-        moduleId,
-        diagnosticTestId,
-        moduleTitle: title,
-        kind: "DIAGNOSTIC",
-        typeLabel: "Test Diagnosis",
-        title,
-        url: null,
-        rawUrl: null,
-        state: index === 0 ? "active" : "upcoming",
-        // accessible===false = explicitly locked; undefined (detail endpoint) → in-progress
-        status: flat.completed
-          ? "completed"
-          : flat.accessible === false
-            ? "locked"
-            : "in-progress",
-      },
-    ],
+    steps,
   };
 }
 
@@ -347,8 +304,6 @@ export default function ClassMaterialContentPageTemplate({
   const { data: courseModules, isPending } = useGsModulesByCourse(courseId);
 
   // ── Progress tracking hooks ──────────────────────────────────────────
-  // @deprecated: useModuleProgress endpoint [UNREADY] - removed
-  // Mutations still track progress on backend, but visual state not available
   const markFileRead = useMarkFileRead(contentId);
   const markVideoWatched = useMarkVideoWatched(contentId);
 
@@ -371,9 +326,7 @@ export default function ClassMaterialContentPageTemplate({
     return (courseModules ?? [])
       .filter(
         (m: GsCourseModule) =>
-          m.type === "SUBJECT" ||
-          m.type === "DIAGNOSTIC_TEST" ||
-          m.type === "REMEDIAL",
+          m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST",
       )
       .map((m: GsCourseModule, i: number) => {
         const mId = m.id ?? (m as any).courseModuleId;
@@ -493,8 +446,15 @@ export default function ClassMaterialContentPageTemplate({
     activeModuleDataAny?.diagnosticTest?.id ||
     "";
 
+  // When DIAGNOSTIC step is active, remedialTestId is on the REMEDIAL sibling step (same moduleId)
+  const remedialSiblingStep = flatSteps.find(
+    (s) => s.kind === "REMEDIAL" && s.moduleId === activeStep?.moduleId,
+  );
   const resolvedRemedialTestId =
-    activeStep?.remedialTestId || activeModuleDataAny?.remedialTestId || "";
+    activeStep?.remedialTestId ||
+    remedialSiblingStep?.remedialTestId ||
+    activeModuleDataAny?.remedialTestId ||
+    "";
 
   const activeIndex = activeStep
     ? flatSteps.findIndex((s) => s.id === activeStep.id)
@@ -547,6 +507,11 @@ export default function ClassMaterialContentPageTemplate({
         if (step.kind === "DIAGNOSTIC") {
           router.push(
             `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}/${step.diagnosticTestId}`,
+          );
+          return;
+        } else if (step.kind === "REMEDIAL") {
+          router.push(
+            `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}/remedia/${step.remedialTestId}`,
           );
           return;
         } else if (step.moduleId !== contentId) {
@@ -846,6 +811,10 @@ export default function ClassMaterialContentPageTemplate({
                         testAttempts?.attempts?.some((a) => a.isPassed) ??
                         false;
                       const isMaxAttempts = attemptCount >= 3;
+                      const shouldGoToRemedial =
+                        attemptCount > 0 &&
+                        !!resolvedRemedialTestId &&
+                        !hasPassed;
 
                       if (hasPassed) {
                         return (
@@ -872,15 +841,27 @@ export default function ClassMaterialContentPageTemplate({
 
                       return (
                         <Link
-                          href={`/student/dashboard/class/${encodeURIComponent(
-                            slug,
-                          )}/materi/${encodeURIComponent(
-                            activeStep?.moduleId ?? contentId,
-                          )}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
+                          href={
+                            shouldGoToRemedial
+                              ? `/student/dashboard/class/${encodeURIComponent(
+                                  slug,
+                                )}/materi/${encodeURIComponent(
+                                  activeStep?.moduleId ?? contentId,
+                                )}/remedia/${encodeURIComponent(
+                                  resolvedRemedialTestId,
+                                )}`
+                              : `/student/dashboard/class/${encodeURIComponent(
+                                  slug,
+                                )}/materi/${encodeURIComponent(
+                                  activeStep?.moduleId ?? contentId,
+                                )}/${encodeURIComponent(
+                                  resolvedDiagnosticTestId,
+                                )}`
+                          }
                           className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
                         >
-                          {attemptCount > 0
-                            ? `Kerjakan Ulang (${attemptCount}/3)`
+                          {shouldGoToRemedial
+                            ? "Kerjakan Remedial"
                             : "Mulai Tes Diagnostik"}
                         </Link>
                       );
@@ -957,28 +938,37 @@ export default function ClassMaterialContentPageTemplate({
                   {slug &&
                     resolvedRemedialTestId &&
                     (() => {
-                      if (activeModuleDataAny?.isPassed) {
-                        return (
-                          <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-5 py-3 text-sm font-semibold text-[#166534]">
-                            <CheckCircleIcon className="h-4 w-4" />
-                            Kamu sudah lulus tes remedial ini
-                          </div>
-                        );
-                      }
-
                       return (
-                        <Link
-                          href={`/student/dashboard/class/${encodeURIComponent(
-                            slug,
-                          )}/materi/${encodeURIComponent(
-                            activeStep?.moduleId ?? contentId,
-                          )}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
-                          className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
-                        >
-                          {activeModuleDataAny?.hasCompleted
-                            ? "Kerjakan Ulang Remedial"
-                            : "Mulai Tes Remedial"}
-                        </Link>
+                        <div className="mt-4 space-y-2">
+                          {latestAttempt && latestAttempt.isPassed && (
+                            <div className="inline-flex items-center gap-2 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-5 py-3 text-sm font-semibold text-[#166534]">
+                              <CheckCircleIcon className="h-4 w-4" />
+                              Kamu sudah lulus tes diagnostik ini
+                            </div>
+                          )}
+                          {latestAttempt && !latestAttempt.isPassed && (
+                            <div className="rounded-xl border border-[#FEE2E2] bg-[#FEF2F2] p-4 text-sm text-[#991B1B]">
+                              <p className="font-semibold">
+                                Skor Tes Diagnostik belum mencapai KKM (
+                                {activeModuleDataAny?.passingScore ?? 80}).
+                              </p>
+                              <p className="mt-1 text-xs text-[#B91C1C]">
+                                Silakan ikuti Tes Remedial di bawah ini untuk
+                                memperbaiki pemahaman materi Anda.
+                              </p>
+                            </div>
+                          )}
+                          <Link
+                            href={`/student/dashboard/class/${encodeURIComponent(
+                              slug,
+                            )}/materi/${encodeURIComponent(
+                              activeStep?.moduleId ?? contentId,
+                            )}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
+                            className="inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
+                          >
+                            Mulai Tes Remedial
+                          </Link>
+                        </div>
                       );
                     })()}
 
@@ -1022,8 +1012,7 @@ export default function ClassMaterialContentPageTemplate({
               type="button"
               onClick={() => goTo(nextStep)}
               disabled={
-                (isVideo && !videoFinished[activeStep?.id || ""]) ||
-                (isElkpd && !elkpdFinished[activeStep?.id || ""])
+                isVideo && !nextStep && !videoFinished[activeStep?.id || ""]
               }
               className="inline-flex h-11 items-center justify-center rounded-full bg-[#2563EB] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)] transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
             >

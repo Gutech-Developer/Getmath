@@ -12,6 +12,7 @@ import {
   useGsCurrentUser,
   useGsMyEnrollments,
   useGsEnrollCourse,
+  useGsEnrollCourseByLink,
   useGsSchoolCourses,
 } from "@/services";
 
@@ -46,23 +47,44 @@ function JoinCourseModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const [activeTab, setActiveTab] = useState<"code" | "link">("code");
   const [courseId, setCourseId] = useState("");
   const enrollCourse = useGsEnrollCourse();
+  const enrollCourseByLink = useGsEnrollCourseByLink();
+
+  const isPending = enrollCourse.isPending || enrollCourseByLink.isPending;
 
   const handleSubmit = () => {
-    if (!courseId.trim()) return;
-    enrollCourse.mutate(
-      { courseCode: courseId.trim() },
-      {
-        onSuccess: () => {
-          showToast.success("Berhasil bergabung ke kelas");
-          setCourseId("");
-          onClose();
+    const inputVal = courseId.trim();
+    if (!inputVal) return;
+
+    if (activeTab === "link") {
+      enrollCourseByLink.mutate(
+        { joinLink: inputVal },
+        {
+          onSuccess: () => {
+            showToast.success("Berhasil bergabung ke kelas via link");
+            setCourseId("");
+            onClose();
+          },
+          onError: (err) =>
+            showToast.error(err.message ?? "Gagal bergabung ke kelas via link"),
         },
-        onError: (err) =>
-          showToast.error(err.message ?? "Gagal bergabung ke kelas"),
-      },
-    );
+      );
+    } else {
+      enrollCourse.mutate(
+        { courseCode: inputVal },
+        {
+          onSuccess: () => {
+            showToast.success("Berhasil bergabung ke kelas");
+            setCourseId("");
+            onClose();
+          },
+          onError: (err) =>
+            showToast.error(err.message ?? "Gagal bergabung ke kelas"),
+        },
+      );
+    }
   };
 
   if (!isOpen) return null;
@@ -70,25 +92,75 @@ function JoinCourseModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 flex flex-col gap-5">
         <h2 className="text-lg font-semibold text-neutral-02">
-          Gabung dengan Kode Kelas
+          Gabung Kelas Baru
         </h2>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-neutral-02">
-            ID atau Kode Kelas <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="Masukkan ID kelas"
-            value={courseId}
-            onChange={(e) => setCourseId(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            className="w-full border border-grey-stroke rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
-          />
-          <p className="text-xs text-grey">
-            Minta ID kelas dari gurumu untuk bergabung.
-          </p>
+        {/* Tab Headers */}
+        <div className="flex border-b border-grey-stroke">
+          <button
+            onClick={() => {
+              setActiveTab("code");
+              setCourseId("");
+            }}
+            className={`flex-1 pb-3 text-sm font-semibold transition-all border-b-2 ${
+              activeTab === "code"
+                ? "border-[#1F2375] text-[#1F2375]"
+                : "border-transparent text-grey hover:text-neutral-02"
+            }`}
+          >
+            Kode Kelas
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("link");
+              setCourseId("");
+            }}
+            className={`flex-1 pb-3 text-sm font-semibold transition-all border-b-2 ${
+              activeTab === "link"
+                ? "border-[#1F2375] text-[#1F2375]"
+                : "border-transparent text-grey hover:text-neutral-02"
+            }`}
+          >
+            Link Gabung
+          </button>
         </div>
+
+        {/* Tab Body */}
+        {activeTab === "code" ? (
+          <div className="flex flex-col gap-1.5 mt-1">
+            <label className="text-sm font-medium text-neutral-02">
+              Kode Kelas <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Contoh: IPNUGGY1"
+              value={courseId}
+              onChange={(e) => setCourseId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              className="w-full border border-grey-stroke rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+            />
+            <p className="text-xs text-grey">
+              Minta 8 digit kode kelas dari gurumu untuk bergabung.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5 mt-1">
+            <label className="text-sm font-medium text-neutral-02">
+              Link Gabung <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Contoh: https://getsmart.id/join/IPNUGGY1"
+              value={courseId}
+              onChange={(e) => setCourseId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              className="w-full border border-grey-stroke rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+            />
+            <p className="text-xs text-grey">
+              Tempelkan link gabung lengkap yang diberikan oleh gurumu.
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-end gap-3">
           <button
@@ -102,11 +174,11 @@ function JoinCourseModal({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!courseId.trim() || enrollCourse.isPending}
+            disabled={!courseId.trim() || isPending}
             className="px-5 py-2 rounded-xl text-sm font-semibold bg-[#1F2375] text-white hover:bg-[#171B5C] disabled:cursor-not-allowed disabled:opacity-50 transition-colors flex items-center gap-2"
           >
             <PlusIcon className="w-4 h-4" />
-            {enrollCourse.isPending ? "Memproses..." : "Masuk Kelas"}
+            {isPending ? "Memproses..." : "Masuk Kelas"}
           </button>
         </div>
       </div>

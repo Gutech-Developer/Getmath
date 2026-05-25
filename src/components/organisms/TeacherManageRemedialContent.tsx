@@ -43,7 +43,7 @@ function mapGsRemedialToItem(rt: GsRemedialTest): IRemedialItem {
     questionCount: packageCountMap[label],
   }));
 
-  const totalQuestions = questions.length;
+  const totalQuestions = rt.totalQuestions ?? questions.length;
 
   return {
     id: rt.id,
@@ -76,6 +76,7 @@ export default function TeacherManageRemedialContent() {
   const remedials: IRemedialItem[] = (
     remedialTestsData?.remedialTests ?? []
   ).map(mapGsRemedialToItem);
+ 
 
   const handleDelete = (id: string, title: string) => {
     if (!confirm(`Hapus "${title}"?`)) return;
@@ -85,6 +86,7 @@ export default function TeacherManageRemedialContent() {
     });
   };
 
+   console.log("ini DataRemedial",remedialTestsData?.remedialTests.forEach((item)=> item.totalQuestions))
   /* ------------------------------------------------------------------ */
   return (
     <section className="w-full space-y-4">

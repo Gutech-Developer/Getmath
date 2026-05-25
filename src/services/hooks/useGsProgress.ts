@@ -162,6 +162,76 @@ export interface SubmitRemedialVariantResult {
   } | null;
 }
 
+export interface DiagnosticAnswerReviewQuestion {
+  id: string;
+  questionNumber: number;
+  textQuestion: string | null;
+  imageQuestionUrl?: string | null;
+  options: Array<{
+    id: string;
+    option: string;
+    textAnswer: string | null;
+    isCorrect: boolean;
+    imageAnswerUrl?: string | null;
+  }>;
+  selectedOptionId: string | null;
+  isCorrect: boolean;
+  correctOptionId: string | null;
+}
+
+export interface DiagnosticAnswersReviewResponse {
+  courseModuleId: string;
+  diagnosticTestId: string;
+  testName: string;
+  attemptId: string;
+  attemptNumber: number;
+  score: number;
+  isPassed: boolean;
+  passingScore: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  questions: DiagnosticAnswerReviewQuestion[];
+}
+
+export interface RemedialAnswerReviewVariant {
+  id: string;
+  packageLabel: "A" | "B" | "C";
+  textQuestion: string | null;
+  imageQuestionUrl?: string | null;
+  options: Array<{
+    id: string;
+    option: string;
+    textAnswer: string | null;
+    isCorrect: boolean;
+    imageAnswerUrl?: string | null;
+  }>;
+  selectedOptionId: string | null;
+  isCorrect: boolean;
+  correctOptionId: string | null;
+}
+
+export interface RemedialAnswerReviewQuestion {
+  id: string;
+  questionNumber: number;
+  discussionText: string | null;
+  discussionVideoUrl: string | null;
+  discussionImageUrl?: string | null;
+  variants: RemedialAnswerReviewVariant[];
+}
+
+export interface RemedialAnswersReviewResponse {
+  courseModuleId: string;
+  remedialTestId: string;
+  testName: string;
+  attemptId: string;
+  score: number;
+  isPassed: boolean;
+  passingScore: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  questions: RemedialAnswerReviewQuestion[];
+}
+
 // ─── ELKPD Grading Types ──────────────────────────────────────────────────
 
 export interface ELKPDGradeEntry {
@@ -466,6 +536,118 @@ export function useSubmitRemedialVariant(courseModuleId: string) {
         isCompleted: data?.isCompleted,
       });
     },
+  });
+}
+
+// ─── POST /api/progress/modules/:courseModuleId/remedial/attempts/:remedialAttemptId/submit ─
+
+export function useSubmitRemedialBulk(courseModuleId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      remedialAttemptId,
+      input,
+    }: {
+      remedialAttemptId: string;
+      input: {
+        answers: Array<{
+          variantId: string;
+          selectedOptionId?: string | null;
+        }>;
+      };
+    }) => {
+      gsLogger.request(
+        "POST",
+        `/progress/modules/${courseModuleId}/remedial/attempts/${remedialAttemptId}/submit`,
+        {},
+        input,
+      );
+      const response = await gsPost<SubmitTestAttemptResult>(
+        `/progress/modules/${courseModuleId}/remedial/attempts/${remedialAttemptId}/submit`,
+        input,
+      );
+      gsLogger.response(
+        "POST",
+        `/progress/modules/${courseModuleId}/remedial/attempts/${remedialAttemptId}/submit`,
+        200,
+        response,
+      );
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.testAttempts(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.moduleProgress(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseModules.all,
+      });
+      if (data?.isPassed !== undefined) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.gsRemediations.all,
+        });
+      }
+      gsLogger.info("Remedial bulk submitted", {
+        attemptId: data?.attemptId,
+        score: data?.score,
+        isPassed: data?.isPassed,
+      });
+    },
+  });
+}
+
+// ─── GET /api/progress/modules/:courseModuleId/diagnostic-answers ────────────
+
+export function useDiagnosticAnswersReview(
+  courseModuleId: string,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: ["gs-progress", "diagnostic-answers", courseModuleId],
+    queryFn: async () => {
+      gsLogger.info(`Fetching diagnostic answers for ${courseModuleId}`, {});
+      const response = await gsGet<DiagnosticAnswersReviewResponse>(
+        `/progress/modules/${courseModuleId}/diagnostic-answers`,
+      );
+      gsLogger.response(
+        "GET",
+        `/progress/modules/${courseModuleId}/diagnostic-answers`,
+        200,
+        response,
+      );
+      return response;
+    },
+    enabled: !!courseModuleId && (options?.enabled ?? true),
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+// ─── GET /api/progress/modules/:courseModuleId/remedial-answers ──────────────
+
+export function useRemedialAnswersReview(
+  courseModuleId: string,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: ["gs-progress", "remedial-answers", courseModuleId],
+    queryFn: async () => {
+      gsLogger.info(`Fetching remedial answers for ${courseModuleId}`, {});
+      const response = await gsGet<RemedialAnswersReviewResponse>(
+        `/progress/modules/${courseModuleId}/remedial-answers`,
+      );
+      gsLogger.response(
+        "GET",
+        `/progress/modules/${courseModuleId}/remedial-answers`,
+        200,
+        response,
+      );
+      return response;
+    },
+    enabled: !!courseModuleId && (options?.enabled ?? true),
+    staleTime: 2 * 60 * 1000,
   });
 }
 

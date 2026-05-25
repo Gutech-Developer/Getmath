@@ -30,6 +30,7 @@ import type { ComponentType, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ForumSection from "@/components/organisms/ForumSection";
+import { showToast } from "@/libs/toast";
 
 export type {
   ITeacherClassLearningAnalyticsDetail,
@@ -286,7 +287,23 @@ export default function TeacherLearningAnalyticsClassContent({
 
   return (
     <div className="space-y-4">
-      <LearningAnalyticsClassHeaderCard data={headerData} />
+      <LearningAnalyticsClassHeaderCard
+        data={headerData}
+        actionNode={
+          <button
+            onClick={() => {
+              const code = classDetail.classCode || "";
+              const joinUrl = `${window.location.origin}/join/${code}`;
+              navigator.clipboard.writeText(joinUrl);
+              showToast.success("Link gabung kelas berhasil disalin!");
+            }}
+            className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-white text-[#1F2375] rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors"
+          >
+            <span>🔗</span>
+            Bagikan Link
+          </button>
+        }
+      />
       <div className="flex items-center gap-2">
         <div className="flex-1">
           <LearningAnalyticsViewSwitcher
