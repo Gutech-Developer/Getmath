@@ -12,6 +12,8 @@ import {
   useGsCreateRemedialTest,
   useGsUpdateRemedialTest,
   useGsRemedialTestById,
+  useGsUploadFile,
+  useGsDeleteFile,
 } from "@/services";
 import type { GsRemedialTest, GsRemedialVariant } from "@/types/gs-remedial";
 import MathText from "../atoms/MathText";
@@ -39,12 +41,13 @@ interface IVariantDraft {
   prompt: string;
   options: Record<ChoiceKey, IOptionDraft>;
   correctAnswer: ChoiceKey;
-  pembahasan: string;
-  videoUrl: string;
 }
 
 interface IRemedialQuestionDraft {
   id: string;
+  pembahasan: string;
+  videoUrl: string;
+  imageUrl: string;
   variants: Record<VariantLabel, IVariantDraft>;
 }
 
@@ -58,14 +61,15 @@ function createEmptyVariant(): IVariantDraft {
       D: { text: "" },
     },
     correctAnswer: "A",
-    pembahasan: "",
-    videoUrl: "",
   };
 }
 
 function createEmptyQuestion(): IRemedialQuestionDraft {
   return {
     id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    pembahasan: "",
+    videoUrl: "",
+    imageUrl: "",
     variants: {
       A: createEmptyVariant(),
       B: createEmptyVariant(),
@@ -179,8 +183,6 @@ function parseVariant(v?: GsRemedialVariant): IVariantDraft {
     },
     correctAnswer:
       (v.options.find((o) => o.isCorrect)?.option as ChoiceKey) ?? "A",
-    pembahasan: latexTextToTiptapHtml(v.discussionText ?? ""),
-    videoUrl: v.discussionVideoUrl ?? "",
   };
 }
 
@@ -188,6 +190,9 @@ function prefillQuestions(rt: GsRemedialTest): IRemedialQuestionDraft[] {
   if (!rt.questions?.length) return [createEmptyQuestion()];
   return rt.questions.map((q) => ({
     id: q.id,
+    pembahasan: latexTextToTiptapHtml(q.discussionText ?? ""),
+    videoUrl: q.discussionVideoUrl ?? "",
+    imageUrl: q.discussionImageUrl ?? "",
     variants: {
       A: parseVariant(q.variants.find((v) => v.packageLabel === "A")),
       B: parseVariant(q.variants.find((v) => v.packageLabel === "B")),
@@ -207,6 +212,8 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
     useGsRemedialTestById(editId ?? "");
   const createMutation = useGsCreateRemedialTest();
   const updateMutation = useGsUpdateRemedialTest();
+  const uploadMutation = useGsUploadFile();
+  const deleteMutation = useGsDeleteFile();
 
   const [testTitle, setTestTitle] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("60");
@@ -258,6 +265,21 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
+  const updateQuestion = (
+    qId: string,
+    updater: (q: IRemedialQuestionDraft) => Partial<IRemedialQuestionDraft>,
+  ) => {
+    setQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== qId) return q;
+        return {
+          ...q,
+          ...updater(q),
+        };
+      }),
+    );
+  };
+
   const updateVariant = (
     qId: string,
     updater: (v: IVariantDraft) => IVariantDraft,
@@ -281,6 +303,11 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
     questions.map((q, qi) => ({
       ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
       questionNumber: qi + 1,
+      discussionText:
+        tiptapHtmlToLatexText(q.pembahasan) ||
+        `Pembahasan soal ${qi + 1}`,
+      discussionVideoUrl: q.videoUrl || undefined,
+      discussionImageUrl: q.imageUrl || undefined,
       variants: VARIANT_LABELS.map((label) => {
         const variant = q.variants[label];
         return {
@@ -288,10 +315,6 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
           packageLabel: label,
           textQuestion:
             tiptapHtmlToLatexText(variant.prompt) || `Soal ${label} ${qi + 1}`,
-          discussionText:
-            tiptapHtmlToLatexText(variant.pembahasan) ||
-            `Pembahasan soal ${label} ${qi + 1}`,
-          discussionVideoUrl: variant.videoUrl || undefined,
           options: CHOICE_KEYS.map((key) => ({
             ...(isUpsert && variant.options[key].id
               ? { id: variant.options[key].id }
@@ -311,28 +334,35 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       return;
     }
 
-    // Validate each variant of each question
+    // Validate each question
     for (let qi = 0; qi < questions.length; qi++) {
       const q = questions[qi];
+      const errorLabel = `Soal ${qi + 1}`;
+
+      if (!tiptapHtmlToLatexText(q.pembahasan).trim()) {
+        showToast.error(`${errorLabel}: Pembahasan tidak boleh kosong`);
+        setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
+        return;
+      }
+
+      if (!q.videoUrl.trim()) {
+        showToast.error(`${errorLabel}: URL video pembahasan wajib diisi`);
+        setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
+        return;
+      }
+      try {
+        new URL(q.videoUrl);
+      } catch {
+        showToast.error(`${errorLabel}: URL video pembahasan tidak valid`);
+        setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
+        return;
+      }
+
       for (const label of VARIANT_LABELS) {
         const variant = q.variants[label];
-        const errorLabel = `Paket ${label}, Soal ${qi + 1}`;
+        const varErrorLabel = `Paket ${label}, Soal ${qi + 1}`;
         if (!tiptapHtmlToLatexText(variant.prompt).trim()) {
-          showToast.error(`${errorLabel}: Pertanyaan tidak boleh kosong`);
-          setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
-          setActivePackage(label);
-          return;
-        }
-        if (!variant.videoUrl.trim()) {
-          showToast.error(`${errorLabel}: URL video wajib diisi`);
-          setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
-          setActivePackage(label);
-          return;
-        }
-        try {
-          new URL(variant.videoUrl);
-        } catch {
-          showToast.error(`${errorLabel}: URL video tidak valid`);
+          showToast.error(`${varErrorLabel}: Pertanyaan tidak boleh kosong`);
           setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
           setActivePackage(label);
           return;
@@ -620,15 +650,88 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                         Pembahasan <span className="text-[#EF4444]">*</span>
                       </label>
                       <MathEditor
-                        value={variant.pembahasan}
+                        value={question.pembahasan}
                         onChange={(v) =>
-                          updateVariant(question.id, (prev) => ({
-                            ...prev,
+                          updateQuestion(question.id, () => ({
                             pembahasan: v,
                           }))
                         }
                         placeholder="Tuliskan pembahasan…"
                       />
+                    </div>
+
+                    {/* Gambar Pembahasan */}
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-semibold text-[#4B5563]">
+                        Gambar Pembahasan (Opsional)
+                      </label>
+                      {question.imageUrl ? (
+                        <div className="relative overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 flex flex-col items-center gap-3">
+                          <img
+                            src={question.imageUrl}
+                            alt="Gambar Pembahasan"
+                            className="max-h-60 object-contain rounded-xl"
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await deleteMutation.mutateAsync(question.imageUrl);
+                                updateQuestion(question.id, () => ({ imageUrl: "" }));
+                                showToast.success("Gambar berhasil dihapus");
+                              } catch {
+                                showToast.error("Gagal menghapus gambar");
+                              }
+                            }}
+                            disabled={deleteMutation.isPending}
+                            className="inline-flex items-center gap-2 rounded-xl bg-[#FEF2F2] px-4 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                            Hapus Gambar
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-6 text-center transition hover:border-[#93C5FD]">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const formData = new FormData();
+                              formData.append("file", file);
+                              try {
+                                const res = await uploadMutation.mutateAsync(formData);
+                                updateQuestion(question.id, () => ({ imageUrl: res.url }));
+                                showToast.success("Gambar berhasil diunggah");
+                              } catch (err: any) {
+                                showToast.error(err.message || "Gagal mengunggah gambar");
+                              }
+                            }}
+                            className="absolute inset-0 cursor-pointer opacity-0"
+                          />
+                          <svg
+                            className="mx-auto h-10 w-10 text-[#9CA3AF]"
+                            stroke="currentColor"
+                            fill="none"
+                            viewBox="0 0 48 48"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <p className="mt-2 text-sm font-medium text-[#4B5563]">
+                            {uploadMutation.isPending ? "Mengunggah..." : "Pilih gambar untuk diunggah"}
+                          </p>
+                          <p className="mt-1 text-xs text-[#9CA3AF]">
+                            PNG, JPG, JPEG, atau WEBP hingga 5MB
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Video URL */}
@@ -639,10 +742,9 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                       </label>
                       <input
                         type="url"
-                        value={variant.videoUrl}
+                        value={question.videoUrl}
                         onChange={(e) =>
-                          updateVariant(question.id, (prev) => ({
-                            ...prev,
+                          updateQuestion(question.id, () => ({
                             videoUrl: e.target.value,
                           }))
                         }
@@ -650,7 +752,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                         className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
                       />
                       {(() => {
-                        const embed = getYouTubeEmbedUrl(variant.videoUrl);
+                        const embed = getYouTubeEmbedUrl(question.videoUrl);
                         if (!embed) return null;
                         return (
                           <div className="overflow-hidden rounded-2xl border border-[#E5E7EB]">

@@ -3,11 +3,12 @@
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import {
   DiagnosticPreviewBody,
-  RemedialPreviewBody,
   ELKPDGradingPanel,
   MaterialPreviewPanel,
 } from "@/components/organisms/learningAnalytics/ClassAnalyticsSequenceComponents";
+import { RemedialPreviewBody } from "@/components/organisms/TeacherPreviewRemedialContent";
 import { showToast } from "@/libs/toast";
+import { cn } from "@/libs/utils";
 import type { GsCourseModule } from "@/types/gs-course";
 import type { GsDiagnosticTest as GsDiagnosticTestType } from "@/types/gs-diagnostic-test";
 import type { ILearningAnalyticsStudentListItem } from "@/types/learningAnalytics";
@@ -61,6 +62,19 @@ export const MateriModuleDetailModal: React.FC<
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const [activeELKPDId, setActiveELKPDId] = useState<string>("");
+  const [activeSubTab, setActiveSubTab] = useState<
+    "materi" | "diagnostic" | "remedial"
+  >("materi");
+  const [activeDiagTab, setActiveDiagTab] = useState<"diagnostic" | "remedial">(
+    "diagnostic",
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveSubTab("materi");
+      setActiveDiagTab("diagnostic");
+    }
+  }, [isOpen]);
 
   // Close on Escape key
   useEffect(() => {
@@ -131,29 +145,86 @@ export const MateriModuleDetailModal: React.FC<
             </div>
           ) : module?.type === "DIAGNOSTIC_TEST" ? (
             <div className="space-y-4">
-              {isDiagnosticLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <p className="text-sm text-[#6B7280]">
-                    Memuat preview tes diagnostik...
-                  </p>
+              {/* Tab Navigation for DIAGNOSTIC_TEST Module */}
+              {module.remedialTestId && (
+                <div className="flex gap-2 border-b border-[#E5E7EB] pb-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDiagTab("diagnostic")}
+                    className={cn(
+                      "rounded-xl px-4 py-2 text-xs font-semibold transition",
+                      activeDiagTab === "diagnostic"
+                        ? "bg-[#2563EB] text-white shadow-sm"
+                        : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]",
+                    )}
+                  >
+                    Tes Diagnostik
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDiagTab("remedial")}
+                    className={cn(
+                      "rounded-xl px-4 py-2 text-xs font-semibold transition",
+                      activeDiagTab === "remedial"
+                        ? "bg-[#2563EB] text-white shadow-sm"
+                        : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]",
+                    )}
+                  >
+                    Tes Remedial
+                  </button>
                 </div>
-              ) : diagnosticTest ? (
-                <>
-                  <DiagnosticPreviewBody test={diagnosticTest} />
+              )}
 
-                  <div className="space-y-2 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
-                    <label className="block text-sm font-semibold text-[#374151]">
-                      Deadline
-                    </label>
-                    <input
-                      type="date"
-                      value={deadlineDraft}
-                      onChange={(event) => onDeadlineChange(event.target.value)}
-                      className="h-11 w-full rounded-xl border border-[#D1D5DB] px-3 text-sm text-[#1F2937] transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10"
-                    />
-                  </div>
-                </>
-              ) : null}
+              {/* Tab Content: Tes Diagnostik */}
+              {activeDiagTab === "diagnostic" && (
+                <div className="space-y-4">
+                  {isDiagnosticLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-sm text-[#6B7280]">
+                        Memuat preview tes diagnostik...
+                      </p>
+                    </div>
+                  ) : diagnosticTest ? (
+                    <DiagnosticPreviewBody test={diagnosticTest} />
+                  ) : (
+                    <p className="text-sm text-[#6B7280]">
+                      Tes diagnostik tidak ditemukan
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Tab Content: Tes Remedial */}
+              {activeDiagTab === "remedial" && (
+                <div className="space-y-4">
+                  {isRemedialLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-sm text-[#6B7280]">
+                        Memuat preview tes remedial...
+                      </p>
+                    </div>
+                  ) : remedialTest ? (
+                    <RemedialPreviewBody test={remedialTest} />
+                  ) : (
+                    <p className="text-sm text-[#6B7280]">
+                      Tes remedial tidak ditemukan
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Deadline Input */}
+              <div className="space-y-2 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                <label className="block text-sm font-semibold text-[#374151]">
+                  Deadline
+                </label>
+                <input
+                  type="date"
+                  value={deadlineDraft}
+                  onChange={(event) => onDeadlineChange(event.target.value)}
+                  className="h-11 w-full rounded-xl border border-[#D1D5DB] px-3 text-sm text-[#1F2937] transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10"
+                />
+              </div>
             </div>
           ) : module?.type === "REMEDIAL" ? (
             <div className="space-y-4">
@@ -183,69 +254,160 @@ export const MateriModuleDetailModal: React.FC<
             </div>
           ) : module?.type === "SUBJECT" ? (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
-                <p className="text-sm font-semibold text-[#111827]">
-                  Modul Materi
-                </p>
-                <p className="mt-2 text-sm font-medium text-[#1F2937]">
-                  {module.subject?.subjectName ?? "-"}
-                </p>
-                {module.subject?.description && (
-                  <p className="mt-1 text-xs text-[#6B7280]">
-                    {module.subject.description}
-                  </p>
-                )}
-              </div>
-
-              {module.subject ? (
-                <MaterialPreviewPanel
-                  items={[
-                    ...(module.subject.subjectFileUrl
-                      ? [
-                          {
-                            title: module.subject.subjectName,
-                            url: module.subject.subjectFileUrl,
-                            type: "pdf" as const,
-                          },
-                        ]
-                      : []),
-                    ...(module.subject.videoUrl
-                      ? [
-                          {
-                            title: `Video: ${module.subject.subjectName}`,
-                            url: module.subject.videoUrl,
-                            type: "video" as const,
-                          },
-                        ]
-                      : []),
-                    ...(module.subject.eLKPDTitle && module.subject.eLKPDFileUrl
-                      ? [
-                          {
-                            title: `E-LKPD: ${module.subject.eLKPDTitle}`,
-                            url: module.subject.eLKPDFileUrl,
-                            type: "elkpd" as const,
-                          },
-                        ]
-                      : []),
-                  ]}
-                />
-              ) : null}
-
-              {/* E-LKPD Section */}
-              {elkpds.length > 0 && (
-                <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
-                  <h3 className="mb-3 text-sm font-semibold text-[#1F2937]">
-                    Nilai E-LKPD Siswa
-                  </h3>
-                  <ELKPDGradingPanel
-                    elkpds={elkpds}
-                    students={students}
-                    activeELKPDId={activeELKPDId}
-                    onELKPDChange={setActiveELKPDId}
-                  />
+              {/* Tabs for SUBJECT Module Sub-sections */}
+              {(module.diagnosticTestId || module.remedialTestId) && (
+                <div className="flex gap-2 border-b border-[#E5E7EB] pb-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubTab("materi")}
+                    className={cn(
+                      "rounded-xl px-4 py-2 text-xs font-semibold transition",
+                      activeSubTab === "materi"
+                        ? "bg-[#2563EB] text-white shadow-sm"
+                        : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]",
+                    )}
+                  >
+                    Materi & Tugas
+                  </button>
+                  {module.diagnosticTestId && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveSubTab("diagnostic")}
+                      className={cn(
+                        "rounded-xl px-4 py-2 text-xs font-semibold transition",
+                        activeSubTab === "diagnostic"
+                          ? "bg-[#2563EB] text-white shadow-sm"
+                          : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]",
+                      )}
+                    >
+                      Tes Diagnostik
+                    </button>
+                  )}
+                  {module.remedialTestId && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveSubTab("remedial")}
+                      className={cn(
+                        "rounded-xl px-4 py-2 text-xs font-semibold transition",
+                        activeSubTab === "remedial"
+                          ? "bg-[#2563EB] text-white shadow-sm"
+                          : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]",
+                      )}
+                    >
+                      Tes Remedial
+                    </button>
+                  )}
                 </div>
               )}
 
+              {/* Tab 1: Materi & Tugas */}
+              {activeSubTab === "materi" && (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                    <p className="text-sm font-semibold text-[#111827]">
+                      Modul Materi
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-[#1F2937]">
+                      {module.subject?.subjectName ?? "-"}
+                    </p>
+                    {module.subject?.description && (
+                      <p className="mt-1 text-xs text-[#6B7280]">
+                        {module.subject.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {module.subject ? (
+                    <MaterialPreviewPanel
+                      items={[
+                        ...(module.subject.subjectFileUrl
+                          ? [
+                              {
+                                title: module.subject.subjectName,
+                                url: module.subject.subjectFileUrl,
+                                type: "pdf" as const,
+                              },
+                            ]
+                          : []),
+                        ...(module.subject.videoUrl
+                          ? [
+                              {
+                                title: `Video: ${module.subject.subjectName}`,
+                                url: module.subject.videoUrl,
+                                type: "video" as const,
+                              },
+                            ]
+                          : []),
+                        ...(module.subject.eLKPDTitle &&
+                        module.subject.eLKPDFileUrl
+                          ? [
+                              {
+                                title: `E-LKPD: ${module.subject.eLKPDTitle}`,
+                                url: module.subject.eLKPDFileUrl,
+                                type: "elkpd" as const,
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  ) : null}
+
+                  {/* E-LKPD Section */}
+                  {elkpds.length > 0 && (
+                    <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+                      <h3 className="mb-3 text-sm font-semibold text-[#1F2937]">
+                        Nilai E-LKPD Siswa
+                      </h3>
+                      <ELKPDGradingPanel
+                        elkpds={elkpds}
+                        students={students}
+                        activeELKPDId={activeELKPDId}
+                        onELKPDChange={setActiveELKPDId}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Tes Diagnostik */}
+              {activeSubTab === "diagnostic" && (
+                <div className="space-y-4">
+                  {isDiagnosticLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-sm text-[#6B7280]">
+                        Memuat preview tes diagnostik...
+                      </p>
+                    </div>
+                  ) : diagnosticTest ? (
+                    <DiagnosticPreviewBody test={diagnosticTest} />
+                  ) : (
+                    <p className="text-sm text-[#6B7280]">
+                      Tes diagnostik tidak ditemukan
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 3: Tes Remedial */}
+              {activeSubTab === "remedial" && (
+                <div className="space-y-4">
+                  {isRemedialLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-sm text-[#6B7280]">
+                        Memuat preview tes remedial...
+                      </p>
+                    </div>
+                  ) : remedialTest ? (
+                    <RemedialPreviewBody test={remedialTest} />
+                  ) : (
+                    <p className="text-sm text-[#6B7280]">
+                      Tes remedial tidak ditemukan
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Deadline Input - Always visible below whatever subtab is active */}
               <div className="space-y-2 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
                 <label className="block text-sm font-semibold text-[#374151]">
                   Deadline

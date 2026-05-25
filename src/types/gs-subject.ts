@@ -51,7 +51,7 @@ export interface GsSubject {
   teacherId: string;
   subjectName: string;
   description: string | null;
-  subjectFileUrl: string;
+  subjectFileUrl: string | null;
   eLKPDTitle: string | null;
   eLKPDDescription: string | null;
   eLKPDFileUrl: string | null;
@@ -124,7 +124,7 @@ export interface GsCreateELKPDInput {
 export interface GsCreateSubjectInput {
   subjectName: string;
   description?: string;
-  subjectFileUrl: string;
+  subjectFileUrl?: string;
   videoUrl?: string;
   eLKPD?: GsCreateELKPDInput;
 }

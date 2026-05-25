@@ -119,3 +119,19 @@ export function useGsKickStudentFromCourse() {
     },
   });
 }
+
+// ─── STUDENT: POST /course-enrollments/join-link — join via link ──────────
+
+export function useGsEnrollCourseByLink() {
+  const queryClient = useQueryClient();
+
+  return useMutation<GsCourseEnrollment, Error, { joinLink: string }>({
+    mutationFn: (input) =>
+      gsPost<GsCourseEnrollment>("/course-enrollments/join-link", input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsCourseEnrollments.all,
+      });
+    },
+  });
+}

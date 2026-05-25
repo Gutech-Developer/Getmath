@@ -25,9 +25,9 @@ function getYouTubeEmbedUrl(url: string): string | null {
   }
 }
 
-function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
+export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
   const [activePackage, setActivePackage] = useState<string>("A");
-  
+
   const labels = new Set<string>();
   test.questions?.forEach((q) => {
     q.variants?.forEach((v) => labels.add(v.packageLabel));
@@ -86,12 +86,12 @@ function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
           <div className="divide-y divide-[#E5E7EB]">
             {test.questions?.map((question, i) => {
               const variant = question.variants?.find(
-                (v) => v.packageLabel === activePackage
+                (v) => v.packageLabel === activePackage,
               );
               if (!variant) return null;
 
-              const embed = variant.discussionVideoUrl
-                ? getYouTubeEmbedUrl(variant.discussionVideoUrl)
+              const embed = question.discussionVideoUrl
+                ? getYouTubeEmbedUrl(question.discussionVideoUrl)
                 : null;
 
               return (
@@ -115,7 +115,7 @@ function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                               "flex items-center gap-3 rounded-xl border p-3 text-sm",
                               opt.isCorrect
                                 ? "border-[#A7F3D0] bg-[#ECFDF5] text-[#065F46]"
-                                : "border-[#E5E7EB] bg-white text-[#4B5563]"
+                                : "border-[#E5E7EB] bg-white text-[#4B5563]",
                             )}
                           >
                             <span
@@ -123,7 +123,7 @@ function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                                 "flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-semibold",
                                 opt.isCorrect
                                   ? "bg-[#34D399] text-white"
-                                  : "bg-[#F3F4F6] text-[#374151]"
+                                  : "bg-[#F3F4F6] text-[#374151]",
                               )}
                             >
                               {opt.option}
@@ -136,15 +136,28 @@ function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                       </ul>
 
                       {/* Pembahasan */}
-                      <div className="mt-4 rounded-2xl bg-[#F9FAFB] p-4">
-                        <p className="mb-2 text-xs font-semibold uppercase text-[#6B7280]">
-                          Pembahasan
-                        </p>
-                        <div className="prose prose-sm max-w-none text-[#4B5563]">
-                          <MathText text={variant.discussionText || ""} />
+                      <div className="mt-4 rounded-2xl bg-[#F9FAFB] p-4 space-y-4">
+                        <div>
+                          <p className="mb-2 text-xs font-semibold uppercase text-[#6B7280]">
+                            Pembahasan
+                          </p>
+                          <div className="prose prose-sm max-w-none text-[#4B5563]">
+                            <MathText text={question.discussionText || ""} />
+                          </div>
                         </div>
+
+                        {question.discussionImageUrl && (
+                          <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
+                            <img
+                              src={question.discussionImageUrl}
+                              alt={`Gambar Pembahasan Soal ${i + 1}`}
+                              className="max-h-80 w-auto object-contain rounded-lg mx-auto"
+                            />
+                          </div>
+                        )}
+
                         {embed && (
-                          <div className="mt-4 overflow-hidden rounded-xl border border-[#E5E7EB]">
+                          <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
                             <iframe
                               src={embed}
                               title={`Pembahasan Soal ${i + 1}`}
@@ -192,9 +205,7 @@ export default function TeacherPreviewRemedialContent({ id }: IProps) {
   if (!test) {
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
-        <p className="text-sm text-[#9CA3AF]">
-          Tes remedial tidak ditemukan.
-        </p>
+        <p className="text-sm text-[#9CA3AF]">Tes remedial tidak ditemukan.</p>
         <button
           type="button"
           onClick={() => router.push("/teacher/dashboard/manage-remedial")}

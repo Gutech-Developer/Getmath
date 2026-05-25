@@ -19,3 +19,5 @@ export * from "./hooks/useLegacyStubs";
 export * from "./hooks/useSchoolSearch";
 export * from "./hooks/useGsParent";
 export * from "./hooks/useGsRemedialTest";
+export * from "./hooks/useGsUpload";
+

@@ -49,7 +49,7 @@ function getModuleId(module: GsCourseModule): string {
 }
 
 /**
- * Map GsCourseModule (type=SUBJECT) → IMaterialModule.
+ * Map GsCourseModule → IMaterialModule.
  * Module yang dikembalikan backend hanya berisi subset subject
  * (subjectName, subjectFileUrl, videoUrl, eLKPDTitle, dll).
  */
@@ -68,20 +68,29 @@ function mapModuleToMaterial(
       test?.testName ??
       `Tes Diagnostik ${module.order ?? index + 1}`;
 
+    const diagnosticTestId = module.diagnosticTestId ?? test?.id ?? "";
+    const remedialTestId = module.remedialTestId ?? flat.remedialTestId ?? "";
+
     const steps: IMaterialStep[] = [
       {
-        id: module.diagnosticTestId ?? test?.id ?? `${moduleId}-diagnostic`,
+        id: diagnosticTestId || `${moduleId}-diagnostic`,
         typeLabel: "Test Diagnosis",
         title,
-        status: flat.completed
-          ? "completed"
-          : flat.accessible
-            ? "in-progress"
-            : "locked",
+        status: flat.completed ? "completed" : "in-progress",
       },
     ];
 
-    const completedSteps = flat.completed ? 1 : 0;
+    if (remedialTestId) {
+      steps.push({
+        id: remedialTestId,
+        typeLabel: "Tes Remedial",
+        title: `Tes Remedial: ${title}`,
+        status: flat.remedialCompleted ? "completed" : "in-progress",
+      });
+    }
+
+    const completedSteps =
+      (flat.completed ? 1 : 0) + (flat.remedialCompleted ? 1 : 0);
 
     return {
       id: moduleId,
@@ -93,51 +102,10 @@ function mapModuleToMaterial(
         steps.length > 0
           ? Math.round((completedSteps / steps.length) * 100)
           : 0,
-      status: flat.completed
-        ? "completed"
-        : flat.accessible
-          ? "in-progress"
-          : "locked",
-      steps,
-    };
-  }
-
-  // Handle remedial test modules
-  if (module.type === "REMEDIAL") {
-    const title =
-      flat.testName ??
-      `Tes Remedial ${module.order ?? index + 1}`;
-
-    const steps: IMaterialStep[] = [
-      {
-        id: module.remedialTestId ?? `${moduleId}-remedial`,
-        typeLabel: "Tes Remedial",
-        title,
-        status: flat.completed
+      status:
+        flat.completed && (!remedialTestId || flat.remedialCompleted)
           ? "completed"
-          : flat.accessible
-            ? "in-progress"
-            : "locked",
-      },
-    ];
-
-    const completedSteps = flat.completed ? 1 : 0;
-
-    return {
-      id: moduleId,
-      title,
-      description: flat.description ?? "",
-      totalSteps: steps.length,
-      completedSteps,
-      progressPercent:
-        steps.length > 0
-          ? Math.round((completedSteps / steps.length) * 100)
-          : 0,
-      status: flat.completed
-        ? "completed"
-        : flat.accessible
-          ? "in-progress"
-          : "locked",
+          : "in-progress",
       steps,
     };
   }
@@ -156,11 +124,7 @@ function mapModuleToMaterial(
     id: `${moduleId}-materi`,
     typeLabel: "Materi",
     title,
-    status: flat.fileRead
-      ? "completed"
-      : flat.accessible
-        ? "in-progress"
-        : "locked",
+    status: flat.fileRead ? "completed" : "in-progress",
   });
 
   // 2. Video
@@ -169,31 +133,24 @@ function mapModuleToMaterial(
       id: `${moduleId}-video`,
       typeLabel: "Video",
       title: `Video: ${title}`,
-      status: flat.videoWatched
-        ? "completed"
-        : flat.fileRead
-          ? "in-progress"
-          : "locked",
+      status: flat.videoWatched ? "completed" : "in-progress",
     });
   }
 
   // 3. E-LKPD
   if (flat.hasELKPD) {
-    const prevCompleted = flat.hasVideo ? flat.videoWatched : flat.fileRead;
     steps.push({
       id: `${moduleId}-elkpd`,
       typeLabel: "E-LKPD",
       title: `E-LKPD: ${title}`,
-      status: (flat.eLKPDSubmitted || flat.eLKPDGraded)
-        ? "completed"
-        : prevCompleted
-          ? "in-progress"
-          : "locked",
+      status:
+        flat.eLKPDSubmitted || flat.eLKPDGraded ? "completed" : "in-progress",
     });
   }
 
   const totalSteps = steps.length;
   const completedSteps = steps.filter((s) => s.status === "completed").length;
+  const isModuleCompleted = totalSteps > 0 && completedSteps === totalSteps;
 
   return {
     id: moduleId,
@@ -203,11 +160,7 @@ function mapModuleToMaterial(
     completedSteps,
     progressPercent:
       totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0,
-    status: flat.completed
-      ? "completed"
-      : flat.accessible
-        ? "in-progress"
-        : "locked",
+    status: isModuleCompleted ? "completed" : "in-progress",
     steps,
   };
 }
@@ -271,16 +224,8 @@ export default function ClassMaterialListPageTemplate({
     course?.id ?? "",
   );
 
-  // console.log("course : ", course);
-  // console.log("course module : ", courseModules);
-
   const modules: IMaterialModule[] = (courseModules ?? [])
-    .filter(
-      (m) =>
-        m.type === "SUBJECT" ||
-        m.type === "DIAGNOSTIC_TEST" ||
-        m.type === "REMEDIAL",
-    )
+    .filter((m) => m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST")
     .map((m, i) => mapModuleToMaterial(m, i));
 
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
@@ -596,9 +541,12 @@ export default function ClassMaterialListPageTemplate({
                           ) : (
                             <Link
                               href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${module.id}${
-                                step.typeLabel === "Test Diagnosis" || step.typeLabel === "Tes"
+                                step.typeLabel === "Test Diagnosis" ||
+                                step.typeLabel === "Tes"
                                   ? `/${step.id}`
-                                  : ""
+                                  : step.typeLabel === "Tes Remedial"
+                                    ? `/remedia/${step.id}`
+                                    : ""
                               }`}
                               className={cn(
                                 "flex items-center gap-3 rounded-xl border px-3 py-2.5 transition",

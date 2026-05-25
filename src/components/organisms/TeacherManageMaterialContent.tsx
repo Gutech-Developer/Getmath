@@ -252,6 +252,9 @@ function SubjectModal({
 
         {/* Body */}
         <div className="max-h-[72vh] space-y-5 overflow-y-auto px-6 py-5 thinnest-scrollbar">
+          <div className="rounded-2xl border border-[#EFF6FF] bg-[#EFF6FF] px-4 py-3 text-sm text-[#1E40AF]">
+            Judul Materi wajib diisi. Silakan lengkapi minimal satu komponen pembelajaran (PDF, Video, atau E-LKPD) sesuai kebutuhan materi Anda.
+          </div>
           {/* Judul */}
           <div className="space-y-2">
             <label className={labelClass}>
@@ -281,7 +284,7 @@ function SubjectModal({
           {/* Link Materi */}
           <div className="space-y-2">
             <label className={labelClass}>
-              Link Materi (PDF / File) <span className="text-[#EF4444]">*</span>
+              Link Materi (PDF / File)
             </label>
             <input
               type="url"
@@ -295,7 +298,7 @@ function SubjectModal({
           {/* Link Video */}
           <div className="space-y-2">
             <label className={labelClass}>
-              Link Video (YouTube) <span className="text-[#EF4444]">*</span>
+              Link Video (YouTube)
             </label>
             <input
               type="url"
@@ -306,15 +309,15 @@ function SubjectModal({
             />
           </div>
 
-          {/* E-LKPD — selalu wajib */}
+          {/* E-LKPD — opsional */}
           <div className="border-t border-[#E5E7EB] pt-4">
             <p className="mb-3 text-base font-semibold text-[#374151]">
-              E-LKPD (Liveworksheets)
+              E-LKPD (Liveworksheets - Opsional)
             </p>
             <div className="space-y-4 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-4">
               <div className="space-y-2">
                 <label className={labelClass}>
-                  Judul E-LKPD <span className="text-[#EF4444]">*</span>
+                  Judul E-LKPD
                 </label>
                 <input
                   type="text"
@@ -338,7 +341,7 @@ function SubjectModal({
               </div>
               <div className="space-y-2">
                 <label className={labelClass}>
-                  Link E-LKPD <span className="text-[#EF4444]">*</span>
+                  Link E-LKPD
                 </label>
                 <input
                   type="url"
@@ -420,7 +423,7 @@ export default function TeacherManageMaterialContent({
     setForm({
       subjectName: s.subjectName,
       description: s.description ?? "",
-      subjectFileUrl: s.subjectFileUrl,
+      subjectFileUrl: s.subjectFileUrl ?? "",
       videoUrl: s.videoUrl ?? "",
       elkpdTitle: s.eLKPDTitle ?? "",
       elkpdDescription: s.eLKPDDescription ?? "",
@@ -439,16 +442,21 @@ export default function TeacherManageMaterialContent({
       showToast.error("Judul materi wajib diisi");
       return;
     }
-    if (!form.subjectFileUrl.trim()) {
-      showToast.error("Link materi (PDF) wajib diisi");
+
+    const hasPdf = Boolean(form.subjectFileUrl.trim());
+    const hasVideo = Boolean(form.videoUrl.trim());
+    const hasElkpd = Boolean(form.elkpdTitle.trim() && form.elkpdFileUrl.trim());
+
+    if (!hasPdf && !hasVideo && !hasElkpd) {
+      showToast.error("Minimal satu komponen (PDF, Video, atau E-LKPD) harus diisi");
       return;
     }
-    if (!form.videoUrl.trim()) {
-      showToast.error("Link video wajib diisi");
-      return;
-    }
-    if (!form.elkpdTitle.trim() || !form.elkpdFileUrl.trim()) {
-      showToast.error("Judul dan link E-LKPD wajib diisi");
+
+    if (
+      (form.elkpdTitle.trim() && !form.elkpdFileUrl.trim()) ||
+      (!form.elkpdTitle.trim() && form.elkpdFileUrl.trim())
+    ) {
+      showToast.error("Judul dan Link E-LKPD harus diisi lengkap jika ingin menambahkan E-LKPD");
       return;
     }
 
@@ -467,7 +475,7 @@ export default function TeacherManageMaterialContent({
       const subjectData = {
         subjectName: form.subjectName.trim(),
         description: form.description.trim() || undefined,
-        subjectFileUrl: form.subjectFileUrl.trim(),
+        subjectFileUrl: form.subjectFileUrl.trim() || undefined,
         videoUrl: form.videoUrl.trim() || undefined,
         eLKPDTitle: form.elkpdTitle.trim() || undefined,
         eLKPDDescription: form.elkpdDescription.trim() || undefined,
@@ -490,7 +498,7 @@ export default function TeacherManageMaterialContent({
         {
           subjectName: form.subjectName.trim(),
           description: form.description.trim() || undefined,
-          subjectFileUrl: form.subjectFileUrl.trim(),
+          subjectFileUrl: form.subjectFileUrl.trim() || undefined,
           videoUrl: form.videoUrl.trim() || undefined,
           ...elkpdData,
         },
@@ -555,6 +563,7 @@ export default function TeacherManageMaterialContent({
         ) : (
           <ul className="space-y-3">
             {subjects.map((subject) => {
+              const hasPdf = !!subject.subjectFileUrl;
               const hasVideo = !!subject.videoUrl;
               const hasElkpd = !!subject.eLKPDTitle;
               const isExpanded = expandedIds.has(subject.id);
@@ -581,14 +590,16 @@ export default function TeacherManageMaterialContent({
                       )}
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            "inline-flex rounded-full border px-3 py-1 text-sm font-semibold leading-none",
-                            MATERIAL_BADGE_CLASS_BY_TYPE["pdf"],
-                          )}
-                        >
-                          PDF
-                        </span>
+                        {hasPdf && (
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full border px-3 py-1 text-sm font-semibold leading-none",
+                              MATERIAL_BADGE_CLASS_BY_TYPE["pdf"],
+                            )}
+                          >
+                            PDF
+                          </span>
+                        )}
                         {hasVideo && (
                           <span
                             className={cn(
@@ -663,44 +674,46 @@ export default function TeacherManageMaterialContent({
                   {isExpanded && (
                     <div className="space-y-2 border-t border-[#E5E7EB] bg-[#F9FAFB] px-5 py-4">
                       {/* PDF */}
-                      <SubMaterialRow
-                        icon={
-                          <svg
-                            className="h-5 w-5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <path
-                              d="M7 21H17C18.1046 21 19 20.1046 19 19V9L14 4H7C5.89543 4 5 4.89543 5 6V19C5 20.1046 5.89543 21 7 21Z"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M14 4V9H19"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M9 13H15M9 17H13"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        }
-                        label="PDF"
-                        title={subject.subjectName}
-                        badgeClass={MATERIAL_BADGE_CLASS_BY_TYPE["pdf"]}
-                        onPreview={() =>
-                          setPreview({
-                            title: subject.subjectName,
-                            url: subject.subjectFileUrl,
-                            type: "pdf",
-                          })
-                        }
-                      />
+                      {hasPdf && (
+                        <SubMaterialRow
+                          icon={
+                            <svg
+                              className="h-5 w-5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                            >
+                              <path
+                                d="M7 21H17C18.1046 21 19 20.1046 19 19V9L14 4H7C5.89543 4 5 4.89543 5 6V19C5 20.1046 5.89543 21 7 21Z"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M14 4V9H19"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M9 13H15M9 17H13"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          }
+                          label="PDF"
+                          title={subject.subjectName}
+                          badgeClass={MATERIAL_BADGE_CLASS_BY_TYPE["pdf"]}
+                          onPreview={() =>
+                            setPreview({
+                              title: subject.subjectName,
+                              url: subject.subjectFileUrl!,
+                              type: "pdf",
+                            })
+                          }
+                        />
+                      )}
 
                       {/* Video */}
                       {hasVideo && (

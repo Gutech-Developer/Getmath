@@ -42,8 +42,8 @@ import {
   useGsUpdateCourseModule,
 } from "@/services";
 import {
-  useGsMyRemedialTests,
   useGsRemedialTestById,
+  useGsMyRemedialTests,
 } from "@/services/hooks/useGsRemedialTest";
 import type { GsCourseModule } from "@/types/gs-course";
 import Link from "next/link";
@@ -87,6 +87,7 @@ interface ILearningAnalyticsViewSwitcherProps {
 
 interface ILearningAnalyticsClassHeaderCardProps {
   data: ILearningAnalyticsHeaderCardData;
+  actionNode?: ReactNode;
 }
 
 interface IBaseBerandaSectionProps {
@@ -552,8 +553,7 @@ function buildCourseModuleSequenceItems(
       : "Tanpa deadline";
 
     if (module.type === "DIAGNOSTIC_TEST") {
-      const diagnosticTitle =
-        module.testName ?? `Tes Diagnostik ${index + 1}`;
+      const diagnosticTitle = module.testName ?? `Tes Diagnostik ${index + 1}`;
       const diagnosticDescription = module.description?.trim();
 
       return {
@@ -564,15 +564,16 @@ function buildCourseModuleSequenceItems(
           ? `${diagnosticDescription} · ${deadlineLabel}`
           : deadlineLabel,
         assets: [],
-        durationMinutes: module.diagnosticTest?.durationMinutes ?? module.durationMinutes,
-        passingScore: module.diagnosticTest?.passingScore ?? module.passingScore,
+        durationMinutes:
+          module.diagnosticTest?.durationMinutes ?? module.durationMinutes,
+        passingScore:
+          module.diagnosticTest?.passingScore ?? module.passingScore,
         questionCount: (module.diagnosticTest as any)?.totalQuestions ?? 5,
       } satisfies IMateriSequenceItem;
     }
 
     if (module.type === "REMEDIAL") {
-      const remedialTitle =
-        module.testName ?? `Tes Remedial ${index + 1}`;
+      const remedialTitle = module.testName ?? `Tes Remedial ${index + 1}`;
       const remedialDescription = module.description?.trim();
 
       return {
@@ -583,7 +584,8 @@ function buildCourseModuleSequenceItems(
           ? `${remedialDescription} · ${deadlineLabel}`
           : deadlineLabel,
         assets: [],
-        durationMinutes: module.remedialTest?.durationMinutes ?? module.durationMinutes,
+        durationMinutes:
+          module.remedialTest?.durationMinutes ?? module.durationMinutes,
         passingScore: module.remedialTest?.passingScore ?? module.passingScore,
         questionCount: (module.remedialTest as any)?.totalQuestions ?? 5,
       } satisfies IMateriSequenceItem;
@@ -669,6 +671,7 @@ function buildInitialMateriSequence(
 
 export function LearningAnalyticsClassHeaderCard({
   data,
+  actionNode,
 }: ILearningAnalyticsClassHeaderCardProps) {
   return (
     <WelcomeBanner
@@ -687,6 +690,7 @@ export function LearningAnalyticsClassHeaderCard({
         { label: `Kode: ${data.classCode}` },
         { label: `Mata Pelajaran: ${data.subjectLabel}` },
       ]}
+      actionNode={actionNode}
     />
   );
 }
@@ -1131,7 +1135,6 @@ export function BaseMateriSection({
   >(() => buildInitialMateriSequence(materials));
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
   const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState(false);
-  const [isRemedialModalOpen, setIsRemedialModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailModuleId, setDetailModuleId] = useState("");
   const [moduleToDelete, setModuleToDelete] = useState<{
@@ -1144,8 +1147,6 @@ export function BaseMateriSection({
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [diagnosticPage, setDiagnosticPage] = useState(1);
   const [diagnosticItemsPerPage, setDiagnosticItemsPerPage] = useState(10);
-  const [remedialPage, setRemedialPage] = useState(1);
-  const [remedialItemsPerPage, setRemedialItemsPerPage] = useState(10);
 
   const {
     data: courseModules = [],
@@ -1175,10 +1176,11 @@ export function BaseMateriSection({
       { enabled: isApiMode },
     );
   const { data: remedialTestsData, isLoading: isRemedialTestsLoading } =
-    useGsMyRemedialTests(
-      { page: remedialPage, limit: remedialItemsPerPage },
-      { enabled: isApiMode },
-    );
+    useGsMyRemedialTests({ page: 1, limit: 100 }, { enabled: isApiMode });
+
+  const [selectedDiagnosticForPairing, setSelectedDiagnosticForPairing] =
+    useState<ILearningAnalyticsDiagnosticOption | null>(null);
+
   const createCourseModuleMutation = useGsCreateCourseModule();
   const updateCourseModuleMutation = useGsUpdateCourseModule();
   const reorderCourseModulesMutation = useGsReorderCourseModules();
@@ -1188,19 +1190,52 @@ export function BaseMateriSection({
     isLoading: isSelectedModuleLoading,
     error: selectedModuleError,
   } = useGsModuleById(isApiMode ? detailModuleId : "");
-  const {
-    data: selectedDiagnosticTest,
-    isLoading: isSelectedDiagnosticTestLoading,
-  } = useGsDiagnosticTestById(selectedModule?.diagnosticTestId ?? "");
-  const {
-    data: selectedRemedialTest,
-    isLoading: isSelectedRemedialTestLoading,
-  } = useGsRemedialTestById(selectedModule?.remedialTestId ?? "");
 
   const orderedCourseModules = useMemo(
     () => [...localApiModules],
     [localApiModules],
   );
+
+  const selectedModuleFromCourseModules = useMemo(
+    () => orderedCourseModules.find((module) => module.id === detailModuleId),
+    [detailModuleId, orderedCourseModules],
+  );
+
+  const resolvedSelectedModule = useMemo(() => {
+    if (!selectedModule && !selectedModuleFromCourseModules) {
+      return undefined;
+    }
+
+    if (!selectedModule) {
+      return selectedModuleFromCourseModules;
+    }
+
+    if (!selectedModuleFromCourseModules) {
+      return selectedModule;
+    }
+
+    return {
+      ...selectedModuleFromCourseModules,
+      ...selectedModule,
+      subject:
+        selectedModule.subject ?? selectedModuleFromCourseModules.subject,
+      diagnosticTest:
+        selectedModule.diagnosticTest ??
+        selectedModuleFromCourseModules.diagnosticTest,
+      remedialTest:
+        selectedModule.remedialTest ??
+        selectedModuleFromCourseModules.remedialTest,
+    };
+  }, [selectedModule, selectedModuleFromCourseModules]);
+
+  const {
+    data: selectedDiagnosticTest,
+    isLoading: isSelectedDiagnosticTestLoading,
+  } = useGsDiagnosticTestById(resolvedSelectedModule?.diagnosticTestId ?? "");
+  const {
+    data: selectedRemedialTest,
+    isLoading: isSelectedRemedialTestLoading,
+  } = useGsRemedialTestById(resolvedSelectedModule?.remedialTestId ?? "");
 
   const nextOrder = useMemo(() => {
     if (orderedCourseModules.length === 0) return 1;
@@ -1235,13 +1270,12 @@ export function BaseMateriSection({
     [diagnosticTestsData],
   );
 
-  const apiRemedialOptions = useMemo<ILearningAnalyticsDiagnosticOption[]>(
+  const apiRemedialOptions = useMemo(
     () =>
       (remedialTestsData?.remedialTests ?? []).map((test) => ({
         id: test.id,
         title: test.testName,
-        questionCount: test.totalQuestions ?? 0,
-        totalQuestions: test.totalQuestions ?? 0,
+        questionCount: test.questions?.length ?? test.totalQuestions ?? 0,
         durationMinutes: test.durationMinutes,
       })),
     [remedialTestsData],
@@ -1249,9 +1283,6 @@ export function BaseMateriSection({
 
   const diagnosticPagination = diagnosticTestsData?.pagination;
   const diagnosticTotalPages = diagnosticPagination?.totalPages ?? 1;
-
-  const remedialPagination = remedialTestsData?.pagination;
-  const remedialTotalPages = remedialPagination?.totalPages ?? 1;
 
   const usedSubjectIds = useMemo(
     () =>
@@ -1276,26 +1307,12 @@ export function BaseMateriSection({
     [orderedCourseModules],
   );
 
-  const usedRemedialIds = useMemo(
-    () =>
-      new Set(
-        orderedCourseModules
-          .filter(
-            (module) =>
-              module.type === "REMEDIAL" && module.remedialTestId,
-          )
-          .map((module) => module.remedialTestId as string),
-      ),
-    [orderedCourseModules],
-  );
-
   const resolvedAssetOptions = isApiMode
     ? apiAssetOptions
     : (assetOptions ?? MODULE_ASSET_OPTIONS);
   const resolvedDiagnosticOptions = isApiMode
     ? apiDiagnosticOptions
     : (diagnosticOptions ?? DIAGNOSTIC_TEST_OPTIONS);
-  const resolvedRemedialOptions = isApiMode ? apiRemedialOptions : [];
   const sequenceItems = isApiMode
     ? apiSequenceItems
     : (sequenceItemsProp ?? localSequenceItems);
@@ -1310,7 +1327,7 @@ export function BaseMateriSection({
     reorderCourseModulesMutation.isPending ||
     deleteCourseModuleMutation.isPending;
 
-  const hasOpenPopup = isModuleModalOpen || isDiagnosticModalOpen || isRemedialModalOpen;
+  const hasOpenPopup = isModuleModalOpen || isDiagnosticModalOpen;
 
   useEffect(() => {
     if (!isDiagnosticModalOpen) {
@@ -1319,14 +1336,6 @@ export function BaseMateriSection({
 
     setDiagnosticPage(1);
   }, [isDiagnosticModalOpen]);
-
-  useEffect(() => {
-    if (!isRemedialModalOpen) {
-      return;
-    }
-
-    setRemedialPage(1);
-  }, [isRemedialModalOpen]);
 
   useEffect(() => {
     if (!diagnosticPagination) {
@@ -1339,16 +1348,6 @@ export function BaseMateriSection({
   }, [diagnosticPage, diagnosticPagination]);
 
   useEffect(() => {
-    if (!remedialPagination) {
-      return;
-    }
-
-    if (remedialPage > remedialPagination.totalPages) {
-      setRemedialPage(remedialPagination.totalPages || 1);
-    }
-  }, [remedialPage, remedialPagination]);
-
-  useEffect(() => {
     if (!hasOpenPopup) {
       return undefined;
     }
@@ -1357,7 +1356,6 @@ export function BaseMateriSection({
       if (event.key === "Escape") {
         setIsModuleModalOpen(false);
         setIsDiagnosticModalOpen(false);
-        setIsRemedialModalOpen(false);
       }
     };
 
@@ -1379,13 +1377,13 @@ export function BaseMateriSection({
   }, [isDetailModalOpen, selectedModuleError]);
 
   useEffect(() => {
-    if (!selectedModule) {
+    if (!resolvedSelectedModule) {
       setDeadlineDraft("");
       return;
     }
 
-    setDeadlineDraft(toDateInputValue(selectedModule.deadline));
-  }, [selectedModule]);
+    setDeadlineDraft(toDateInputValue(resolvedSelectedModule.deadline));
+  }, [resolvedSelectedModule]);
 
   useEffect(() => {
     if (!isModuleModalOpen) {
@@ -1451,10 +1449,6 @@ export function BaseMateriSection({
 
   const closeDiagnosticModal = () => {
     setIsDiagnosticModalOpen(false);
-  };
-
-  const closeRemedialModal = () => {
-    setIsRemedialModalOpen(false);
   };
 
   const closeDetailModal = () => {
@@ -1552,6 +1546,25 @@ export function BaseMateriSection({
 
       // Update local state immediately for instant feedback
       setLocalApiModules(reorderedModules);
+
+      // Auto save the new order in backend
+      try {
+        await reorderCourseModulesMutation.mutateAsync({
+          courseId,
+          data: {
+            modules: reorderedModules.map((module, index) => ({
+              id: module.id,
+              order: index + 1,
+            })),
+          },
+        });
+      } catch (error) {
+        showErrorToast(error);
+        // Force refetch to rollback to original order in case of failure
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.gsCourseModules.byCourse(courseId),
+        });
+      }
       return;
     }
 
@@ -1678,35 +1691,32 @@ export function BaseMateriSection({
     closeModuleModal();
   };
 
-  const selectDiagnosticTest = async (
-    option: ILearningAnalyticsDiagnosticOption,
-  ) => {
+  const confirmPairingAndSave = async (remedialId: string) => {
+    if (!selectedDiagnosticForPairing || !courseId) return;
+    try {
+      await createCourseModuleMutation.mutateAsync({
+        courseId,
+        data: {
+          order: nextOrder,
+          type: "DIAGNOSTIC_TEST",
+          diagnosticTestId: selectedDiagnosticForPairing.id,
+          remedialTestId: remedialId,
+        },
+      });
+      showToast.success("Tes diagnostik dan remedial berhasil dipasangkan!");
+      setSelectedDiagnosticForPairing(null);
+      closeDiagnosticModal();
+    } catch (error) {
+      showErrorToast(error);
+    }
+  };
+
+  const selectDiagnosticTest = (option: ILearningAnalyticsDiagnosticOption) => {
     if (isApiMode && courseId) {
       if (usedDiagnosticIds.has(option.id)) {
         return;
       }
-
-      const lastModule = orderedCourseModules[orderedCourseModules.length - 1];
-      if (orderedCourseModules.length > 0 && lastModule?.type !== "REMEDIAL") {
-        showErrorToast(new Error("Tes Diagnostik hanya dapat ditempatkan di awal atau setelah Tes Remedial."));
-        return;
-      }
-
-      try {
-        await createCourseModuleMutation.mutateAsync({
-          courseId,
-          data: {
-            order: nextOrder,
-            type: "DIAGNOSTIC_TEST",
-            diagnosticTestId: option.id,
-          },
-        });
-        showToast.success("Tes diagnostik berhasil ditambahkan");
-        closeDiagnosticModal();
-      } catch (error) {
-        showErrorToast(error);
-      }
-
+      setSelectedDiagnosticForPairing(option);
       return;
     }
 
@@ -1741,41 +1751,6 @@ export function BaseMateriSection({
     closeDiagnosticModal();
   };
 
-  const selectRemedialTest = async (
-    option: ILearningAnalyticsDiagnosticOption,
-  ) => {
-    if (isApiMode && courseId) {
-      if (usedRemedialIds.has(option.id)) {
-        return;
-      }
-
-      const lastModule = orderedCourseModules[orderedCourseModules.length - 1];
-      if (!lastModule || lastModule.type !== "SUBJECT") {
-        showErrorToast(new Error("Tes Remedial hanya dapat ditambahkan setelah Modul (SUBJECT)."));
-        return;
-      }
-
-      try {
-        await createCourseModuleMutation.mutateAsync({
-          courseId,
-          data: {
-            order: nextOrder,
-            type: "REMEDIAL",
-            remedialTestId: option.id,
-          },
-        });
-        showToast.success("Tes remedial berhasil ditambahkan");
-        closeRemedialModal();
-      } catch (error) {
-        showErrorToast(error);
-      }
-
-      return;
-    }
-    
-    closeRemedialModal();
-  };
-
   const openSequenceItemDetail = (itemId: string) => {
     if (onViewSequenceItem) {
       onViewSequenceItem(itemId);
@@ -1791,13 +1766,13 @@ export function BaseMateriSection({
   };
 
   const saveModuleDeadline = async () => {
-    if (!courseId || !selectedModule) {
+    if (!courseId || !resolvedSelectedModule) {
       return;
     }
 
     try {
       await updateCourseModuleMutation.mutateAsync({
-        id: selectedModule.id,
+        id: resolvedSelectedModule.id,
         courseId,
         data: {
           deadline: deadlineDraft
@@ -1825,53 +1800,10 @@ export function BaseMateriSection({
           Susun Urutan Materi & Tes Diagnostik
         </h2>
         <p className="mt-1 text-xs text-[#94A3B8] md:text-sm">
-          Setiap modul sudah mencakup PDF, Video, dan E-LKPD. Tes Diagnostik
-          berdiri sendiri di luar modul.
+          Setiap modul dapat mencakup PDF, Video, dan E-LKPD. Tes Diagnostik
+          dapat memiliki remedial terpasang di dalamnya. Anda dapat memindahkan
+          modul naik/turun untuk merubah urutan.
         </p>
-
-        {/* Info Aturan Pengurutan */}
-        <div className="mt-3 rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] p-4 text-[#1E40AF]">
-          <div className="flex gap-2.5">
-            <AlertIcon className="h-5 w-5 shrink-0 text-[#2563EB]" />
-            <div className="space-y-1 text-xs md:text-sm">
-              <span className="font-semibold text-[#1E40AF]">Aturan Penyusunan Alur Pembelajaran:</span>
-              <ul className="list-disc pl-4 space-y-0.5 text-[#2563EB]">
-                <li><span className="font-semibold">Tes Diagnostik:</span> Hanya boleh diletakkan di paling awal (urutan ke-1) ATAU tepat setelah modul Remedial.</li>
-                <li><span className="font-semibold">Materi (Subject):</span> Dapat diletakkan bebas di urutan mana saja.</li>
-                <li><span className="font-semibold">Tes Remedial:</span> Hanya boleh diletakkan tepat setelah modul Materi.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Bar Simpan Urutan */}
-        {isApiMode && hasOrderChanged && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-4 text-[#92400E]">
-            <div className="flex items-center gap-2">
-              <AlertIcon className="h-5 w-5 shrink-0 text-[#D97706]" />
-              <p className="text-xs font-semibold md:text-sm">
-                Urutan telah diubah. Simpan perubahan untuk memperbarui alur belajar siswa!
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCancelReorder}
-                className="rounded-xl border border-[#CBD5E1] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] transition hover:bg-[#F8FAFC]"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveReorder}
-                disabled={reorderCourseModulesMutation.isPending}
-                className="rounded-xl bg-[#2563EB] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60"
-              >
-                {reorderCourseModulesMutation.isPending ? "Menyimpan..." : "Simpan Urutan"}
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="mt-4 space-y-2.5">
           {courseModulesError ? (
@@ -1922,16 +1854,6 @@ export function BaseMateriSection({
           >
             <PlusIcon className="h-4 w-4" />
             Tambah Tes Diagnostik
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsRemedialModalOpen(true)}
-            disabled={isMutatingCourseModules}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#FDBA74] bg-[#FFF7ED] px-4 text-sm font-semibold text-[#C2410C] transition hover:bg-[#FFEDD5]"
-          >
-            <PlusIcon className="h-4 w-4" />
-            Tambah Tes Remedial
           </button>
         </div>
       </article>
@@ -2239,136 +2161,115 @@ export function BaseMateriSection({
         </div>
       )}
 
-      {isRemedialModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4">
-          <button
-            type="button"
-            onClick={closeRemedialModal}
-            className="absolute inset-0 bg-[#0F172A]/45"
-            aria-label="Tutup pilih tes"
-          />
-
-          <section className="relative z-10 w-full max-w-[670px] rounded-3xl bg-white p-4 shadow-[0_24px_48px_rgba(15,23,42,0.24)] md:p-5">
-            <div className="mb-3 flex items-center justify-between gap-4 px-1">
-              <h3 className="text-2xl font-bold leading-none text-[#1F2937]">
-                Pilih Tes Remedial
-              </h3>
-              <button
-                type="button"
-                onClick={closeRemedialModal}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#94A3B8] transition hover:bg-[#F8FAFC] hover:text-[#64748B]"
-                aria-label="Tutup popup"
-              >
-                <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5">
-                  <path
-                    d="M5 5L15 15M15 5L5 15"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
+      {selectedDiagnosticForPairing && (
+        <Modal
+          isOpen={true}
+          onClose={() => setSelectedDiagnosticForPairing(null)}
+          title="Pasangkan dengan Tes Remedial"
+          size="md"
+        >
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[#EFF6FF] bg-[#EFF6FF] p-4 text-sm text-[#1E40AF]">
+              <p className="font-semibold text-xs text-[#2563EB] uppercase tracking-wider">
+                Tes Diagnostik Terpilih
+              </p>
+              <p className="mt-1 font-bold text-base text-[#1E3A8A] leading-snug">
+                {selectedDiagnosticForPairing.title}
+              </p>
+              <p className="mt-1 text-xs text-[#2563EB] font-medium">
+                {selectedDiagnosticForPairing.questionCount} Soal ·{" "}
+                {selectedDiagnosticForPairing.durationMinutes} Menit
+              </p>
             </div>
 
             <div className="space-y-2">
-              {isApiMode && isRemedialTestsLoading ? (
-                <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-8 text-center text-sm text-[#94A3B8]">
-                  Memuat tes remedial...
+              <label className="text-sm font-semibold text-[#374151]">
+                Pilih Tes Remedial Pasangan{" "}
+                <span className="text-[#EF4444]">*</span>
+              </label>
+              <p className="text-xs text-[#6B7280]">
+                Siswa yang tidak mencapai KKM pada tes diagnostik ini akan
+                secara otomatis diarahkan untuk mengerjakan kuis remedial
+                terpilih.
+              </p>
+
+              {isRemedialTestsLoading ? (
+                <div className="py-6 text-center text-sm text-[#9CA3AF]">
+                  Memuat daftar tes remedial...
                 </div>
-              ) : resolvedRemedialOptions.length === 0 ? (
-                <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-8 text-center text-sm text-[#94A3B8]">
-                  Belum ada tes remedial yang tersedia.
+              ) : apiRemedialOptions.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-[#F9FAFB] p-6 text-center">
+                  <p className="text-sm text-[#9CA3AF]">
+                    Belum ada bank soal tes remedial.
+                  </p>
+                  <a
+                    href="/teacher/dashboard/manage-remedial/create"
+                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1D4ED8]"
+                  >
+                    Buat Tes Remedial Baru
+                  </a>
                 </div>
               ) : (
-                resolvedRemedialOptions.map((option) => {
-                  const alreadyAdded = isApiMode
-                    ? usedRemedialIds.has(option.id)
-                    : sequenceItems.some(
-                        (item) =>
-                          item.type === "Tes Remedial" &&
-                          item.title === option.title,
-                      );
-
-                  return (
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1 thinnest-scrollbar">
+                  {apiRemedialOptions.map((remedial) => (
                     <button
-                      key={option.id}
+                      key={remedial.id}
                       type="button"
-                      onClick={() => void selectRemedialTest(option)}
-                      disabled={
-                        alreadyAdded || createCourseModuleMutation.isPending
-                      }
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition",
-                        alreadyAdded
-                          ? "cursor-not-allowed border-[#E5E7EB] bg-[#F8FAFC] opacity-60"
-                          : "border-[#E5E7EB] bg-white hover:border-[#FDBA74] hover:bg-[#FFF7ED]",
-                      )}
+                      onClick={() => void confirmPairingAndSave(remedial.id)}
+                      disabled={createCourseModuleMutation.isPending}
+                      className="flex w-full items-center justify-between rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-left transition hover:border-[#2563EB] hover:bg-[#EFF6FF] group"
                     >
-                      <div className="flex items-start gap-3">
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#EA580C]">
-                          <NotebookIcon className="h-4 w-4" />
-                        </span>
-                        <div>
-                          <p className="text-lg font-bold text-[#1F2937]">
-                            {option.title}
-                          </p>
-                          <p className="text-sm text-[#94A3B8]">
-                            {option.totalQuestions} soal ·
-                            {option.durationMinutes} menit
-                          </p>
-                        </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-[#1F2937] group-hover:text-[#1E40AF] truncate">
+                          {remedial.title}
+                        </p>
+                        <p className="text-xs text-[#94A3B8]">
+                          {remedial.questionCount} Soal ·{" "}
+                          {remedial.durationMinutes} Menit
+                        </p>
                       </div>
-
-                      {alreadyAdded && (
-                        <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#2563EB]">
-                          Sudah ditambahkan
-                        </span>
-                      )}
+                      <span className="text-xs font-semibold text-[#2563EB] ml-3 shrink-0 rounded-lg bg-[#EFF6FF] px-2.5 py-1 transition group-hover:bg-[#2563EB] group-hover:text-white">
+                        Pilih & Pasangkan
+                      </span>
                     </button>
-                  );
-                })
+                  ))}
+                </div>
               )}
             </div>
 
-            {isApiMode && remedialTotalPages > 1 && (
-              <div className="mt-4 border-t border-[#E5E7EB] pt-3">
-                <TablePagination
-                  currentPage={remedialPage}
-                  totalPages={remedialTotalPages}
-                  itemsPerPage={remedialItemsPerPage}
-                  onPageChange={setRemedialPage}
-                  onItemsPerPageChange={(items) => {
-                    setRemedialItemsPerPage(items);
-                    setRemedialPage(1);
-                  }}
-                  className="py-0"
-                />
-              </div>
-            )}
-          </section>
-        </div>
+            <div className="flex justify-end pt-3">
+              <button
+                type="button"
+                onClick={() => setSelectedDiagnosticForPairing(null)}
+                className="h-11 rounded-2xl border border-[#E5E7EB] bg-white px-5 text-sm font-semibold text-[#64748B] hover:bg-[#F8FAFC] transition"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       <MateriModuleDetailModal
         isOpen={isDetailModalOpen}
         onClose={closeDetailModal}
-        module={selectedModule}
+        module={resolvedSelectedModule}
         diagnosticTest={selectedDiagnosticTest}
         remedialTest={selectedRemedialTest}
         elkpds={
-          selectedModule?.subject?.eLKPDTitle
+          resolvedSelectedModule?.subject?.eLKPDTitle
             ? [
                 {
-                  id: selectedModule.subject.id, // Using subject id as a fallback for elkpd id
-                  title: selectedModule.subject.eLKPDTitle,
-                  description: selectedModule.subject.eLKPDDescription,
-                  fileUrl: selectedModule.subject.eLKPDFileUrl || "",
+                  id: resolvedSelectedModule.subject.id, // Using subject id as a fallback for elkpd id
+                  title: resolvedSelectedModule.subject.eLKPDTitle,
+                  description: resolvedSelectedModule.subject.eLKPDDescription,
+                  fileUrl: resolvedSelectedModule.subject.eLKPDFileUrl || "",
                 },
               ]
             : []
         }
         students={students}
-        isLoading={isSelectedModuleLoading}
+        isLoading={isSelectedModuleLoading && !resolvedSelectedModule}
         isDiagnosticLoading={isSelectedDiagnosticTestLoading}
         isRemedialLoading={isSelectedRemedialTestLoading}
         deadlineDraft={deadlineDraft}
