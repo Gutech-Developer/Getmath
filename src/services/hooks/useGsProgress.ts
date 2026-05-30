@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
 import { gsGet, gsPost, gsPut, gsDel } from "@/libs/api/gsAction";
 import { gsLogger } from "@/utils/logger";
+import type { EmotionInput } from "@/libs/emotion/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export interface SubmitRemedialVariantInput {
   selectedOptionId: string | null;
   startedAt?: string;
   completedAt?: string;
-  emotion?: string;
+  emotion?: EmotionInput;
 }
 
 export interface SubmitRemedialVariantResult {

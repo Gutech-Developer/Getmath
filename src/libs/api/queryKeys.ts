@@ -392,4 +392,10 @@ export const queryKeys = {
         courseId,
       ] as const,
   },
+
+  // Emotion Detection
+  emotions: {
+    all: ["emotions"] as const,
+    // Sub-key untuk hook pembacaan/analitik akan ditambahkan saat fase analitik dirilis
+  },
 } as const;

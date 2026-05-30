@@ -41,6 +41,13 @@ import type {
   SubmitTestAttemptResult,
   RemedialVariant,
 } from "@/services/hooks/useGsProgress";
+import { useEmotionDetector } from "@/services/hooks/useEmotionDetector";
+import { toEmotionInput } from "@/libs/emotion/normalize";
+import { pickFeedback } from "@/libs/emotion/feedback";
+import { isEmotionSupported } from "@/libs/emotion";
+import CameraRequiredScreen from "@/components/molecules/classroom/CameraRequiredScreen";
+import EmotionDetectionWidget from "@/components/molecules/classroom/EmotionDetectionWidget";
+import EmotionNotification from "@/components/molecules/classroom/EmotionNotification";
 
 export default function ClassDiagnosisContentPageTemplate({
   slug,
@@ -247,6 +254,24 @@ export default function ClassDiagnosisContentPageTemplate({
 
   const previewRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // ─── Emotion Detection (Remedial only) ────────────────────────────────────
+  const emotion = useEmotionDetector({ enabled: isRemedial, intervalMs: 500 });
+  const [emotionFeedbackMsg, setEmotionFeedbackMsg] = useState<string | null>(
+    null,
+  );
+
+  // Start emotion detection after quiz renders — videoRef.current is guaranteed
+  // to be non-null by the time useEffect fires (DOM is committed).
+  // This is the canonical start point; handleRequestCamera only probes permission.
+  useEffect(() => {
+    if (!isRemedial || flowStep !== "quiz" || emotion.ready || !!emotion.error)
+      return;
+    emotion.start().catch(() => {
+      // error is set via setError inside start(), CameraRequiredScreen will render
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRemedial, flowStep, emotion.ready, emotion.error]);
 
   const encodedSlug = encodeURIComponent(slug);
   const encodedContentId = encodeURIComponent(contentId);
@@ -508,6 +533,37 @@ export default function ClassDiagnosisContentPageTemplate({
     setCameraError(null);
     setCameraState("requesting");
 
+    // For remedial: test camera permission with a quick getUserMedia probe.
+    // Do NOT call emotion.start() here — videoRef.current is null at this
+    // flowStep because the quiz JSX (which contains the video element) hasn't
+    // rendered yet. emotion.start() is deferred to a useEffect that fires
+    // after flowStep transitions to "quiz" and the video element is mounted.
+    if (isRemedial) {
+      if (!isEmotionSupported()) {
+        setCameraState("denied");
+        setCameraError(
+          "Browser ini belum mendukung deteksi emosi. Gunakan Chrome/Edge/Firefox versi terbaru.",
+        );
+        return;
+      }
+      try {
+        // Probe-only: verify the user has granted camera permission
+        const probe = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        probe.getTracks().forEach((t) => t.stop()); // release immediately
+        setCameraState("granted");
+        setFlowStep("briefing");
+      } catch {
+        setCameraState("denied");
+        setCameraError(
+          "Akses kamera ditolak. Izinkan akses kamera agar tes remedial bisa dimulai.",
+        );
+      }
+      return;
+    }
+
     if (!navigator?.mediaDevices?.getUserMedia) {
       setCameraState("denied");
       setCameraError("Browser ini belum mendukung akses kamera.");
@@ -652,12 +708,23 @@ export default function ClassDiagnosisContentPageTemplate({
     if (!remedialAttemptId || !currentVariant || !selectedRemedialOptionId)
       return;
 
+    if (!emotion.hasSample) {
+      showToast.info("Sedang mendeteksi emosi, mohon tunggu sebentar...");
+      return;
+    }
+
+    // hasSample is true → flushOrUnknown() is guaranteed non-null here.
+    // Using flushOrUnknown() directly avoids the double-reset edge case.
+    const emotionResult = emotion.flushOrUnknown();
+    const emotionInput = toEmotionInput(emotionResult);
+
     submitRemedialVariantMutation.mutate(
       {
         remedialAttemptId,
         input: {
           variantId: currentVariant.variantId,
           selectedOptionId: selectedRemedialOptionId,
+          emotion: emotionInput,
         },
       },
       {
@@ -686,6 +753,11 @@ export default function ClassDiagnosisContentPageTemplate({
               isCorrect: data.isCorrect,
             },
           ]);
+
+          // Show emotion feedback when answer is incorrect
+          if (!data.isCorrect) {
+            setEmotionFeedbackMsg(pickFeedback(emotionResult.mode));
+          }
 
           if (data.isCompleted) {
             setRemedialSummary(data.summary);
@@ -1589,6 +1661,32 @@ export default function ClassDiagnosisContentPageTemplate({
   if (isRemedial) {
     return (
       <section className="mx-auto w-full max-w-[1200px] py-2 sm:py-4">
+        {/* Blocking overlays for emotion/camera errors */}
+        {!isEmotionSupported() && (
+          <CameraRequiredScreen reason="Browser kamu tidak mendukung deteksi emosi. Gunakan Chrome/Edge/Firefox versi terbaru." />
+        )}
+        {isEmotionSupported() && emotion.error && (
+          <CameraRequiredScreen reason={emotion.error} />
+        )}
+
+        {/* Emotion live widget */}
+        {emotion.ready && (
+          <EmotionDetectionWidget
+            videoRef={emotion.videoRef}
+            emotionLabel={emotion.currentEmotion?.label ?? "Mendeteksi..."}
+            isLive
+          />
+        )}
+
+        {/* Feedback notification on incorrect answer */}
+        {emotionFeedbackMsg && (
+          <EmotionNotification
+            questionIndex={activeQuestionIndex}
+            emotionDescription={emotionFeedbackMsg}
+            onDismiss={() => setEmotionFeedbackMsg(null)}
+          />
+        )}
+
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
           <div className="space-y-4">
             {/* Header Card */}
@@ -1727,13 +1825,16 @@ export default function ClassDiagnosisContentPageTemplate({
                   onClick={handleCorrectRemedial}
                   disabled={
                     !selectedRemedialOptionId ||
+                    !emotion.hasSample ||
                     submitRemedialVariantMutation.isPending
                   }
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitRemedialVariantMutation.isPending
                     ? "Mengoreksi..."
-                    : "Kirim Jawaban"}
+                    : !emotion.hasSample
+                      ? "Mendeteksi emosi..."
+                      : "Kirim Jawaban"}
                 </button>
               )}
             </div>
@@ -1743,15 +1844,13 @@ export default function ClassDiagnosisContentPageTemplate({
           <aside className="h-fit rounded-3xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
             <div className="rounded-2xl border border-[#E2E8F0] bg-[#0F172A] p-2">
               <video
-                ref={previewRef}
+                ref={emotion.videoRef}
                 autoPlay
                 playsInline
                 muted
                 className="h-28 w-full rounded-xl bg-[#0B1120] object-cover"
               />
             </div>
-
-            {/* Remedial Steps Feed */}
             <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
                 Riwayat Remedial
