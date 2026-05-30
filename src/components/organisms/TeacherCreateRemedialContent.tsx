@@ -34,6 +34,7 @@ const VARIANT_LABELS: VariantLabel[] = ["A", "B", "C"];
 interface IOptionDraft {
   id?: string;
   text: string;
+  imageUrl?: string;
 }
 
 interface IVariantDraft {
@@ -41,6 +42,7 @@ interface IVariantDraft {
   prompt: string;
   options: Record<ChoiceKey, IOptionDraft>;
   correctAnswer: ChoiceKey;
+  imageUrl: string;
 }
 
 interface IRemedialQuestionDraft {
@@ -55,12 +57,13 @@ function createEmptyVariant(): IVariantDraft {
   return {
     prompt: "",
     options: {
-      A: { text: "" },
-      B: { text: "" },
-      C: { text: "" },
-      D: { text: "" },
+      A: { text: "", imageUrl: "" },
+      B: { text: "", imageUrl: "" },
+      C: { text: "", imageUrl: "" },
+      D: { text: "", imageUrl: "" },
     },
     correctAnswer: "A",
+    imageUrl: "",
   };
 }
 
@@ -80,6 +83,8 @@ function createEmptyQuestion(): IRemedialQuestionDraft {
 
 function latexTextToTiptapHtml(text: string): string {
   if (!text) return "";
+  
+  if (text.includes("<p>") || text.includes("<span data-type=")) return text;
 
   // Convert each line into a Tiptap <p> block so newlines are preserved in the editor
   return text
@@ -103,7 +108,7 @@ function latexTextToTiptapHtml(text: string): string {
     .join("");
 }
 
-function tiptapHtmlToLatexText(html: string): string {
+function tiptapHtmlToLatexHtml(html: string): string {
   if (!html) return "";
   if (typeof window === "undefined") return html.replace(/<[^>]*>/g, "").trim();
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -122,16 +127,15 @@ function tiptapHtmlToLatexText(html: string): string {
       }
       const tag = el.tagName.toLowerCase();
       const inner = Array.from(el.childNodes).map(processNode).join("");
-      if (tag === "p") return inner + "\n";
-      if (tag === "br") return "\n";
-      return inner;
+      const attributes = Array.from(el.attributes).map(attr => `${attr.name}="${attr.value}"`).join(" ");
+      return `<${tag}${attributes ? " " + attributes : ""}>${inner}</${tag}>`;
     }
     return "";
   }
   return Array.from(doc.body.childNodes)
     .map(processNode)
     .join("")
-    .replace(/\n+$/, ""); // trim trailing newlines only
+    .replace(/\n+$/, "");
 }
 
 function getYouTubeEmbedUrl(url: string): string | null {
@@ -161,28 +165,33 @@ function parseVariant(v?: GsRemedialVariant): IVariantDraft {
         text: latexTextToTiptapHtml(
           v.options.find((o) => o.option === "A")?.textAnswer ?? "",
         ),
+        imageUrl: v.options.find((o) => o.option === "A")?.imageAnswerUrl ?? "",
       },
       B: {
         id: v.options.find((o) => o.option === "B")?.id,
         text: latexTextToTiptapHtml(
           v.options.find((o) => o.option === "B")?.textAnswer ?? "",
         ),
+        imageUrl: v.options.find((o) => o.option === "B")?.imageAnswerUrl ?? "",
       },
       C: {
         id: v.options.find((o) => o.option === "C")?.id,
         text: latexTextToTiptapHtml(
           v.options.find((o) => o.option === "C")?.textAnswer ?? "",
         ),
+        imageUrl: v.options.find((o) => o.option === "C")?.imageAnswerUrl ?? "",
       },
       D: {
         id: v.options.find((o) => o.option === "D")?.id,
         text: latexTextToTiptapHtml(
           v.options.find((o) => o.option === "D")?.textAnswer ?? "",
         ),
+        imageUrl: v.options.find((o) => o.option === "D")?.imageAnswerUrl ?? "",
       },
     },
     correctAnswer:
       (v.options.find((o) => o.isCorrect)?.option as ChoiceKey) ?? "A",
+    imageUrl: v.imageQuestionUrl ?? "",
   };
 }
 
@@ -248,6 +257,30 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
   };
 
   const removeQuestion = (qId: string) => {
+    // Cari soal yang akan dihapus untuk menghapus gambarnya di server
+    const targetQ = questions.find((q) => q.id === qId);
+    if (targetQ) {
+      const urlsToDelete: string[] = [];
+      if (targetQ.imageUrl) urlsToDelete.push(targetQ.imageUrl);
+      
+      VARIANT_LABELS.forEach(vLabel => {
+        const variant = targetQ.variants[vLabel];
+        if (variant.imageUrl) urlsToDelete.push(variant.imageUrl);
+        CHOICE_KEYS.forEach(key => {
+          if (variant.options[key].imageUrl) {
+            urlsToDelete.push(variant.options[key].imageUrl!);
+          }
+        });
+      });
+
+      // Hapus di background tanpa memblokir UI
+      urlsToDelete.forEach(async (url) => {
+        try {
+          await deleteMutation.mutateAsync(url);
+        } catch (e) {}
+      });
+    }
+
     setQuestions((prev) => {
       const next = prev.filter((q) => q.id !== qId);
       if (next.length === 0) {
@@ -303,24 +336,23 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
     questions.map((q, qi) => ({
       ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
       questionNumber: qi + 1,
-      discussionText:
-        tiptapHtmlToLatexText(q.pembahasan) ||
-        `Pembahasan soal ${qi + 1}`,
-      discussionVideoUrl: q.videoUrl || undefined,
-      discussionImageUrl: q.imageUrl || undefined,
+      discussionText: q.pembahasan || `Pembahasan soal ${qi + 1}`,
+      discussionVideoUrl: q.videoUrl || null,
+      discussionImageUrl: q.imageUrl || null,
       variants: VARIANT_LABELS.map((label) => {
         const variant = q.variants[label];
         return {
           ...(isUpsert && variant.id ? { id: variant.id } : {}),
           packageLabel: label,
-          textQuestion:
-            tiptapHtmlToLatexText(variant.prompt) || `Soal ${label} ${qi + 1}`,
+          textQuestion: variant.prompt || `Soal ${label} ${qi + 1}`,
+          imageQuestionUrl: variant.imageUrl || undefined,
           options: CHOICE_KEYS.map((key) => ({
             ...(isUpsert && variant.options[key].id
               ? { id: variant.options[key].id }
               : {}),
             option: key,
-            textAnswer: tiptapHtmlToLatexText(variant.options[key].text),
+            textAnswer: tiptapHtmlToLatexHtml(variant.options[key].text),
+            imageAnswerUrl: variant.options[key].imageUrl || undefined,
             isCorrect: variant.correctAnswer === key,
           })),
         };
@@ -339,7 +371,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       const q = questions[qi];
       const errorLabel = `Soal ${qi + 1}`;
 
-      if (!tiptapHtmlToLatexText(q.pembahasan).trim()) {
+      if (!tiptapHtmlToLatexHtml(q.pembahasan).trim()) {
         showToast.error(`${errorLabel}: Pembahasan tidak boleh kosong`);
         setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
         return;
@@ -361,7 +393,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       for (const label of VARIANT_LABELS) {
         const variant = q.variants[label];
         const varErrorLabel = `Paket ${label}, Soal ${qi + 1}`;
-        if (!tiptapHtmlToLatexText(variant.prompt).trim()) {
+        if (!tiptapHtmlToLatexHtml(variant.prompt).trim()) {
           showToast.error(`${varErrorLabel}: Pertanyaan tidak boleh kosong`);
           setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
           setActivePackage(label);
@@ -376,7 +408,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
           id: editId,
           data: {
             testName: testTitle,
-            description: description || undefined,
+            description: description || null,
             durationMinutes: Number(durationMinutes) || 60,
             passingScore: kkm,
             questions: buildPayload(true),
@@ -394,7 +426,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       createMutation.mutate(
         {
           testName: testTitle,
-          description: description || undefined,
+          description: description || null,
           durationMinutes: Number(durationMinutes) || 60,
           passingScore: kkm,
           questions: buildPayload(false),
@@ -532,7 +564,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
           {questions.map((question, qi) => {
             const isOpen = openQuestionIds.includes(question.id);
             const variant = question.variants[activePackage];
-            const preview = tiptapHtmlToLatexText(variant.prompt);
+            const preview = tiptapHtmlToLatexHtml(variant.prompt);
 
             return (
               <div
@@ -583,6 +615,34 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                           }))
                         }
                         placeholder="Masukkan teks soal…"
+                        imageUrl={variant.imageUrl}
+                        isUploadingImage={uploadMutation.isPending}
+                        onImageUpload={async (file) => {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          try {
+                            const res = await uploadMutation.mutateAsync(formData);
+                            updateVariant(question.id, (prev) => ({
+                              ...prev,
+                              imageUrl: res.url,
+                            }));
+                            showToast.success("Gambar berhasil diunggah");
+                          } catch (err: any) {
+                            showToast.error(err.message || "Gagal mengunggah gambar");
+                          }
+                        }}
+                        onImageDelete={async () => {
+                          try {
+                            await deleteMutation.mutateAsync(variant.imageUrl);
+                            updateVariant(question.id, (prev) => ({
+                              ...prev,
+                              imageUrl: "",
+                            }));
+                            showToast.success("Gambar berhasil dihapus");
+                          } catch {
+                            showToast.error("Gagal menghapus gambar");
+                          }
+                        }}
                       />
                     </div>
 
@@ -598,46 +658,80 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                             <div
                               key={key}
                               className={cn(
-                                "rounded-2xl border p-3",
+                                "flex items-start gap-3 rounded-2xl border p-3 transition-colors",
                                 isCorrect
-                                  ? "border-[#93C5FD] bg-[#EFF6FF]"
+                                  ? "border-[#3B82F6] bg-[#EFF6FF]"
                                   : "border-[#E5E7EB] bg-white",
                               )}
                             >
-                              <div className="mb-2 flex items-center gap-2">
-                                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F3F4F6] text-sm font-semibold text-[#374151]">
-                                  {key}
-                                </span>
-                                <label className="flex items-center gap-1.5 text-xs font-medium text-[#4B5563]">
-                                  <input
-                                    type="radio"
-                                    name={`correct-${question.id}-${activePackage}`}
-                                    checked={isCorrect}
-                                    onChange={() =>
-                                      updateVariant(question.id, (prev) => ({
-                                        ...prev,
-                                        correctAnswer: key,
-                                      }))
-                                    }
-                                    className="h-4 w-4 accent-[#2563EB]"
-                                  />
-                                  Jawaban benar
-                                </label>
-                              </div>
-                              <MathEditor
-                                value={variant.options[key].text}
-                                onChange={(v) =>
+                              <button
+                                type="button"
+                                onClick={() =>
                                   updateVariant(question.id, (prev) => ({
                                     ...prev,
-                                    options: {
-                                      ...prev.options,
-                                      [key]: { text: v },
-                                    },
+                                    correctAnswer: key,
                                   }))
                                 }
-                                placeholder={`Pilihan ${key}`}
-                                className="min-h-14"
-                              />
+                                className={cn(
+                                  "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition",
+                                  isCorrect
+                                    ? "border-[#3B82F6] bg-[#3B82F6] text-white"
+                                    : "border-[#D1D5DB] text-[#9CA3AF] hover:border-[#9CA3AF]",
+                                )}
+                              >
+                                {key}
+                              </button>
+                              <div className="min-w-0 flex-1">
+                                <MathEditor
+                                  value={variant.options[key].text}
+                                  onChange={(v) =>
+                                    updateVariant(question.id, (prev) => ({
+                                      ...prev,
+                                      options: {
+                                        ...prev.options,
+                                        [key]: { ...prev.options[key], text: v },
+                                      },
+                                    }))
+                                  }
+                                  placeholder={`Jawaban ${key}…`}
+                                  imageUrl={variant.options[key].imageUrl}
+                                  isUploadingImage={uploadMutation.isPending}
+                                  onImageUpload={async (file) => {
+                                    const formData = new FormData();
+                                    formData.append("file", file);
+                                    try {
+                                      const res = await uploadMutation.mutateAsync(formData);
+                                      updateVariant(question.id, (prev) => ({
+                                        ...prev,
+                                        options: {
+                                          ...prev.options,
+                                          [key]: { ...prev.options[key], imageUrl: res.url },
+                                        },
+                                      }));
+                                      showToast.success("Gambar berhasil diunggah");
+                                    } catch (err: any) {
+                                      showToast.error(err.message || "Gagal mengunggah gambar");
+                                    }
+                                  }}
+                                  onImageDelete={async () => {
+                                    try {
+                                      if (variant.options[key].imageUrl) {
+                                        await deleteMutation.mutateAsync(variant.options[key].imageUrl!);
+                                      }
+                                      updateVariant(question.id, (prev) => ({
+                                        ...prev,
+                                        options: {
+                                          ...prev.options,
+                                          [key]: { ...prev.options[key], imageUrl: "" },
+                                        },
+                                      }));
+                                      showToast.success("Gambar berhasil dihapus");
+                                    } catch {
+                                      showToast.error("Gagal menghapus gambar");
+                                    }
+                                  }}
+                                />
+                              </div>
                             </div>
                           );
                         })}
@@ -657,81 +751,29 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                           }))
                         }
                         placeholder="Tuliskan pembahasan…"
+                        imageUrl={question.imageUrl}
+                        isUploadingImage={uploadMutation.isPending}
+                        onImageUpload={async (file) => {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          try {
+                            const res = await uploadMutation.mutateAsync(formData);
+                            updateQuestion(question.id, () => ({ imageUrl: res.url }));
+                            showToast.success("Gambar berhasil diunggah");
+                          } catch (err: any) {
+                            showToast.error(err.message || "Gagal mengunggah gambar");
+                          }
+                        }}
+                        onImageDelete={async () => {
+                          try {
+                            await deleteMutation.mutateAsync(question.imageUrl);
+                            updateQuestion(question.id, () => ({ imageUrl: "" }));
+                            showToast.success("Gambar berhasil dihapus");
+                          } catch {
+                            showToast.error("Gagal menghapus gambar");
+                          }
+                        }}
                       />
-                    </div>
-
-                    {/* Gambar Pembahasan */}
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-[#4B5563]">
-                        Gambar Pembahasan (Opsional)
-                      </label>
-                      {question.imageUrl ? (
-                        <div className="relative overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 flex flex-col items-center gap-3">
-                          <img
-                            src={question.imageUrl}
-                            alt="Gambar Pembahasan"
-                            className="max-h-60 object-contain rounded-xl"
-                          />
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await deleteMutation.mutateAsync(question.imageUrl);
-                                updateQuestion(question.id, () => ({ imageUrl: "" }));
-                                showToast.success("Gambar berhasil dihapus");
-                              } catch {
-                                showToast.error("Gagal menghapus gambar");
-                              }
-                            }}
-                            disabled={deleteMutation.isPending}
-                            className="inline-flex items-center gap-2 rounded-xl bg-[#FEF2F2] px-4 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                            Hapus Gambar
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-6 text-center transition hover:border-[#93C5FD]">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              const formData = new FormData();
-                              formData.append("file", file);
-                              try {
-                                const res = await uploadMutation.mutateAsync(formData);
-                                updateQuestion(question.id, () => ({ imageUrl: res.url }));
-                                showToast.success("Gambar berhasil diunggah");
-                              } catch (err: any) {
-                                showToast.error(err.message || "Gagal mengunggah gambar");
-                              }
-                            }}
-                            className="absolute inset-0 cursor-pointer opacity-0"
-                          />
-                          <svg
-                            className="mx-auto h-10 w-10 text-[#9CA3AF]"
-                            stroke="currentColor"
-                            fill="none"
-                            viewBox="0 0 48 48"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          <p className="mt-2 text-sm font-medium text-[#4B5563]">
-                            {uploadMutation.isPending ? "Mengunggah..." : "Pilih gambar untuk diunggah"}
-                          </p>
-                          <p className="mt-1 text-xs text-[#9CA3AF]">
-                            PNG, JPG, JPEG, atau WEBP hingga 5MB
-                          </p>
-                        </div>
-                      )}
                     </div>
 
                     {/* Video URL */}

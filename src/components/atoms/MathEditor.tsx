@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Mathematics from "@tiptap/extension-mathematics";
 import "katex/dist/katex.min.css";
+import TrashIcon from "./icons/TrashIcon";
 import katex from "katex";
 import { cn } from "@/libs/utils";
 import { useEffect, useRef, useState } from "react";
@@ -51,6 +52,10 @@ interface IMathEditorProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  imageUrl?: string;
+  onImageUpload?: (file: File) => void;
+  onImageDelete?: () => void;
+  isUploadingImage?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -62,6 +67,10 @@ export default function MathEditor({
   placeholder = "Ketik teks di sini…",
   className,
   disabled = false,
+  imageUrl,
+  onImageUpload,
+  onImageDelete,
+  isUploadingImage,
 }: IMathEditorProps) {
   /* math dialog state */
   const [showMathDialog, setShowMathDialog] = useState(false);
@@ -204,6 +213,35 @@ export default function MathEditor({
           <span className="text-base leading-none">∑</span>
           Rumus
         </button>
+
+        {onImageUpload && (
+          <label
+            title="Sisipkan Gambar"
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-[#BFDBFE] bg-[#EFF6FF] px-2 py-0.5 text-xs font-semibold text-[#1D4ED8] transition hover:bg-[#DBEAFE] cursor-pointer",
+              isUploadingImage && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Gambar
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={isUploadingImage}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  onImageUpload(file);
+                }
+                // Clear the input value so the same file can be selected again
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
       </div>
 
       {/* ── Math insert dialog ── */}
@@ -292,6 +330,27 @@ export default function MathEditor({
           "[&_.tiptap_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]",
         )}
       />
+
+      {/* ── Image preview ── */}
+      {imageUrl && (
+        <div className="border-t border-[#E5E7EB] p-3 flex flex-col items-center gap-2 bg-[#F9FAFB]">
+          <img
+            src={imageUrl}
+            alt="Gambar terlampir"
+            className="max-h-48 object-contain rounded-lg border border-[#E5E7EB]"
+          />
+          {onImageDelete && (
+            <button
+              type="button"
+              onClick={onImageDelete}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#FEF2F2] px-3 py-1.5 text-xs font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
+            >
+              <TrashIcon className="h-3.5 w-3.5" />
+              Hapus Gambar
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

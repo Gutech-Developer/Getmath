@@ -77,7 +77,7 @@ export interface GsCreateRemedialQuestionInput {
 
 export interface GsCreateRemedialTestInput {
   testName: string;
-  description?: string;
+  description: string | null;
   durationMinutes: number;
   passingScore: number;
   questions: GsCreateRemedialQuestionInput[];
@@ -109,7 +109,7 @@ export interface GsUpsertRemedialQuestionInput {
 
 export interface GsUpdateRemedialTestInput {
   testName?: string;
-  description?: string;
+  description?: string | null;
   durationMinutes?: number;
   passingScore?: number;
   questions?: GsUpsertRemedialQuestionInput[];

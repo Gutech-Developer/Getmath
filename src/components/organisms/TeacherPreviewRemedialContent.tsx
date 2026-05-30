@@ -102,8 +102,19 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                     </span>
                     <div className="min-w-0 flex-1 space-y-4">
                       {/* Pertanyaan */}
-                      <div className="prose prose-sm max-w-none text-[#374151]">
-                        <MathText text={variant.textQuestion || ""} />
+                      <div className="space-y-4">
+                        <div className="prose prose-sm max-w-none text-[#374151]">
+                          <MathText text={variant.textQuestion || ""} />
+                        </div>
+                        {variant.imageQuestionUrl && (
+                          <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
+                            <img
+                              src={variant.imageQuestionUrl}
+                              alt="Gambar Soal"
+                              className="max-h-80 w-auto object-contain rounded-lg mx-auto"
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {/* Options */}
@@ -128,8 +139,17 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                             >
                               {opt.option}
                             </span>
-                            <div className="prose prose-sm max-w-none">
-                              <MathText text={opt.textAnswer || ""} />
+                            <div className="min-w-0 flex-1 space-y-3">
+                              <div className="prose prose-sm max-w-none">
+                                <MathText text={opt.textAnswer || ""} />
+                              </div>
+                              {opt.imageAnswerUrl && (
+                                <img
+                                  src={opt.imageAnswerUrl}
+                                  alt={`Gambar Opsi ${opt.option}`}
+                                  className="max-h-40 w-auto object-contain rounded-lg"
+                                />
+                              )}
                             </div>
                           </li>
                         ))}
