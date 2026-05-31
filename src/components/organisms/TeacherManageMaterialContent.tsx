@@ -465,7 +465,7 @@ export default function TeacherManageMaterialContent({
         ? {
             eLKPD: {
               title: form.elkpdTitle.trim(),
-              description: form.elkpdDescription.trim() || undefined,
+              description: form.elkpdDescription.trim() || null,
               fileUrl: form.elkpdFileUrl.trim(),
             },
           }
@@ -474,12 +474,12 @@ export default function TeacherManageMaterialContent({
     if (editingSubjectId) {
       const subjectData = {
         subjectName: form.subjectName.trim(),
-        description: form.description.trim() || undefined,
-        subjectFileUrl: form.subjectFileUrl.trim() || undefined,
-        videoUrl: form.videoUrl.trim() || undefined,
-        eLKPDTitle: form.elkpdTitle.trim() || undefined,
-        eLKPDDescription: form.elkpdDescription.trim() || undefined,
-        eLKPDFileUrl: form.elkpdFileUrl.trim() || undefined,
+        description: form.description.trim() || null,
+        subjectFileUrl: form.subjectFileUrl.trim() || null,
+        videoUrl: form.videoUrl.trim() || null,
+        eLKPDTitle: form.elkpdTitle.trim() || null,
+        eLKPDDescription: form.elkpdDescription.trim() || null,
+        eLKPDFileUrl: form.elkpdFileUrl.trim() || null,
       };
 
       updateSubject.mutate(
@@ -497,9 +497,9 @@ export default function TeacherManageMaterialContent({
       createSubject.mutate(
         {
           subjectName: form.subjectName.trim(),
-          description: form.description.trim() || undefined,
-          subjectFileUrl: form.subjectFileUrl.trim() || undefined,
-          videoUrl: form.videoUrl.trim() || undefined,
+          description: form.description.trim() || null,
+          subjectFileUrl: form.subjectFileUrl.trim() || null,
+          videoUrl: form.videoUrl.trim() || null,
           ...elkpdData,
         },
         {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   StudentDashboardContent,
   type EnrolledClass,
@@ -200,6 +200,35 @@ const StudentDashboardTemplate = () => {
     limit: 50,
     search: searchValue,
   });
+
+  const enrollCourseByLink = useGsEnrollCourseByLink();
+
+  // ── Auto-join from pending link ───────────────────────────────────────────
+  useEffect(() => {
+    const pendingLink = localStorage.getItem("pendingJoinLink");
+    if (pendingLink) {
+      // Hapus agar tidak dijalankan dua kali, 
+      // tetapi panggil secara aman agar tidak kena race condition.
+      localStorage.removeItem("pendingJoinLink");
+      
+      // Delay sedikit agar query initial selesai dulu (opsional, tapi lebih stabil)
+      setTimeout(() => {
+        enrollCourseByLink.mutate(
+          { joinLink: pendingLink },
+          {
+            onSuccess: () => {
+              showToast.success("Berhasil bergabung ke kelas dari link!");
+            },
+            onError: (err) => {
+              showToast.error(
+                err.message ?? "Gagal bergabung ke kelas dari link."
+              );
+            },
+          }
+        );
+      }, 500);
+    }
+  }, [enrollCourseByLink]);
 
   const enrolledClasses: EnrolledClass[] = useMemo(() => {
     const schoolCoursesMap = new Map(

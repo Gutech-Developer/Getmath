@@ -79,7 +79,7 @@ export interface GsCreateTestQuestionInput {
 
 export interface GsCreateDiagnosticTestInput {
   testName: string;
-  description?: string;
+  description: string | null;
   durationMinutes: number;
   passingScore: number;
   questions: GsCreateTestQuestionInput[];
