@@ -10,6 +10,8 @@ import {
   LearningAnalyticsClassHeaderCard,
   LearningAnalyticsViewSwitcher,
   TeacherOverviewSection,
+  BaseNilaiTestSection,
+ 
 } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
 import { useGsKickStudentFromCourse } from "@/services/hooks/useGsCourseEnrollment";
 import type {
@@ -241,12 +243,16 @@ export default function AdminLearningAnalyticsClassContent({
         students={classDetail.students}
       />
     ),
-    "Kelola E-LKPD": (
+    "Nilai E-LKPD": (
       <BaseKelolaELKPDSection
         elkpdItems={elkpdItems}
         buildELKPDScoreHref={elkpdScoreHrefBuilder}
       />
     ),
+    "Nilai Test": (
+      <BaseNilaiTestSection courseId={classDetail.id ?? classDetail.slug} />
+    ),
+    
     Laporan: (
       <BaseLaporanSection
         reportSummaryCards={reportSummaryCards}
@@ -279,7 +285,9 @@ export default function AdminLearningAnalyticsClassContent({
             badgeByType={{
               Siswa: classDetail.studentCount,
               Materi: materials.length,
-              "Kelola E-LKPD": elkpdItems.length,
+              "Nilai E-LKPD": elkpdItems.length,
+              "Nilai Test": 0,
+            
             }}
           />
         </div>

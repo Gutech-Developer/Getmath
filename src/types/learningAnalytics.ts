@@ -2,7 +2,8 @@ export type ClassAnalyticsViewType =
   | "Beranda"
   | "Siswa"
   | "Materi"
-  | "Kelola E-LKPD"
+  | "Nilai E-LKPD"
+  | "Nilai Test"
   | "Laporan"
   | "Forum";
 

@@ -152,6 +152,7 @@ export default function ClassDiagnosisContentPageTemplate({
     isRemedial ? (apiModule?.remedialTestId ?? "") : "",
   );
 
+
   const getYouTubeId = (url: string): string | null => {
     if (!url) return null;
     const regExp =

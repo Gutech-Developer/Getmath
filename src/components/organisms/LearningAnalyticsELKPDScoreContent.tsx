@@ -246,7 +246,7 @@ export default function LearningAnalyticsELKPDScoreContent({
 }: ILearningAnalyticsELKPDScoreContentProps) {
   const router = useRouter();
   const baseClassHref = buildClassHref(role, classDetail.slug);
-  const backHref = `${baseClassHref}?view=${encodeURIComponent("Kelola E-LKPD")}`;
+  const backHref = `${baseClassHref}?view=${encodeURIComponent("Nilai E-LKPD")}`;
 
   const selectedELKPD = useMemo(
     () => classDetail.elkpdItems?.find((item) => item.id === elkpdId),
@@ -344,7 +344,7 @@ export default function LearningAnalyticsELKPDScoreContent({
   const badgeByType: Partial<Record<ClassAnalyticsViewType, number>> = {
     Siswa: scoreRows.length,
     Materi: modulesData?.length ?? classDetail.materials?.length ?? 0,
-    "Kelola E-LKPD":
+    "Nilai E-LKPD":
       modulesData?.filter((m) => m.subject?.eLKPDTitle).length ??
       classDetail.elkpdItems?.length ??
       0,
@@ -355,7 +355,7 @@ export default function LearningAnalyticsELKPDScoreContent({
       <LearningAnalyticsClassHeaderCard data={headerData} />
 
       <LearningAnalyticsViewSwitcher
-        activeType="Kelola E-LKPD"
+        activeType="Nilai E-LKPD"
         onChange={(nextType) => {
           router.push(`${baseClassHref}?view=${encodeURIComponent(nextType)}`);
         }}
