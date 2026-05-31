@@ -12,6 +12,8 @@ import {
   useGsCreateDiagnosticTest,
   useGsUpdateDiagnosticTest,
   useGsDiagnosticTestById,
+  useGsUploadFile,
+  useGsDeleteFile,
 } from "@/services";
 import type { GsDiagnosticTest } from "@/types/gs-diagnostic-test";
 import MathText from "../atoms/MathText";
@@ -29,6 +31,7 @@ const CHOICE_KEYS: ChoiceKey[] = ["A", "B", "C", "D"];
 interface IOptionDraft {
   id?: string;
   text: string;
+  imageUrl?: string;
 }
 interface IQuestionDraft {
   id: string;
@@ -37,6 +40,7 @@ interface IQuestionDraft {
   options: Record<ChoiceKey, IOptionDraft>;
   correctAnswer: ChoiceKey;
   pembahasan: string;
+  imageUrl: string;
 }
 function createEmptyQuestion(index: number): IQuestionDraft {
   return {
@@ -44,18 +48,22 @@ function createEmptyQuestion(index: number): IQuestionDraft {
     isBackendId: false,
     prompt: "",
     options: {
-      A: { text: "" },
-      B: { text: "" },
-      C: { text: "" },
-      D: { text: "" },
+      A: { text: "", imageUrl: "" },
+      B: { text: "", imageUrl: "" },
+      C: { text: "", imageUrl: "" },
+      D: { text: "", imageUrl: "" },
     },
     correctAnswer: "A",
     pembahasan: "",
+    imageUrl: "",
   };
 }
 
 function latexTextToTiptapHtml(text: string): string {
   if (!text) return "";
+
+  // Jika sudah mengandung format HTML dari Tiptap, kembalikan langsung
+  if (text.includes("<p>") || text.includes("<span data-type=")) return text;
 
   // Convert each line into a Tiptap <p> block so newlines are preserved in the editor
   return text
@@ -80,7 +88,7 @@ function latexTextToTiptapHtml(text: string): string {
     .join("");
 }
 
-function tiptapHtmlToLatexText(html: string): string {
+function tiptapHtmlToLatexHtml(html: string): string {
   if (!html) return "";
   if (typeof window === "undefined") return html.replace(/<[^>]*>/g, "").trim();
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -99,17 +107,18 @@ function tiptapHtmlToLatexText(html: string): string {
       }
       const tag = el.tagName.toLowerCase();
       const inner = Array.from(el.childNodes).map(processNode).join("");
-      // Tiptap wraps each paragraph in <p> — treat as a line break
-      if (tag === "p") return inner + "\n";
-      if (tag === "br") return "\n";
-      return inner;
+
+      const attributes = Array.from(el.attributes)
+        .map((attr) => `${attr.name}="${attr.value}"`)
+        .join(" ");
+      return `<${tag}${attributes ? " " + attributes : ""}>${inner}</${tag}>`;
     }
     return "";
   }
   return Array.from(doc.body.childNodes)
     .map(processNode)
     .join("")
-    .replace(/\n+$/, ""); // trim trailing newlines only
+    .replace(/\n+$/, "");
 }
 
 function prefillQuestions(dt: GsDiagnosticTest): IQuestionDraft[] {
@@ -123,26 +132,31 @@ function prefillQuestions(dt: GsDiagnosticTest): IQuestionDraft[] {
         text: latexTextToTiptapHtml(
           q.options.find((o) => o.option === "A")?.textAnswer ?? "",
         ),
+        imageUrl: q.options.find((o) => o.option === "A")?.imageAnswerUrl ?? "",
       },
       B: {
         text: latexTextToTiptapHtml(
           q.options.find((o) => o.option === "B")?.textAnswer ?? "",
         ),
+        imageUrl: q.options.find((o) => o.option === "B")?.imageAnswerUrl ?? "",
       },
       C: {
         text: latexTextToTiptapHtml(
           q.options.find((o) => o.option === "C")?.textAnswer ?? "",
         ),
+        imageUrl: q.options.find((o) => o.option === "C")?.imageAnswerUrl ?? "",
       },
       D: {
         text: latexTextToTiptapHtml(
           q.options.find((o) => o.option === "D")?.textAnswer ?? "",
         ),
+        imageUrl: q.options.find((o) => o.option === "D")?.imageAnswerUrl ?? "",
       },
     },
     correctAnswer:
       (q.options.find((o) => o.isCorrect)?.option as ChoiceKey) ?? "A",
     pembahasan: latexTextToTiptapHtml(q.pembahasan),
+    imageUrl: q.imageQuestionUrl ?? "",
   }));
 }
 
@@ -157,6 +171,8 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
     useGsDiagnosticTestById(editId ?? "");
   const createMutation = useGsCreateDiagnosticTest();
   const updateMutation = useGsUpdateDiagnosticTest();
+  const uploadMutation = useGsUploadFile();
+  const deleteMutation = useGsDeleteFile();
 
   const [testTitle, setTestTitle] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("60");
@@ -187,6 +203,23 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
   };
 
   const removeQuestion = (qId: string) => {
+    // Cari soal yang akan dihapus untuk menghapus gambarnya di server
+    const targetQ = questions.find((q) => q.id === qId);
+    if (targetQ) {
+      const urlsToDelete: string[] = [];
+      if (targetQ.imageUrl) urlsToDelete.push(targetQ.imageUrl);
+      CHOICE_KEYS.forEach((key) => {
+        if (targetQ.options[key].imageUrl)
+          urlsToDelete.push(targetQ.options[key].imageUrl!);
+      });
+      // Hapus di background tanpa memblokir UI
+      urlsToDelete.forEach(async (url) => {
+        try {
+          await deleteMutation.mutateAsync(url);
+        } catch (e) {}
+      });
+    }
+
     setQuestions((prev) => {
       const next = prev.filter((q) => q.id !== qId);
       setOpenQuestionIds((o) => o.filter((x) => x !== qId));
@@ -211,22 +244,30 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
 
   /* ── build payload ── */
   const buildPayload = (isUpsert: boolean) =>
-    questions.map((q, qi) => ({
-      ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
-      questionNumber: qi + 1,
-      textQuestion: tiptapHtmlToLatexText(q.prompt) || `Soal ${qi + 1}`,
-      pembahasan:
-        tiptapHtmlToLatexText(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
-      discussion: {
-        textDiscussion:
-          tiptapHtmlToLatexText(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
-      },
-      options: CHOICE_KEYS.map((key) => ({
-        option: key,
-        textAnswer: tiptapHtmlToLatexText(q.options[key].text),
-        isCorrect: q.correctAnswer === key,
-      })),
-    }));
+    questions.map((q, qi) => {
+      const optionA = isUpsert && q.options.A && (q.options.A as any).id; // check for existing option ids
+      return {
+        ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
+        questionNumber: qi + 1,
+        textQuestion: tiptapHtmlToLatexHtml(q.prompt) || `Soal ${qi + 1}`,
+        imageQuestionUrl: q.imageUrl || undefined,
+        pembahasan:
+          tiptapHtmlToLatexHtml(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
+        discussion: {
+          textDiscussion:
+            tiptapHtmlToLatexHtml(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
+        },
+        options: CHOICE_KEYS.map((key) => ({
+          ...(isUpsert && (q.options[key] as any).id
+            ? { id: (q.options[key] as any).id }
+            : {}),
+          option: key,
+          textAnswer: tiptapHtmlToLatexHtml(q.options[key].text),
+          imageAnswerUrl: q.options[key].imageUrl || undefined,
+          isCorrect: q.correctAnswer === key,
+        })),
+      };
+    });
 
   /* ── submit ── */
   const handleSave = () => {
@@ -237,7 +278,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
     for (let qi = 0; qi < questions.length; qi++) {
       const q = questions[qi];
       const label = `Soal ${qi + 1}`;
-      if (!tiptapHtmlToLatexText(q.prompt).trim()) {
+      if (!tiptapHtmlToLatexHtml(q.prompt).trim()) {
         showToast.error(`${label}: Pertanyaan tidak boleh kosong`);
         setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
         return;
@@ -250,7 +291,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
           id: editId,
           data: {
             testName: testTitle,
-            description: description || undefined,
+            description: description || null,
             durationMinutes: Number(durationMinutes) || 60,
             passingScore: kkm,
             questions: buildPayload(true),
@@ -268,7 +309,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
       createMutation.mutate(
         {
           testName: testTitle,
-          description: description || undefined,
+          description: description || null,
           durationMinutes: Number(durationMinutes) || 60,
           passingScore: kkm,
           questions: buildPayload(false),
@@ -391,7 +432,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
         <div className="space-y-3 p-4">
           {questions.map((question, qi) => {
             const isOpen = openQuestionIds.includes(question.id);
-            const preview = tiptapHtmlToLatexText(question.prompt);
+            const preview = tiptapHtmlToLatexHtml(question.prompt);
             return (
               <div
                 key={question.id}
@@ -441,6 +482,37 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                           }))
                         }
                         placeholder="Masukkan teks soal…"
+                        imageUrl={question.imageUrl}
+                        isUploadingImage={uploadMutation.isPending}
+                        onImageUpload={async (file) => {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          try {
+                            const res =
+                              await uploadMutation.mutateAsync(formData);
+                            updateQuestion(question.id, (q) => ({
+                              ...q,
+                              imageUrl: res.url,
+                            }));
+                            showToast.success("Gambar berhasil diunggah");
+                          } catch (err: any) {
+                            showToast.error(
+                              err.message || "Gagal mengunggah gambar",
+                            );
+                          }
+                        }}
+                        onImageDelete={async () => {
+                          try {
+                            await deleteMutation.mutateAsync(question.imageUrl);
+                            updateQuestion(question.id, (q) => ({
+                              ...q,
+                              imageUrl: "",
+                            }));
+                            showToast.success("Gambar berhasil dihapus");
+                          } catch {
+                            showToast.error("Gagal menghapus gambar");
+                          }
+                        }}
                       />
                     </div>
 
@@ -456,67 +528,104 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                             <div
                               key={key}
                               className={cn(
-                                "rounded-2xl border p-3",
+                                "flex items-start gap-3 rounded-2xl border p-3 transition-colors",
                                 isCorrect
-                                  ? "border-[#93C5FD] bg-[#EFF6FF]"
+                                  ? "border-[#3B82F6] bg-[#EFF6FF]"
                                   : "border-[#E5E7EB] bg-white",
                               )}
                             >
-                              <div className="mb-2 flex items-center gap-2">
-                                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F3F4F6] text-sm font-semibold text-[#374151]">
-                                  {key}
-                                </span>
-                                <label className="flex items-center gap-1.5 text-xs font-medium text-[#4B5563]">
-                                  <input
-                                    type="radio"
-                                    name={`correct-${question.id}`}
-                                    checked={isCorrect}
-                                    onChange={() =>
-                                      updateQuestion(question.id, (q) => ({
-                                        ...q,
-                                        correctAnswer: key,
-                                      }))
-                                    }
-                                    className="h-4 w-4 accent-[#2563EB]"
-                                  />
-                                  Jawaban benar
-                                </label>
-                              </div>
-                              <MathEditor
-                                value={question.options[key].text}
-                                onChange={(v) =>
+                              {/* Option radio */}
+                              <button
+                                type="button"
+                                onClick={() =>
                                   updateQuestion(question.id, (q) => ({
                                     ...q,
-                                    options: {
-                                      ...q.options,
-                                      [key]: { text: v },
-                                    },
+                                    correctAnswer: key,
                                   }))
                                 }
-                                placeholder={`Pilihan ${key}`}
-                                className="min-h-14"
-                              />
+                                className={cn(
+                                  "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition",
+                                  isCorrect
+                                    ? "border-[#3B82F6] bg-[#3B82F6] text-white"
+                                    : "border-[#D1D5DB] text-[#9CA3AF] hover:border-[#9CA3AF]",
+                                )}
+                              >
+                                {key}
+                              </button>
+
+                              <div className="min-w-0 flex-1">
+                                <MathEditor
+                                  value={question.options[key].text}
+                                  onChange={(v) =>
+                                    updateQuestion(question.id, (q) => ({
+                                      ...q,
+                                      options: {
+                                        ...q.options,
+                                        [key]: { ...q.options[key], text: v },
+                                      },
+                                    }))
+                                  }
+                                  placeholder={`Jawaban ${key}…`}
+                                  imageUrl={question.options[key].imageUrl}
+                                  isUploadingImage={uploadMutation.isPending}
+                                  onImageUpload={async (file) => {
+                                    const formData = new FormData();
+                                    formData.append("file", file);
+                                    try {
+                                      const res =
+                                        await uploadMutation.mutateAsync(
+                                          formData,
+                                        );
+                                      updateQuestion(question.id, (q) => ({
+                                        ...q,
+                                        options: {
+                                          ...q.options,
+                                          [key]: {
+                                            ...q.options[key],
+                                            imageUrl: res.url,
+                                          },
+                                        },
+                                      }));
+                                      showToast.success(
+                                        "Gambar berhasil diunggah",
+                                      );
+                                    } catch (err: any) {
+                                      showToast.error(
+                                        err.message ||
+                                          "Gagal mengunggah gambar",
+                                      );
+                                    }
+                                  }}
+                                  onImageDelete={async () => {
+                                    try {
+                                      if (question.options[key].imageUrl) {
+                                        await deleteMutation.mutateAsync(
+                                          question.options[key].imageUrl!,
+                                        );
+                                      }
+                                      updateQuestion(question.id, (q) => ({
+                                        ...q,
+                                        options: {
+                                          ...q.options,
+                                          [key]: {
+                                            ...q.options[key],
+                                            imageUrl: "",
+                                          },
+                                        },
+                                      }));
+                                      showToast.success(
+                                        "Gambar berhasil dihapus",
+                                      );
+                                    } catch {
+                                      showToast.error("Gagal menghapus gambar");
+                                    }
+                                  }}
+                                />
+                              </div>
                             </div>
                           );
                         })}
                       </div>
-                    </div>
-
-                    {/* Pembahasan */}
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-[#4B5563]">
-                        Pembahasan <span className="text-[#EF4444]">*</span>
-                      </label>
-                      <MathEditor
-                        value={question.pembahasan}
-                        onChange={(v) =>
-                          updateQuestion(question.id, (q) => ({
-                            ...q,
-                            pembahasan: v,
-                          }))
-                        }
-                        placeholder="Tuliskan pembahasan…"
-                      />
                     </div>
 
                     {/* Hapus soal */}

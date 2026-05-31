@@ -74,150 +74,209 @@ function ResetPasswordForm() {
 
   if (isSuccess) {
     return (
-      <div className="w-full max-w-md mx-auto p-6 sm:p-8">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-jade/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-jade"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+      <div className="w-full flex items-center justify-center p-4 sm:p-5">
+        <div className="w-full max-w-[448px]">
+          <div className="bg-white/95 rounded-[24px] shadow-[0px_20px_60px_0px_rgba(26,35,126,0.12)] border border-[#1a237e]/10 p-5 sm:p-6 lg:p-7">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-[#1a237e]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-[#1a237e]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl lg:text-[34px] font-extrabold text-[#1a237e] leading-tight mb-2">
+                Password Berhasil Direset!
+              </h2>
+              <p className="text-[13px] text-grey">
+                Password Anda telah berhasil direset. Silakan login dengan
+                password baru Anda.
+              </p>
+            </div>
+            <Link href="/login" className="block w-full">
+              <button className="w-full flex justify-center items-center border-0 text-white bg-[linear-gradient(173deg,#1a237e_0%,#00acc1_100%)] hover:text-white rounded-[12px] shadow-[0px_10px_20px_rgba(26,35,126,0.2)] py-2.5 text-sm font-medium transition-colors">
+                Login Sekarang
+              </button>
+            </Link>
           </div>
-          <Heading3 className="text-neutral-02 mb-2">
-            Password Berhasil Direset!
-          </Heading3>
-          <p className="text-grey text-sm">
-            Password Anda telah berhasil direset. Silakan login dengan password
-            baru Anda.
-          </p>
         </div>
-
-        <Link href="/login" className="block w-full">
-          <button className="w-full bg-charcoal-green text-white py-3 rounded-lg font-medium hover:bg-charcoal-green-dark transition-colors">
-            Login Sekarang
-          </button>
-        </Link>
       </div>
     );
   }
 
   if (!token) {
     return (
-      <div className="w-full max-w-md mx-auto p-6 sm:p-8">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-error"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+      <div className="w-full flex items-center justify-center p-4 sm:p-5">
+        <div className="w-full max-w-[448px]">
+          <div className="bg-white/95 rounded-[24px] shadow-[0px_20px_60px_0px_rgba(26,35,126,0.12)] border border-[#1a237e]/10 p-5 sm:p-6 lg:p-7">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-error"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl lg:text-[34px] font-extrabold text-[#1a237e] leading-tight mb-2">
+                Token Tidak Valid
+              </h2>
+              <p className="text-[13px] text-grey">
+                Link reset password tidak valid atau sudah kedaluwarsa.
+              </p>
+            </div>
+            <Link href="/forgot-password" className="block w-full">
+              <button className="w-full flex justify-center items-center border-0 text-white bg-[linear-gradient(173deg,#1a237e_0%,#00acc1_100%)] hover:text-white rounded-[12px] shadow-[0px_10px_20px_rgba(26,35,126,0.2)] py-2.5 text-sm font-medium transition-colors">
+                Request Link Baru
+              </button>
+            </Link>
+            <div className="mt-4">
+              <Link href="/login" className="block w-full">
+                <button className="w-full bg-[#1a237e]/5 text-[#4b5563] py-2.5 rounded-[12px] text-sm font-medium hover:bg-[#1a237e]/10 transition-colors">
+                  Kembali ke Login
+                </button>
+              </Link>
+            </div>
           </div>
-          <Heading3 className="text-neutral-02 mb-2">
-            Token Tidak Valid
-          </Heading3>
-          <p className="text-grey text-sm">
-            Link reset password tidak valid atau sudah kedaluwarsa.
-          </p>
-        </div>
-
-        <Link href="/forgot-password" className="block w-full">
-          <button className="w-full bg-charcoal-green text-white py-3 rounded-lg font-medium hover:bg-charcoal-green-dark transition-colors">
-            Request Link Baru
-          </button>
-        </Link>
-
-        <div className="mt-4">
-          <Link href="/login" className="block w-full">
-            <button className="w-full bg-grey-light text-neutral-02 py-3 rounded-lg font-medium hover:bg-grey-stroke transition-colors">
-              Kembali ke Login
-            </button>
-          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full p-5 sm:p-8">
-      <div className=" w-full md:w-md mx-auto p-5 lg:p-10 bg-white rounded-xl">
-        <div className="text-center mb-8">
-          <Heading3 className="text-neutral-02 mb-2">Reset Password</Heading3>
-          <p className="text-grey text-sm">Masukkan password baru Anda.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* New Password */}
-          <div>
-            <label htmlFor="newPassword" className="block">
-              <BodySmallMedium>Password Baru</BodySmallMedium>
-            </label>
-            <div className="mt-2">
-              <PasswordInput
-                id="newPassword"
-                name="newPassword"
-                required
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Masukkan password baru"
-              />
-            </div>
-            <p className="mt-1 text-xs text-grey">
-              Min. 8 karakter, mengandung huruf besar, huruf kecil, angka, dan
-              karakter spesial.
+    <div className="w-full flex items-center justify-center p-4 sm:p-5">
+      <div className="w-full max-w-[448px]">
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-2 text-[13px] text-[#6b7280] hover:text-[#4b5563]"
+        >
+          <span aria-hidden="true">&lt;</span>
+          Kembali ke Login
+        </Link>
+        <div className="mt-4 bg-white/95 rounded-[24px] shadow-[0px_20px_60px_0px_rgba(26,35,126,0.12)] border border-[#1a237e]/10 p-5 sm:p-6 lg:p-7">
+          <div className="mb-5 text-center">
+            <h2 className="text-2xl lg:text-[34px] font-extrabold text-[#1a237e] leading-tight mb-1.5">
+              Reset Password
+            </h2>
+            <p className="text-[13px] text-grey">
+              Masukkan password baru Anda.
             </p>
           </div>
 
-          {/* Confirm Password */}
-          <div>
-            <label htmlFor="confirmPassword" className="block">
-              <BodySmallMedium>Konfirmasi Password</BodySmallMedium>
-            </label>
-            <div className="mt-2">
-              <PasswordInput
-                id="confirmPassword"
-                name="confirmPassword"
-                required
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Konfirmasi password baru"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="newPassword" className="block">
+                <BodySmallMedium className="text-[#4b5563]">
+                  Password Baru
+                </BodySmallMedium>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af] z-10">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 11c-1.657 0-3 1.343-3 3v4h6v-4c0-1.657-1.343-3-3-3z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 11V8a5 5 0 0110 0v3"
+                    />
+                  </svg>
+                </span>
+                <PasswordInput
+                  id="newPassword"
+                  name="newPassword"
+                  required
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="rounded-[12px] bg-[#1a237e]/5 py-2.5 pl-8 pr-8 text-[13px] outline-[#1a237e]/10 focus:outline-[#00acc1]"
+                  placeholder="Masukkan password baru"
+                />
+              </div>
+              <p className="mt-1 text-xs text-[#6b7280]">
+                Min. 8 karakter, mengandung huruf besar, huruf kecil, angka, dan
+                karakter spesial.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="confirmPassword" className="block">
+                <BodySmallMedium className="text-[#4b5563]">
+                  Konfirmasi Password
+                </BodySmallMedium>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af] z-10">
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 11c-1.657 0-3 1.343-3 3v4h6v-4c0-1.657-1.343-3-3-3z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 11V8a5 5 0 0110 0v3"
+                    />
+                  </svg>
+                </span>
+                <PasswordInput
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  required
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="rounded-[12px] bg-[#1a237e]/5 py-2.5 pl-8 pr-8 text-[13px] outline-[#1a237e]/10 focus:outline-[#00acc1]"
+                  placeholder="Konfirmasi password baru"
+                />
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <SubmitButton
+                variant="outline"
+                type="submit"
+                className="w-full flex justify-center items-center border-0 text-white bg-[linear-gradient(173deg,#1a237e_0%,#00acc1_100%)] hover:text-white rounded-[12px] shadow-[0px_10px_20px_rgba(26,35,126,0.2)]"
+                disabled={resetPassword.isPending}
+                text={
+                  resetPassword.isPending ? "Menyimpan..." : "Reset Password"
+                }
               />
             </div>
-          </div>
-
-          {/* Submit Button */}
-          <SubmitButton
-            type="submit"
-            className="w-full flex justify-center"
-            disabled={resetPassword.isPending}
-            text={resetPassword.isPending ? "Menyimpan..." : "Reset Password"}
-          />
-        </form>
-
-        <div className="mt-6 text-center">
-          <Link
-            href="/login"
-            className="text-sm text-moss-stone hover:text-charcoal-green transition-colors"
-          >
-            ← Kembali ke Login
-          </Link>
+          </form>
         </div>
       </div>
     </div>
@@ -228,8 +287,8 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="w-full max-w-md mx-auto p-6 sm:p-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-charcoal-green"></div>
+        <div className="w-full max-w-[448px] mx-auto p-4 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a237e]"></div>
         </div>
       }
     >

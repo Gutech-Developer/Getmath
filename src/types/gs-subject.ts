@@ -117,26 +117,26 @@ export interface GsPaginatedSubjects {
 
 export interface GsCreateELKPDInput {
   title: string;
-  description?: string;
+  description?: string | null;
   fileUrl: string;
 }
 
 export interface GsCreateSubjectInput {
   subjectName: string;
-  description?: string;
-  subjectFileUrl?: string;
-  videoUrl?: string;
+  description?: string | null;
+  subjectFileUrl?: string | null;
+  videoUrl?: string | null;
   eLKPD?: GsCreateELKPDInput;
 }
 
 export interface GsUpdateSubjectInput {
   subjectName?: string;
-  description?: string;
-  subjectFileUrl?: string;
-  videoUrl?: string;
-  eLKPDTitle?: string;
-  eLKPDDescription?: string;
-  eLKPDFileUrl?: string;
+  description?: string | null;
+  subjectFileUrl?: string | null;
+  videoUrl?: string | null;
+  eLKPDTitle?: string | null;
+  eLKPDDescription?: string | null;
+  eLKPDFileUrl?: string | null;
 }
 
 // ─── Input: E-LKPD ───────────────────────────────────────────────────────────

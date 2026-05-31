@@ -185,13 +185,24 @@ export function DiagnosticPreviewBody({ test }: { test: GsDiagnosticTest }) {
                   <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-sm font-semibold text-white">
                     {questionIndex + 1}
                   </span>
-                  <p className="flex-1 max-w-md whitespace-pre-wrap text-sm text-[#111827]">
-                    <MathText
-                      text={
-                        question.textQuestion ?? `Soal ${questionIndex + 1}`
-                      }
-                    />
-                  </p>
+                  <div className="flex-1 max-w-md space-y-4">
+                    <p className="whitespace-pre-wrap text-sm text-[#111827]">
+                      <MathText
+                        text={
+                          question.textQuestion ?? `Soal ${questionIndex + 1}`
+                        }
+                      />
+                    </p>
+                    {question.imageQuestionUrl && (
+                      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
+                        <img
+                          src={question.imageQuestionUrl}
+                          alt="Gambar Soal"
+                          className="max-h-80 w-auto object-contain rounded-lg mx-auto"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 border-t border-[#F3F4F6] px-4 py-3 sm:grid-cols-2">
@@ -208,7 +219,16 @@ export function DiagnosticPreviewBody({ test }: { test: GsDiagnosticTest }) {
                       <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#374151] shadow-sm">
                         {option.option}
                       </span>
-                      <MathText text={option.textAnswer ?? "–"} />
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <MathText text={option.textAnswer ?? "–"} />
+                        {option.imageAnswerUrl && (
+                          <img
+                            src={option.imageAnswerUrl}
+                            alt={`Gambar Opsi ${option.option}`}
+                            className="max-h-40 w-auto object-contain rounded-lg"
+                          />
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -295,13 +315,24 @@ export function RemedialPreviewBody({ test }: { test: any }) {
                         </span>
                       </div>
 
-                      <p className="whitespace-pre-wrap text-sm text-[#111827]">
-                        <MathText
-                          text={
-                            variant.textQuestion ?? `Pertanyaan Paket ${variant.packageLabel}`
-                          }
-                        />
-                      </p>
+                      <div className="space-y-4">
+                        <p className="whitespace-pre-wrap text-sm text-[#111827]">
+                          <MathText
+                            text={
+                              variant.textQuestion ?? `Pertanyaan Paket ${variant.packageLabel}`
+                            }
+                          />
+                        </p>
+                        {variant.imageQuestionUrl && (
+                          <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
+                            <img
+                              src={variant.imageQuestionUrl}
+                              alt="Gambar Soal"
+                              className="max-h-80 w-auto object-contain rounded-lg mx-auto"
+                            />
+                          </div>
+                        )}
+                      </div>
 
                       {/* Options */}
                       <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
@@ -318,7 +349,16 @@ export function RemedialPreviewBody({ test }: { test: any }) {
                             <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#374151] shadow-sm">
                               {option.option}
                             </span>
-                            <MathText text={option.textAnswer ?? "–"} />
+                            <div className="min-w-0 flex-1 space-y-3">
+                              <MathText text={option.textAnswer ?? "–"} />
+                              {option.imageAnswerUrl && (
+                                <img
+                                  src={option.imageAnswerUrl}
+                                  alt={`Gambar Opsi ${option.option}`}
+                                  className="max-h-40 w-auto object-contain rounded-lg"
+                                />
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>

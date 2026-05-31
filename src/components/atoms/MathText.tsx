@@ -35,7 +35,7 @@ export default function MathText({
             return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
           } catch {
             // fallback: show original text
-            return <span key={i}>{part}</span>;
+            return <span key={i} dangerouslySetInnerHTML={{ __html: part }} />;
           }
         }
         // Preserve newlines: split by \n and join with <br />
@@ -43,7 +43,7 @@ export default function MathText({
           <span key={i}>
             {part.split("\n").map((line, j, arr) => (
               <span key={j}>
-                {line}
+                <span dangerouslySetInnerHTML={{ __html: line }} />
                 {j < arr.length - 1 && <br />}
               </span>
             ))}
