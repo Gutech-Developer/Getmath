@@ -678,6 +678,45 @@ export function useMyTestAttempts(
   });
 }
 
+// ─── Diagnostic / Remedial Scores Types ──────────────────────────────────
+
+export interface DiagnosticScoreItem {
+  studentId: string;
+  fullName: string;
+  NIS: string;
+  bestScore: number | null;
+  bestAttemptId: string | null;
+  totalAttempts: number;
+  isPassed: boolean;
+  lastCompletedAt: string | null;
+}
+
+export interface GetDiagnosticScoresResult {
+  courseModuleId: string;
+  diagnosticTestId: string;
+  testName: string;
+  passingScore: number;
+  scores: DiagnosticScoreItem[];
+}
+
+export interface RemedialScoreItem {
+  studentId: string;
+  fullName: string;
+  NIS: string;
+  score: number | null;
+  attemptId: string | null;
+  isPassed: boolean;
+  completedAt: string | null;
+}
+
+export interface GetRemedialScoresResult {
+  courseModuleId: string;
+  remedialTestId: string;
+  testName: string;
+  passingScore: number;
+  scores: RemedialScoreItem[];
+}
+
 // ─── GET /api/progress/modules/:courseModuleId/elkpd-grades ────────────────────
 
 export function useELKPDGradesByModule(
@@ -780,5 +819,37 @@ export function useResetELKPDGrade(courseModuleId: string) {
       });
       gsLogger.info("E-LKPD grade reset successfully", { courseModuleId });
     },
+  });
+}
+
+// ─── GET /api/progress/modules/:courseModuleId/diagnostic-scores ─────────────
+
+export function useGsDiagnosticScores(courseModuleId: string) {
+  return useQuery<GetDiagnosticScoresResult, Error>({
+    queryKey: queryKeys.gsProgress.diagnosticScores(courseModuleId),
+    queryFn: () => {
+      gsLogger.info(`Fetching diagnostic scores for ${courseModuleId}`, {});
+      return gsGet<GetDiagnosticScoresResult>(
+        `/progress/modules/${courseModuleId}/diagnostic-scores`,
+      );
+    },
+    enabled: !!courseModuleId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── GET /api/progress/modules/:courseModuleId/remedial-scores ───────────────
+
+export function useGsRemedialScores(courseModuleId: string) {
+  return useQuery<GetRemedialScoresResult, Error>({
+    queryKey: queryKeys.gsProgress.remedialScores(courseModuleId),
+    queryFn: () => {
+      gsLogger.info(`Fetching remedial scores for ${courseModuleId}`, {});
+      return gsGet<GetRemedialScoresResult>(
+        `/progress/modules/${courseModuleId}/remedial-scores`,
+      );
+    },
+    enabled: !!courseModuleId,
+    staleTime: 5 * 60 * 1000,
   });
 }

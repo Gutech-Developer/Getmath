@@ -25,6 +25,7 @@ import type {
 import { formatDiagnosticTime } from "@/utils";
 import { showToast } from "@/libs/toast";
 import {
+  useGsModulesByCourse,
   useGsModuleById,
   useStartTestAttempt,
   useMyTestAttempts,
@@ -75,6 +76,18 @@ export default function ClassDiagnosisContentPageTemplate({
   const { data: apiModule, isLoading: isModuleLoading } =
     useGsModuleById(contentId);
 
+  const { data: courseModules } = useGsModulesByCourse(
+    apiModule?.courseId ?? "",
+  );
+
+  const currentModuleIndex = courseModules?.findIndex(
+    (m) => m.id === contentId,
+  ) ?? -1;
+  const nextModule =
+    currentModuleIndex >= 0 && currentModuleIndex < (courseModules?.length ?? 0) - 1
+      ? courseModules![currentModuleIndex + 1]
+      : null;
+
   const latestDiagnosticAttempt = useMemo(() => {
     const history = apiModule?.attemptHistory ?? [];
     if (history.length === 0) {
@@ -98,12 +111,7 @@ export default function ClassDiagnosisContentPageTemplate({
   // apiModule?.type is async (needs API fetch) — use as secondary.
   // Prioritise remediaId so we never accidentally treat the remedial page
   // as a diagnostic page, even during the apiModule loading window.
-  const hasFailedDiagnosticAttempt =
-    !!latestDiagnosticAttempt &&
-    !latestDiagnosticAttempt.isPassed &&
-    !(apiModule?.attemptHistory?.some((attempt) => attempt.isPassed) ?? false);
-  const isRemedial =
-    !!remediaId || apiModule?.type === "REMEDIAL" || hasFailedDiagnosticAttempt;
+  const isRemedial = !!remediaId || apiModule?.type === "REMEDIAL";
   const [remedialAttemptId, setRemedialAttemptId] = useState<string | null>(
     null,
   );
@@ -221,12 +229,14 @@ export default function ClassDiagnosisContentPageTemplate({
     return source.map((q) => ({
       id: q.id,
       prompt: q.textQuestion ?? "",
+      imageQuestionUrl: q.imageQuestionUrl ?? null,
       topic: "Umum",
       typeLabel: "Pilihan Ganda",
       options: q.options.map((opt) => ({
         id: opt.id,
         label: opt.option,
         text: opt.textAnswer ?? "",
+        imageAnswerUrl: opt.imageAnswerUrl ?? null,
       })),
       discussion: "",
       videoUrl: "",
@@ -239,10 +249,10 @@ export default function ClassDiagnosisContentPageTemplate({
     reviewView ?? (isRemedial ? "remedial" : "diagnostic");
 
   const { data: diagnosticReviewData } = useDiagnosticAnswersReview(contentId, {
-    enabled: flowStep === "completed" && activeReviewView === "diagnostic",
+    enabled: true,
   });
   const { data: remedialReviewData } = useRemedialAnswersReview(contentId, {
-    enabled: flowStep === "completed" && activeReviewView === "remedial",
+    enabled: true,
   });
 
   const previewRef = useRef<HTMLVideoElement | null>(null);
@@ -250,10 +260,11 @@ export default function ClassDiagnosisContentPageTemplate({
 
   const encodedSlug = encodeURIComponent(slug);
   const encodedContentId = encodeURIComponent(contentId);
-  const materialHref = `/student/dashboard/class/${encodedSlug}/materi/${encodedContentId}`;
+  const baseMaterialHref = `/student/dashboard/class/${encodedSlug}/materi/${encodedContentId}`;
+  const materialHref = isRemedial ? `${baseMaterialHref}?step=remedial` : baseMaterialHref;
   const diagnosticHref = isRemedial
-    ? `${materialHref}/remedia/${encodeURIComponent(remediaId ?? "")}`
-    : `${materialHref}/${encodeURIComponent(diagnotisId ?? "")}`;
+    ? `${baseMaterialHref}/remedia/${encodeURIComponent(remediaId ?? "")}`
+    : `${baseMaterialHref}/${encodeURIComponent(diagnotisId ?? "")}`;
 
   const activeQuestion = diagnosticQuestions[activeQuestionIndex] ?? null;
   const allRulesConfirmed = ruleChecklist.every(Boolean);
@@ -294,6 +305,19 @@ export default function ClassDiagnosisContentPageTemplate({
     console.log("[DiagnosticTest] attemptsData:", attemptsData);
     console.log("[DiagnosticTest] activeAttempt:", activeAttempt);
   }, [attemptsData, activeAttempt]);
+
+  useEffect(() => {
+    if (flowStep !== "quiz" && flowStep !== "completed") {
+      if (isRemedial && remedialReviewData) {
+        setReviewView("remedial");
+        setFlowStep("completed");
+      } else if (!isRemedial && diagnosticReviewData) {
+        setReviewView("diagnostic");
+        setFlowStep("completed");
+      }
+    }
+  }, [isRemedial, remedialReviewData, diagnosticReviewData, flowStep]);
+
   useEffect(() => {
     if (!discussionShow || !discussionData?.videoUrl) return;
 
@@ -917,7 +941,7 @@ export default function ClassDiagnosisContentPageTemplate({
               pengerjaan berjalan tertib.
             </p>
 
-            {canReviewLatestDiagnosticAttempt ? (
+            {diagnosticReviewData || remedialReviewData ? (
               <div className="rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-3">
                 <p className="text-sm font-semibold text-[#1E3A8A]">
                   Sudah ada hasil tes sebelumnya.
@@ -927,20 +951,24 @@ export default function ClassDiagnosisContentPageTemplate({
                   sebelum memulai tes lagi.
                 </p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={handleOpenDiagnosticReview}
-                    className="inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
-                  >
-                    Review Diagnostic
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleOpenRemedialReview}
-                    className="inline-flex h-10 items-center justify-center rounded-xl border border-[#BFDBFE] bg-white px-4 text-sm font-semibold text-[#1E3A8A] transition hover:bg-[#EFF6FF]"
-                  >
-                    Review Remedial
-                  </button>
+                  {diagnosticReviewData && (
+                    <button
+                      type="button"
+                      onClick={handleOpenDiagnosticReview}
+                      className="inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                    >
+                      Review Diagnostic
+                    </button>
+                  )}
+                  {remedialReviewData && (
+                    <button
+                      type="button"
+                      onClick={handleOpenRemedialReview}
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-[#BFDBFE] bg-white px-4 text-sm font-semibold text-[#1E3A8A] transition hover:bg-[#EFF6FF]"
+                    >
+                      Review Remedial
+                    </button>
+                  )}
                 </div>
               </div>
             ) : null}
@@ -1222,27 +1250,7 @@ export default function ClassDiagnosisContentPageTemplate({
 
                 <div className="space-y-3 px-4 py-4">
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                      <p className="text-[11px] text-[#64748B]">Jawaban kamu</p>
-                      <p className="mt-1 text-sm font-semibold text-[#0F172A]">
-                        {selectedOption ? (
-                          <>
-                            {selectedOption.option}.{" "}
-                            <MathText text={selectedOption.textAnswer ?? ""} />
-                          </>
-                        ) : (
-                          "Tidak menjawab"
-                        )}
-                      </p>
-                      {selectedOption?.imageAnswerUrl ? (
-                        <div className="mt-3">
-                          {renderMediaPreview(
-                            selectedOption.imageAnswerUrl,
-                            `Jawaban kamu soal ${index + 1}`,
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
+                    
                     <div className="rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] p-3">
                       <p className="text-[11px] text-[#64748B]">
                         Jawaban benar
@@ -1563,16 +1571,24 @@ export default function ClassDiagnosisContentPageTemplate({
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href={materialHref}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+              className={cn(
+                "inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold transition",
+                nextModule
+                  ? "border border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC]"
+                  : "bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+              )}
             >
               Kembali ke Materi
             </Link>
-            {!isReviewRemedial && (
+            
+            {nextModule && (
               <Link
-                href={diagnosticHref}
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
+                href={`/student/dashboard/class/${encodedSlug}/materi/${encodeURIComponent(
+                  nextModule.id,
+                )}`}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
               >
-                Kerjakan Ulang
+                Materi Selanjutnya
               </Link>
             )}
           </div>
@@ -1630,6 +1646,14 @@ export default function ClassDiagnosisContentPageTemplate({
               <h2 className="mt-4 text-lg font-semibold leading-7 text-[#0F172A]">
                 <MathText text={currentVariant?.textQuestion ?? ""} />
               </h2>
+              {currentVariant?.imageQuestionUrl ? (
+                <div className="mt-4 max-w-[420px]">
+                  {renderMediaPreview(
+                    currentVariant.imageQuestionUrl,
+                    `Gambar soal remedial paket ${currentVariant.packageLabel} no ${currentVariant.questionNumber}`,
+                  )}
+                </div>
+              ) : null}
 
               <div className="mt-4 space-y-2.5">
                 {(currentVariant?.options ?? []).map((option) => {
@@ -1659,9 +1683,19 @@ export default function ClassDiagnosisContentPageTemplate({
                       >
                         {option.option}
                       </span>
-                      <span className="text-sm text-[#334155]">
-                        <MathText text={option.textAnswer ?? ""} />
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-sm text-[#334155]">
+                          <MathText text={option.textAnswer ?? ""} />
+                        </span>
+                        {option.imageAnswerUrl ? (
+                          <div className="mt-2 max-w-[320px]">
+                            {renderMediaPreview(
+                              option.imageAnswerUrl,
+                              `Gambar jawaban ${option.option}`,
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
                     </button>
                   );
                 })}
@@ -1833,6 +1867,14 @@ export default function ClassDiagnosisContentPageTemplate({
             <h2 className="mt-4 text-lg font-semibold leading-7 text-[#0F172A]">
               <MathText text={activeQuestion?.prompt ?? ""} />
             </h2>
+            {activeQuestion?.imageQuestionUrl ? (
+              <div className="mt-4 max-w-[420px]">
+                {renderMediaPreview(
+                  activeQuestion.imageQuestionUrl,
+                  `Gambar soal ${activeQuestionIndex + 1}`,
+                )}
+              </div>
+            ) : null}
 
             <div className="mt-4 space-y-2.5">
               {(activeQuestion?.options ?? []).map((option) => {
@@ -1863,9 +1905,19 @@ export default function ClassDiagnosisContentPageTemplate({
                     >
                       {option.label}
                     </span>
-                    <span className="text-sm text-[#334155]">
-                      <MathText text={option.text} />
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-[#334155]">
+                        <MathText text={option.text} />
+                      </span>
+                      {option.imageAnswerUrl ? (
+                        <div className="mt-2 max-w-[320px]">
+                          {renderMediaPreview(
+                            option.imageAnswerUrl,
+                            `Gambar jawaban ${option.label}`,
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
                   </button>
                 );
               })}
