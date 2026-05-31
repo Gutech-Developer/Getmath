@@ -31,7 +31,6 @@ const CHOICE_KEYS: ChoiceKey[] = ["A", "B", "C", "D"];
 interface IOptionDraft {
   id?: string;
   text: string;
-  imageUrl?: string;
 }
 interface IQuestionDraft {
   id: string;
@@ -40,7 +39,6 @@ interface IQuestionDraft {
   options: Record<ChoiceKey, IOptionDraft>;
   correctAnswer: ChoiceKey;
   pembahasan: string;
-  imageUrl: string;
 }
 function createEmptyQuestion(index: number): IQuestionDraft {
   return {
@@ -48,14 +46,13 @@ function createEmptyQuestion(index: number): IQuestionDraft {
     isBackendId: false,
     prompt: "",
     options: {
-      A: { text: "", imageUrl: "" },
-      B: { text: "", imageUrl: "" },
-      C: { text: "", imageUrl: "" },
-      D: { text: "", imageUrl: "" },
+      A: { text: "" },
+      B: { text: "" },
+      C: { text: "" },
+      D: { text: "" },
     },
     correctAnswer: "A",
     pembahasan: "",
-    imageUrl: "",
   };
 }
 
@@ -132,31 +129,26 @@ function prefillQuestions(dt: GsDiagnosticTest): IQuestionDraft[] {
         text: latexTextToTiptapHtml(
           q.options.find((o) => o.option === "A")?.textAnswer ?? "",
         ),
-        imageUrl: q.options.find((o) => o.option === "A")?.imageAnswerUrl ?? "",
       },
       B: {
         text: latexTextToTiptapHtml(
           q.options.find((o) => o.option === "B")?.textAnswer ?? "",
         ),
-        imageUrl: q.options.find((o) => o.option === "B")?.imageAnswerUrl ?? "",
       },
       C: {
         text: latexTextToTiptapHtml(
           q.options.find((o) => o.option === "C")?.textAnswer ?? "",
         ),
-        imageUrl: q.options.find((o) => o.option === "C")?.imageAnswerUrl ?? "",
       },
       D: {
         text: latexTextToTiptapHtml(
           q.options.find((o) => o.option === "D")?.textAnswer ?? "",
         ),
-        imageUrl: q.options.find((o) => o.option === "D")?.imageAnswerUrl ?? "",
       },
     },
     correctAnswer:
       (q.options.find((o) => o.isCorrect)?.option as ChoiceKey) ?? "A",
     pembahasan: latexTextToTiptapHtml(q.pembahasan),
-    imageUrl: q.imageQuestionUrl ?? "",
   }));
 }
 
@@ -207,11 +199,20 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
     const targetQ = questions.find((q) => q.id === qId);
     if (targetQ) {
       const urlsToDelete: string[] = [];
-      if (targetQ.imageUrl) urlsToDelete.push(targetQ.imageUrl);
+      
+      const imageRegex = /https?:\/\/[^\s"'>]+\/uploads\/images\/[^\s"'>]+/g;
+      
+      const extractUrls = (html: string) => {
+        const matches = html.match(imageRegex);
+        if (matches) urlsToDelete.push(...matches);
+      };
+      
+      extractUrls(targetQ.prompt);
+      extractUrls(targetQ.pembahasan);
       CHOICE_KEYS.forEach((key) => {
-        if (targetQ.options[key].imageUrl)
-          urlsToDelete.push(targetQ.options[key].imageUrl!);
+        extractUrls(targetQ.options[key].text);
       });
+
       // Hapus di background tanpa memblokir UI
       urlsToDelete.forEach(async (url) => {
         try {
@@ -245,27 +246,26 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
   /* ── build payload ── */
   const buildPayload = (isUpsert: boolean) =>
     questions.map((q, qi) => {
-      const optionA = isUpsert && q.options.A && (q.options.A as any).id; // check for existing option ids
       return {
         ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
         questionNumber: qi + 1,
         textQuestion: tiptapHtmlToLatexHtml(q.prompt) || `Soal ${qi + 1}`,
-        imageQuestionUrl: q.imageUrl || undefined,
         pembahasan:
           tiptapHtmlToLatexHtml(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
         discussion: {
           textDiscussion:
             tiptapHtmlToLatexHtml(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
         },
-        options: CHOICE_KEYS.map((key) => ({
-          ...(isUpsert && (q.options[key] as any).id
-            ? { id: (q.options[key] as any).id }
-            : {}),
-          option: key,
-          textAnswer: tiptapHtmlToLatexHtml(q.options[key].text),
-          imageAnswerUrl: q.options[key].imageUrl || undefined,
-          isCorrect: q.correctAnswer === key,
-        })),
+        options: CHOICE_KEYS.map((key) => {
+          return {
+            ...(isUpsert && (q.options[key] as any).id
+              ? { id: (q.options[key] as any).id }
+              : {}),
+            option: key,
+            textAnswer: tiptapHtmlToLatexHtml(q.options[key].text),
+            isCorrect: q.correctAnswer === key,
+          };
+        }),
       };
     });
 
@@ -482,7 +482,6 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                           }))
                         }
                         placeholder="Masukkan teks soal…"
-                        imageUrl={question.imageUrl}
                         isUploadingImage={uploadMutation.isPending}
                         onImageUpload={async (file) => {
                           const formData = new FormData();
@@ -490,27 +489,21 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                           try {
                             const res =
                               await uploadMutation.mutateAsync(formData);
-                            updateQuestion(question.id, (q) => ({
-                              ...q,
-                              imageUrl: res.url,
-                            }));
                             showToast.success("Gambar berhasil diunggah");
+                            return res.url;
                           } catch (err: any) {
                             showToast.error(
                               err.message || "Gagal mengunggah gambar",
                             );
+                            throw err;
                           }
                         }}
-                        onImageDelete={async () => {
+                        onImageDelete={async (url) => {
                           try {
-                            await deleteMutation.mutateAsync(question.imageUrl);
-                            updateQuestion(question.id, (q) => ({
-                              ...q,
-                              imageUrl: "",
-                            }));
-                            showToast.success("Gambar berhasil dihapus");
+                            await deleteMutation.mutateAsync(url);
+                            // showToast.success("Gambar berhasil dihapus dari server");
                           } catch {
-                            showToast.error("Gagal menghapus gambar");
+                            // showToast.error("Gagal menghapus gambar dari server");
                           }
                         }}
                       />
@@ -566,7 +559,6 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                                     }))
                                   }
                                   placeholder={`Jawaban ${key}…`}
-                                  imageUrl={question.options[key].imageUrl}
                                   isUploadingImage={uploadMutation.isPending}
                                   onImageUpload={async (file) => {
                                     const formData = new FormData();
@@ -576,48 +568,23 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                                         await uploadMutation.mutateAsync(
                                           formData,
                                         );
-                                      updateQuestion(question.id, (q) => ({
-                                        ...q,
-                                        options: {
-                                          ...q.options,
-                                          [key]: {
-                                            ...q.options[key],
-                                            imageUrl: res.url,
-                                          },
-                                        },
-                                      }));
                                       showToast.success(
                                         "Gambar berhasil diunggah",
                                       );
+                                      return res.url;
                                     } catch (err: any) {
                                       showToast.error(
                                         err.message ||
                                           "Gagal mengunggah gambar",
                                       );
+                                      throw err;
                                     }
                                   }}
-                                  onImageDelete={async () => {
+                                  onImageDelete={async (url) => {
                                     try {
-                                      if (question.options[key].imageUrl) {
-                                        await deleteMutation.mutateAsync(
-                                          question.options[key].imageUrl!,
-                                        );
-                                      }
-                                      updateQuestion(question.id, (q) => ({
-                                        ...q,
-                                        options: {
-                                          ...q.options,
-                                          [key]: {
-                                            ...q.options[key],
-                                            imageUrl: "",
-                                          },
-                                        },
-                                      }));
-                                      showToast.success(
-                                        "Gambar berhasil dihapus",
-                                      );
+                                      await deleteMutation.mutateAsync(url);
                                     } catch {
-                                      showToast.error("Gagal menghapus gambar");
+                                      // showToast.error("Gagal menghapus gambar");
                                     }
                                   }}
                                 />

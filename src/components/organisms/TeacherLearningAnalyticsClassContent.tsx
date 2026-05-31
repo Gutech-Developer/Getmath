@@ -10,10 +10,12 @@ import {
   BaseKelolaELKPDSection,
   BaseLaporanSection,
   BaseMateriSection,
+  BaseNilaiTestSection,
   BaseSiswaSection,
   LearningAnalyticsClassHeaderCard,
   LearningAnalyticsViewSwitcher,
   TeacherOverviewSection,
+
 } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
 import type { IBaseMateriSectionProps } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
 import { useGsKickStudentFromCourse } from "@/services/hooks/useGsCourseEnrollment";
@@ -67,10 +69,16 @@ const TEACHER_VIEW_ITEMS: ITeacherSidebarItem[] = [
     icon: NotebookIcon,
   },
   {
-    type: "Kelola E-LKPD",
-    label: "Kelola E-LKPD",
+    type: "Nilai E-LKPD",
+    label: "Nilai E-LKPD",
     icon: ClipboardIcon,
   },
+  {
+    type: "Nilai Test",
+    label: "Nilai Test",
+    icon: ClipboardIcon,
+  },
+  
   {
     type: "Laporan",
     label: "Laporan",
@@ -259,12 +267,16 @@ export default function TeacherLearningAnalyticsClassContent({
         {...materiSectionProps}
       />
     ),
-    "Kelola E-LKPD": (
+    "Nilai E-LKPD": (
       <BaseKelolaELKPDSection
         elkpdItems={elkpdItems}
         buildELKPDScoreHref={elkpdScoreHrefBuilder}
       />
     ),
+    "Nilai Test": (
+      <BaseNilaiTestSection courseId={classDetail.id ?? classDetail.slug} />
+    ),
+   
     Laporan: (
       <BaseLaporanSection
         reportSummaryCards={reportSummaryCards}
@@ -316,7 +328,9 @@ export default function TeacherLearningAnalyticsClassContent({
             badgeByType={{
               Siswa: classDetail.studentCount,
               Materi: materials.length,
-              "Kelola E-LKPD": elkpdItems.length,
+              "Nilai E-LKPD": elkpdItems.length,
+              "Nilai Test": 0,
+             
             }}
           />
         </div>

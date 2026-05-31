@@ -45,6 +45,10 @@ import {
   useGsRemedialTestById,
   useGsMyRemedialTests,
 } from "@/services/hooks/useGsRemedialTest";
+import { 
+  useGsDiagnosticScores, 
+  useGsRemedialScores 
+} from "@/services/hooks/useGsProgress";
 import type { GsCourseModule } from "@/types/gs-course";
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
@@ -154,7 +158,8 @@ const VIEW_ITEMS: Array<{
   { type: "Beranda", icon: DashboardIcon },
   { type: "Siswa", icon: ThreeUserGroupIcon },
   { type: "Materi", icon: NotebookIcon },
-  { type: "Kelola E-LKPD", icon: ClipboardIcon },
+  { type: "Nilai E-LKPD", icon: ClipboardIcon },
+  { type: "Nilai Test", icon: ClipboardIcon },
   { type: "Laporan", icon: TrendUpIcon },
   { type: "Forum", icon: ChatIcon },
 ];
@@ -2321,6 +2326,215 @@ export function BaseMateriSection({
     </section>
   );
 }
+
+export function BaseNilaiTestSection({ courseId }: { courseId?: string }) {
+  const { data: modules, isPending } = useGsModulesByCourse(courseId ?? "");
+  const [expandedModuleId, setExpandedModuleId] = useState<string>("");
+  const [activeScoreType, setActiveScoreType] = useState<"DIAGNOSTIC" | "REMEDIAL">("DIAGNOSTIC");
+
+  const diagnosticModules = useMemo(() => {
+    return modules?.filter((m) => m.type === "DIAGNOSTIC_TEST") || [];
+  }, [modules]);
+
+  if (isPending) {
+    return (
+      <section className="space-y-2.5">
+        <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-6 text-center text-sm text-[#94A3B8]">
+          Memuat data modul...
+        </article>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-4">
+      {diagnosticModules.length === 0 ? (
+        <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-6 text-center text-sm text-[#94A3B8]">
+          Belum ada Tes Diagnostik di kelas ini.
+        </article>
+      ) : (
+        diagnosticModules.map((m) => {
+          const isExpanded = expandedModuleId === m.id;
+          return (
+            <div key={m.id} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0px_4px_16px_rgba(148,163,184,0.08)]">
+              <div 
+                className="flex cursor-pointer items-center justify-between" 
+                onClick={() => {
+                  setExpandedModuleId(isExpanded ? "" : m.id);
+                  setActiveScoreType("DIAGNOSTIC"); // default tab
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
+                    <NotebookIcon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#0F172A]">
+                      {m.diagnosticTest?.testName || "Tes Diagnostik"}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-[#64748B]">Tes Diagnostik & Remedial</p>
+                  </div>
+                </div>
+                <div className="text-[#94A3B8] transition-transform duration-200">
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className={cn("h-5 w-5", isExpanded && "rotate-180")}
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </div>
+              
+              {isExpanded && (
+                <div className="mt-5 border-t border-[#F1F5F9] pt-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <button 
+                      onClick={() => setActiveScoreType("DIAGNOSTIC")}
+                      className={cn(
+                        "rounded-lg px-4 py-2 text-xs font-semibold transition",
+                        activeScoreType === "DIAGNOSTIC" 
+                        ? "bg-[#2563EB] text-white" 
+                        : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
+                      )}
+                    >
+                      Nilai Diagnostik
+                    </button>
+                    <button 
+                      onClick={() => setActiveScoreType("REMEDIAL")}
+                      className={cn(
+                        "rounded-lg px-4 py-2 text-xs font-semibold transition",
+                        activeScoreType === "REMEDIAL" 
+                        ? "bg-[#2563EB] text-white" 
+                        : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
+                      )}
+                    >
+                      Nilai Remedial
+                    </button>
+                  </div>
+                  
+                  <NilaiTestScoreTable moduleId={m.id} type={activeScoreType} />
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </section>
+  );
+}
+
+function NilaiTestScoreTable({ moduleId, type }: { moduleId: string; type: "DIAGNOSTIC" | "REMEDIAL" }) {
+  if (type === "DIAGNOSTIC") {
+    return <DiagnosticScoreTable moduleId={moduleId} />;
+  }
+  return <RemedialScoreTable moduleId={moduleId} />;
+}
+
+function DiagnosticScoreTable({ moduleId }: { moduleId: string }) {
+  const { data, isPending, error } = useGsDiagnosticScores(moduleId);
+
+  if (isPending) return <div className="p-4 text-center text-sm text-[#94A3B8]">Memuat nilai diagnostik...</div>;
+  if (error) return <div className="p-4 text-center text-sm text-[#EF4444]">Gagal memuat nilai diagnostik.</div>;
+
+  const scores = data?.scores || [];
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-[#E2E8F0]">
+      <table className="w-full min-w-[600px] border-collapse text-sm">
+        <thead className="bg-[#F8FAFC]">
+          <tr>
+            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">Nama Siswa</th>
+            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">NIS</th>
+            <th className="px-4 py-3 text-center font-semibold text-[#64748B]">Percobaan</th>
+            <th className="px-4 py-3 text-right font-semibold text-[#64748B]">Nilai Terbaik</th>
+            <th className="px-4 py-3 text-center font-semibold text-[#64748B]">Status</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#E2E8F0] bg-white">
+          {scores.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="px-4 py-6 text-center text-[#94A3B8]">Belum ada nilai diagnostik.</td>
+            </tr>
+          ) : (
+            scores.map((s, i) => (
+              <tr key={i} className="hover:bg-[#F8FAFC]">
+                <td className="px-4 py-3 font-medium text-[#0F172A]">{s.fullName}</td>
+                <td className="px-4 py-3 text-[#64748B]">{s.NIS}</td>
+                <td className="px-4 py-3 text-center text-[#64748B]">{s.totalAttempts}</td>
+                <td className="px-4 py-3 text-right font-bold text-[#0F172A]">{s.bestScore ?? "-"}</td>
+                <td className="px-4 py-3 text-center">
+                  <span className={cn(
+                    "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                    s.isPassed ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEE2E2] text-[#B91C1C]"
+                  )}>
+                    {s.isPassed ? "Tuntas" : "Belum Tuntas"}
+                  </span>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RemedialScoreTable({ moduleId }: { moduleId: string }) {
+  const { data, isPending, error } = useGsRemedialScores(moduleId);
+
+  if (isPending) return <div className="p-4 text-center text-sm text-[#94A3B8]">Memuat nilai remedial...</div>;
+  if (error) return <div className="p-4 text-center text-sm text-[#EF4444]">Gagal memuat nilai remedial.</div>;
+
+  const scores = data?.scores || [];
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-[#E2E8F0]">
+      <table className="w-full min-w-[600px] border-collapse text-sm">
+        <thead className="bg-[#F8FAFC]">
+          <tr>
+            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">Nama Siswa</th>
+            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">NIS</th>
+            <th className="px-4 py-3 text-right font-semibold text-[#64748B]">Nilai</th>
+            <th className="px-4 py-3 text-center font-semibold text-[#64748B]">Status</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#E2E8F0] bg-white">
+          {scores.length === 0 ? (
+            <tr>
+              <td colSpan={4} className="px-4 py-6 text-center text-[#94A3B8]">Belum ada nilai remedial.</td>
+            </tr>
+          ) : (
+            scores.map((s, i) => (
+              <tr key={i} className="hover:bg-[#F8FAFC]">
+                <td className="px-4 py-3 font-medium text-[#0F172A]">{s.fullName}</td>
+                <td className="px-4 py-3 text-[#64748B]">{s.NIS}</td>
+                <td className="px-4 py-3 text-right font-bold text-[#0F172A]">{s.score ?? "-"}</td>
+                <td className="px-4 py-3 text-center">
+                  <span className={cn(
+                    "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                    s.isPassed ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEE2E2] text-[#B91C1C]"
+                  )}>
+                    {s.isPassed ? "Tuntas" : "Belum Tuntas"}
+                  </span>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
 
 export function BaseKelolaELKPDSection({
   elkpdItems,

@@ -5,8 +5,10 @@ const VIEW_TYPES: ClassAnalyticsViewType[] = [
   "Beranda",
   "Siswa",
   "Materi",
-  "Kelola E-LKPD",
+  "Nilai E-LKPD",
+  "Nilai Test",
   "Laporan",
+  "Forum",
 ];
 
 function resolveViewType(
