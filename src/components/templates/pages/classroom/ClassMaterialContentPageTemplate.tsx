@@ -19,6 +19,9 @@ import {
   useMyTestAttempts,
   useStartTestAttempt,
 } from "@/services";
+import { useEmotionDetectorBucketed } from "@/services/hooks/useEmotionDetectorBucketed";
+import { isEmotionSupported } from "@/libs/emotion";
+import CameraRequiredScreen from "@/components/molecules/classroom/CameraRequiredScreen";
 import type { GsCourseModule, GsCourseModuleSubject } from "@/types/gs-course";
 import type {
   IClassMaterialContentPageTemplateProps,
@@ -310,6 +313,9 @@ export default function ClassMaterialContentPageTemplate({
   const markFileRead = useMarkFileRead(contentId);
   const markVideoWatched = useMarkVideoWatched(contentId);
 
+  // Evaluasi sekali (lazy init) agar tidak dijalankan tiap render.
+  const [emotionSupported] = useState(() => isEmotionSupported());
+
   const [openModuleId, setOpenModuleId] = useState<string | null>(
     contentId ?? null,
   );
@@ -446,6 +452,32 @@ export default function ClassMaterialContentPageTemplate({
       null
     );
   }, [flatSteps, selectedStepId, contentId]);
+
+  // ── Emotion detection for SUBJECT modules (PDF/VIDEO/ELKPD) ─────────
+  const isSubjectStep =
+    activeStep?.kind === "PDF" ||
+    activeStep?.kind === "VIDEO" ||
+    activeStep?.kind === "ELKPD";
+
+  const subjectEmotion = useEmotionDetectorBucketed({
+    courseModuleId: activeStep?.moduleId ?? "",
+    enabled: isSubjectStep,
+    bucketMs: 30_000,
+  });
+
+  useEffect(() => {
+    if (!isSubjectStep || !emotionSupported) return;
+    subjectEmotion.start().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSubjectStep]);
+
+  // ── Stop emotion detection when leaving SUBJECT step ─────────────────
+  useEffect(() => {
+    if (!isSubjectStep) {
+      subjectEmotion.stop();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSubjectStep]);
 
   const { data: activeModuleData } = useGsModuleById(
     activeStep?.kind === "DIAGNOSTIC" || activeStep?.kind === "REMEDIAL"
@@ -662,6 +694,11 @@ export default function ClassMaterialContentPageTemplate({
 
   return (
     <section className="min-h-screen rounded-3xl sm:p-3 lg:p-0">
+      {/* Blocking overlay if emotion camera fails on SUBJECT modules */}
+      {isSubjectStep && emotionSupported && subjectEmotion.error && (
+        <CameraRequiredScreen reason={subjectEmotion.error} />
+      )}
+
       {/* ---- Breadcrumb ---- */}
       <nav className="mb-3 flex flex-wrap items-center gap-2 text-sm text-[#64748B]">
         {breadcrumbItems.map((item, i) => (
