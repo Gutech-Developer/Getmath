@@ -262,7 +262,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
               ? { id: (q.options[key] as any).id }
               : {}),
             option: key,
-            textAnswer: tiptapHtmlToLatexHtml(q.options[key].text),
+            textAnswer: tiptapHtmlToLatexHtml(q.options[key].text) || `Jawaban ${key}`,
             isCorrect: q.correctAnswer === key,
           };
         }),

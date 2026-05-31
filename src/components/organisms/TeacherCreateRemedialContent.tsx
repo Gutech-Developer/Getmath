@@ -50,7 +50,7 @@ interface IRemedialQuestionDraft {
   variants: Record<VariantLabel, IVariantDraft>;
 }
 
-function createEmptyVariant(): IVariantDraft {
+function createEmptyVariant(label: string): IVariantDraft {
   return {
     prompt: "",
     options: {
@@ -69,9 +69,9 @@ function createEmptyQuestion(): IRemedialQuestionDraft {
     pembahasan: "",
     videoUrl: "",
     variants: {
-      A: createEmptyVariant(),
-      B: createEmptyVariant(),
-      C: createEmptyVariant(),
+      A: createEmptyVariant("A"),
+      B: createEmptyVariant("B"),
+      C: createEmptyVariant("C"),
     },
   };
 }
@@ -149,8 +149,8 @@ function getYouTubeEmbedUrl(url: string): string | null {
   }
 }
 
-function parseVariant(v?: GsRemedialVariant): IVariantDraft {
-  if (!v) return createEmptyVariant();
+function parseVariant(v?: GsRemedialVariant, label: string = "A"): IVariantDraft {
+  if (!v) return createEmptyVariant(label);
   return {
     id: v.id,
     prompt: latexTextToTiptapHtml(v.textQuestion ?? ""),
@@ -192,9 +192,9 @@ function prefillQuestions(rt: GsRemedialTest): IRemedialQuestionDraft[] {
     pembahasan: latexTextToTiptapHtml(q.discussionText ?? ""),
     videoUrl: q.discussionVideoUrl ?? "",
     variants: {
-      A: parseVariant(q.variants.find((v) => v.packageLabel === "A")),
-      B: parseVariant(q.variants.find((v) => v.packageLabel === "B")),
-      C: parseVariant(q.variants.find((v) => v.packageLabel === "C")),
+      A: parseVariant(q.variants.find((v) => v.packageLabel === "A"), "A"),
+      B: parseVariant(q.variants.find((v) => v.packageLabel === "B"), "B"),
+      C: parseVariant(q.variants.find((v) => v.packageLabel === "C"), "C"),
     },
   }));
 }
@@ -345,7 +345,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                   ? { id: variant.options[key].id }
                   : {}),
                 option: key,
-                textAnswer: tiptapHtmlToLatexHtml(variant.options[key].text),
+                textAnswer: tiptapHtmlToLatexHtml(variant.options[key].text) || `Jawaban ${key}`,
                 isCorrect: variant.correctAnswer === key,
               };
             }),
