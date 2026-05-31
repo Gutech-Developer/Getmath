@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { EmotionSampler } from "@/libs/emotion/EmotionSampler";
 import { EmotionAggregator } from "@/libs/emotion/EmotionAggregator";
 import type { EmotionResult, EmotionSample } from "@/libs/emotion/types";
@@ -16,6 +22,8 @@ export interface UseEmotionDetectorResult {
   currentEmotion: EmotionSample | null;
   ready: boolean;
   hasSample: boolean;
+  /** True saat kamera siap (ready) tapi tidak ada wajah terdeteksi selama ≥10 detik. */
+  noFaceWarning: boolean;
   error: string | null;
   /** Flush hasil agregat + reset buffer. Kembalikan null kalau belum ada sampel. */
   flushAndReset: () => EmotionResult | null;
@@ -32,6 +40,9 @@ export function useEmotionDetector(
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const samplerRef = useRef<EmotionSampler | null>(null);
   const aggregatorRef = useRef<EmotionAggregator>(new EmotionAggregator());
+  // Holds the active MediaStream so it can be re-attached when the <video>
+  // node is replaced (e.g. hidden-video → EmotionDetectionWidget on ready).
+  const streamRef = useRef<MediaStream | null>(null);
   // Guard: prevent concurrent start() calls (React StrictMode, fast re-render)
   const startingRef = useRef(false);
 
@@ -40,14 +51,19 @@ export function useEmotionDetector(
   );
   const [ready, setReady] = useState(false);
   const [hasSample, setHasSample] = useState(false);
+  const [noFaceWarning, setNoFaceWarning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Timestamp (Date.now()) of the last successful sample. Used by the no-face
+  // watchdog below. Stored in a ref so updating it never causes a re-render.
+  const lastSampleAtRef = useRef<number>(0);
 
   const stop = useCallback(() => {
     startingRef.current = false; // abort any pending start() continuation
     samplerRef.current?.stop();
     samplerRef.current = null;
-    const stream = videoRef.current?.srcObject as MediaStream | null;
-    stream?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
     setReady(false);
   }, []);
@@ -60,6 +76,7 @@ export function useEmotionDetector(
         video: { width: 320, height: 240, facingMode: "user" },
         audio: false,
       });
+      streamRef.current = stream;
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
 
@@ -67,6 +84,8 @@ export function useEmotionDetector(
         video: videoRef.current,
         intervalMs,
         onSample: (s) => {
+          lastSampleAtRef.current = Date.now();
+          setNoFaceWarning(false);
           setCurrentEmotion(s);
           aggregatorRef.current.push(s);
           setHasSample(true);
@@ -78,7 +97,9 @@ export function useEmotionDetector(
       if (!startingRef.current) return;
       samplerRef.current = sampler;
       aggregatorRef.current.reset();
+      lastSampleAtRef.current = Date.now(); // reset watchdog baseline when ready
       setHasSample(false);
+      setNoFaceWarning(false);
       setReady(true);
 
       // Listen ke stream cabut tiba-tiba
@@ -117,6 +138,16 @@ export function useEmotionDetector(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error]);
 
+  // Re-attach the MediaStream if the <video> node ever gets a new srcObject.
+  // The hidden <video> is always mounted (no swap), so this is a safety net.
+  useLayoutEffect(() => {
+    if (!ready || !streamRef.current || !videoRef.current) return;
+    if (videoRef.current.srcObject !== streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      void videoRef.current.play().catch(() => {});
+    }
+  }); // no dep array — runs after every render so any node swap is handled
+
   // Pause sampling saat tab hidden
   useEffect(() => {
     if (!enabled) return;
@@ -130,6 +161,20 @@ export function useEmotionDetector(
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [enabled]);
 
+  // No-face watchdog (spec §15): saat kamera sudah ready tapi tidak ada wajah
+  // terdeteksi selama ≥10 detik, set noFaceWarning=true. Warning hilang otomatis
+  // begitu sampel berikutnya masuk (di onSample di atas).
+  const NO_FACE_TIMEOUT_MS = 10_000;
+  useEffect(() => {
+    if (!ready) return;
+    const id = window.setInterval(() => {
+      if (document.hidden) return; // jangan warn saat tab di-background
+      const elapsed = Date.now() - lastSampleAtRef.current;
+      setNoFaceWarning(elapsed >= NO_FACE_TIMEOUT_MS);
+    }, 2_000); // cek tiap 2 detik, cukup responsif tanpa bikin banyak re-render
+    return () => window.clearInterval(id);
+  }, [ready]);
+
   // Cleanup on unmount
   useEffect(() => () => stop(), [stop]);
 
@@ -138,6 +183,7 @@ export function useEmotionDetector(
     currentEmotion,
     ready,
     hasSample,
+    noFaceWarning,
     error,
     flushAndReset,
     flushOrUnknown,

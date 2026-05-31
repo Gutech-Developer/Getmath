@@ -47,7 +47,6 @@ import { toEmotionInput } from "@/libs/emotion/normalize";
 import { pickFeedback } from "@/libs/emotion/feedback";
 import { isEmotionSupported } from "@/libs/emotion";
 import CameraRequiredScreen from "@/components/molecules/classroom/CameraRequiredScreen";
-import EmotionDetectionWidget from "@/components/molecules/classroom/EmotionDetectionWidget";
 import EmotionNotification from "@/components/molecules/classroom/EmotionNotification";
 
 export default function ClassDiagnosisContentPageTemplate({
@@ -306,6 +305,15 @@ export default function ClassDiagnosisContentPageTemplate({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRemedial, flowStep, emotion.ready, emotion.error]);
+
+  // Spec §15: proactive warning saat wajah tidak terdeteksi ≥10 detik.
+  // Toast muncul sekali saat warning aktif, otomatis hilang saat wajah kembali.
+  useEffect(() => {
+    if (!emotion.noFaceWarning) return;
+    showToast.warning(
+      "Pastikan wajah kamu terlihat jelas di kamera agar deteksi emosi berjalan.",
+    );
+  }, [emotion.noFaceWarning]);
 
   const encodedSlug = encodeURIComponent(slug);
   const encodedContentId = encodeURIComponent(contentId);
@@ -796,9 +804,13 @@ export default function ClassDiagnosisContentPageTemplate({
     }
 
     // Spec §12.2: flush atomik via flushOrUnknown() — satu panggilan, window timestamp utuh.
-    // flushAndReset() ?? flushOrUnknown() TIDAK dipakai: bila flushAndReset() null,
-    // flushOrUnknown() dipanggil setelah reset → startedAt sudah di-reset → durationMs ≈ 0.
     const emotionResult = emotion.flushOrUnknown();
+    console.log("[Emotion] flush →", {
+      mode: emotionResult.mode,
+      sampleCount: emotionResult.sampleCount,
+      distribution: emotionResult.distribution,
+      durationMs: emotionResult.durationMs,
+    });
     const emotionInput = toEmotionInput(emotionResult);
     // Spec §4.3 & §12.5: startedAt/completedAt di level input, diambil dari window emosi.
     const startedAt = new Date(emotionResult.startedAtMs).toISOString();
@@ -1734,7 +1746,7 @@ export default function ClassDiagnosisContentPageTemplate({
                 Kembali ke Materi
               </Link>
             )}
-            {!isReviewRemedial && (
+            {!isReviewRemedial && !!nextModule && (
               <Link
                 href={`/student/dashboard/class/${encodedSlug}/materi/${encodeURIComponent(
                   nextModule.id,
@@ -1766,14 +1778,7 @@ export default function ClassDiagnosisContentPageTemplate({
           <CameraRequiredScreen reason={emotion.error} />
         )}
 
-        {/* Live emotion widget */}
-        {emotion.ready && (
-          <EmotionDetectionWidget
-            videoRef={emotion.videoRef}
-            emotionLabel={emotion.currentEmotion?.label ?? "Mendeteksi..."}
-            isLive
-          />
-        )}
+        {/* <video> is rendered in the sidebar camera box below — see aside */}
 
         {/* Feedback emosi saat jawaban salah */}
         {emotionFeedbackMsg && (
@@ -1941,17 +1946,20 @@ export default function ClassDiagnosisContentPageTemplate({
                   disabled={
                     !selectedRemedialOptionId ||
                     !emotion.hasSample ||
+                    emotion.noFaceWarning ||
                     submitRemedialVariantMutation.isPending
                   }
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitRemedialVariantMutation.isPending
                     ? "Mengoreksi..."
-                    : !emotion.hasSample
-                      ? emotion.ready
-                        ? "Pastikan wajah di kamera..."
-                        : "Memuat deteksi emosi..."
-                      : "Kirim Jawaban"}
+                    : !emotion.ready
+                      ? "Memuat deteksi emosi..."
+                      : emotion.noFaceWarning
+                        ? "Wajah tidak terdeteksi..."
+                        : !emotion.hasSample
+                          ? "Pastikan wajah di kamera..."
+                          : "Kirim Jawaban"}
                 </button>
               )}
             </div>
@@ -1960,16 +1968,26 @@ export default function ClassDiagnosisContentPageTemplate({
           {/* Sidebar */}
           <aside className="h-fit rounded-3xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
             <div className="rounded-2xl border border-[#E2E8F0] bg-[#0F172A] p-2">
-              {/* Status emosi — video sumber ada di EmotionDetectionWidget (floating).
-                  Satu ref hanya bisa menempel ke satu node; sidebar cukup tampilkan status. */}
-              <div className="flex h-28 w-full items-center justify-center rounded-xl bg-[#0B1120]">
-                <p className="text-center text-xs font-semibold text-white/70">
-                  {emotion.ready
-                    ? (emotion.currentEmotion?.label ?? "Mendeteksi...")
-                    : emotion.error
-                      ? "Error kamera"
-                      : "Memuat..."}
-                </p>
+              {/* Camera feed — videoRef lives here; always mounted so the
+                  sampler's opts.video reference never becomes stale */}
+              <div className="relative h-28 w-full overflow-hidden rounded-xl bg-[#0B1120]">
+                <video
+                  ref={emotion.videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="h-full w-full object-cover scale-x-[-1]"
+                />
+                {/* Emotion label overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1 text-center">
+                  <p className="text-xs font-semibold text-white/90">
+                    {emotion.ready
+                      ? (emotion.currentEmotion?.label ?? "Mendeteksi...")
+                      : emotion.error
+                        ? "Error kamera"
+                        : "Memuat..."}
+                  </p>
+                </div>
               </div>
             </div>
             <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">

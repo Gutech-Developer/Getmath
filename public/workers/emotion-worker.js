@@ -8,17 +8,40 @@
 // Di Web Worker, `window` dan `document` tidak ada → TFJS throws
 // "getEnv - environment is not defined". Fix: stub keduanya sebelum import.
 if (typeof window === "undefined") {
-  // document harus punya createElement sebagai function agar isBrowser() pass
-  self.document = {
-    createElement: function () {
-      return {};
-    },
-    getElementsByTagName: function () {
-      return [];
-    },
+  // More complete stub so TFJS isBrowser() and env detection work in Workers.
+  const fakeCanvas = {
+    getContext: () => null,
+    style: {},
+    setAttribute: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    clientWidth: 0,
+    clientHeight: 0,
+    width: 0,
+    height: 0,
   };
-  // Set window = self SETELAH document di-set supaya window.document sudah valid
+  self.document = {
+    createElement: (tag) => {
+      if (tag === "canvas") return fakeCanvas;
+      return {
+        style: {},
+        setAttribute: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      };
+    },
+    getElementsByTagName: () => [],
+    getElementById: () => null,
+    body: { appendChild: () => {}, removeChild: () => {} },
+    readyState: "complete",
+  };
+  // window = self makes isBrowser() pass (checks typeof window !== 'undefined')
   self.window = self;
+  // Stub DOM classes face-api uses instanceof checks on
+  if (typeof HTMLVideoElement === "undefined") self.HTMLVideoElement = class {};
+  if (typeof HTMLImageElement === "undefined") self.HTMLImageElement = class {};
+  if (typeof HTMLCanvasElement === "undefined")
+    self.HTMLCanvasElement = class {};
 }
 
 importScripts(
@@ -39,6 +62,12 @@ self.onmessage = async (e) => {
   if (type === "INIT") {
     try {
       const modelUrl = payload?.modelUrl ?? "/models";
+      // Force CPU backend before loading models.
+      // In a Web Worker, TFJS can't set up WebGL (no real canvas/GPU context),
+      // which leaves ENV in a broken state and throws "getEnv – environment is
+      // not defined". Explicitly setting 'cpu' backend avoids the WebGL setup.
+      await faceapi.tf.setBackend("cpu");
+      await faceapi.tf.ready();
       await faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl);
       await faceapi.nets.faceExpressionNet.loadFromUri(modelUrl);
       ready = true;
