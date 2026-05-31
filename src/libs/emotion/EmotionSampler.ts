@@ -33,7 +33,7 @@ export class EmotionSampler {
   async start(): Promise<void> {
     if (this.running) return;
     this.running = true;
-    this.worker = new Worker("/workers/emotion-worker.js");
+    this.worker = new Worker("/workers/emotion-worker.js?v=4");
 
     // INIT — tunggu model selesai load
     await new Promise<void>((resolve, reject) => {

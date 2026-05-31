@@ -111,6 +111,12 @@ export function useEmotionDetector(
     return result;
   }, []);
 
+  // Auto-stop saat error fatal: lepas kamera & worker agar tidak buang resource.
+  useEffect(() => {
+    if (error) stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
+
   // Pause sampling saat tab hidden
   useEffect(() => {
     if (!enabled) return;

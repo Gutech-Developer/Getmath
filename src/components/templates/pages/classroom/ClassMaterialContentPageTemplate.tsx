@@ -310,6 +310,9 @@ export default function ClassMaterialContentPageTemplate({
   const markFileRead = useMarkFileRead(contentId);
   const markVideoWatched = useMarkVideoWatched(contentId);
 
+  // Evaluasi sekali (lazy init) agar tidak dijalankan tiap render.
+  const [emotionSupported] = useState(() => isEmotionSupported());
+
   const [openModuleId, setOpenModuleId] = useState<string | null>(
     contentId ?? null,
   );
@@ -450,7 +453,7 @@ export default function ClassMaterialContentPageTemplate({
   });
 
   useEffect(() => {
-    if (!isSubjectStep || !isEmotionSupported()) return;
+    if (!isSubjectStep || !emotionSupported) return;
     subjectEmotion.start().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSubjectStep]);
@@ -671,7 +674,7 @@ export default function ClassMaterialContentPageTemplate({
   return (
     <section className="min-h-screen rounded-3xl sm:p-3 lg:p-0">
       {/* Blocking overlay if emotion camera fails on SUBJECT modules */}
-      {isSubjectStep && isEmotionSupported() && subjectEmotion.error && (
+      {isSubjectStep && emotionSupported && subjectEmotion.error && (
         <CameraRequiredScreen reason={subjectEmotion.error} />
       )}
 

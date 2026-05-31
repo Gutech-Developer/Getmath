@@ -109,8 +109,24 @@ export default function ClassDiagnosisContentPageTemplate({
     !!latestDiagnosticAttempt &&
     !latestDiagnosticAttempt.isPassed &&
     !(apiModule?.attemptHistory?.some((attempt) => attempt.isPassed) ?? false);
+  // ─── isRemedial derivation ───────────────────────────────────────────────
+  // Priority:
+  //   1. !!remediaId          — explicit URL param, strongest signal, available from first render
+  //   2. !diagnotisId && ...  — only when user is NOT on an explicit diagnostic URL:
+  //        a. apiModule.type === "REMEDIAL"  (backend says so)
+  //        b. hasFailedDiagnosticAttempt     (has failed before, no other URL context)
+  // IMPORTANT: apiModule.type must also be gated on !diagnotisId.
+  // If apiModule happens to return type "REMEDIAL" while user is on the diagnostic URL
+  // (diagnotisId is set), we must NOT flip isRemedial to true.
   const isRemedial =
-    !!remediaId || apiModule?.type === "REMEDIAL" || hasFailedDiagnosticAttempt;
+    !!remediaId ||
+    (!diagnotisId &&
+      (apiModule?.type === "REMEDIAL" || hasFailedDiagnosticAttempt));
+  // Ref untuk dibaca dari dalam auto-submit effect tanpa memasukkan isRemedial
+  // ke dalam dep array (mencegah race condition: isRemedial berubah saat quiz aktif
+  // bisa memicu handleAutoSubmitRemedial secara tidak sengaja).
+  const isRemedialRef = useRef(isRemedial);
+  isRemedialRef.current = isRemedial;
   const [remedialAttemptId, setRemedialAttemptId] = useState<string | null>(
     null,
   );
@@ -256,19 +272,22 @@ export default function ClassDiagnosisContentPageTemplate({
   const streamRef = useRef<MediaStream | null>(null);
 
   // ─── Emotion Detection (Remedial only) ────────────────────────────────────
+  // Tidak aktif saat soal diagnostik (isRemedial = false).
+  // Wajib aktif saat remedial — spec §12: emotion WAJIB di setiap submit variant.
   const emotion = useEmotionDetector({ enabled: isRemedial, intervalMs: 500 });
   const [emotionFeedbackMsg, setEmotionFeedbackMsg] = useState<string | null>(
     null,
   );
+  // Evaluasi sekali (lazy init) agar tidak dijalankan tiap render.
+  const [emotionSupported] = useState(() => isEmotionSupported());
 
-  // Start emotion detection after quiz renders — videoRef.current is guaranteed
-  // to be non-null by the time useEffect fires (DOM is committed).
-  // This is the canonical start point; handleRequestCamera only probes permission.
+  // Start emotion detection setelah quiz render — videoRef.current dijamin non-null.
+  // handleRequestCamera hanya probe permission; start() asli di sini.
   useEffect(() => {
     if (!isRemedial || flowStep !== "quiz" || emotion.ready || !!emotion.error)
       return;
     emotion.start().catch(() => {
-      // error is set via setError inside start(), CameraRequiredScreen will render
+      // error sudah di-set lewat setError di dalam start(); CameraRequiredScreen render.
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRemedial, flowStep, emotion.ready, emotion.error]);
@@ -364,6 +383,38 @@ export default function ClassDiagnosisContentPageTemplate({
       }
     };
   }, [discussionShow, discussionData?.videoUrl]);
+  // ─── Auto-advance to completed when student already has a past attempt ────
+  // If apiModule loads and reveals an existing attempt, skip the camera/rules
+  // screen entirely and go straight to the result view. This prevents the
+  // "Mulai Tes Sekarang" button from appearing when the student already
+  // exhausted their one diagnostic attempt.
+  useEffect(() => {
+    if (
+      !isRemedial &&
+      flowStep === "camera" &&
+      !isModuleLoading &&
+      latestDiagnosticAttempt !== null
+    ) {
+      // Hydrate submitResult so scores display correctly before the review
+      // API query fires. DiagnosticAttemptItem has score + isPassed; other
+      // fields default to 0 and will be overridden once diagnosticReviewData loads.
+      setSubmitResult({
+        attemptId: latestDiagnosticAttempt.attemptId,
+        attemptNumber: latestDiagnosticAttempt.attemptNumber,
+        score: latestDiagnosticAttempt.score ?? 0,
+        passingScore: apiModule?.passingScore ?? DIAGNOSTIC_KKM_MINIMUM_SCORE,
+        isPassed: latestDiagnosticAttempt.isPassed,
+        totalQuestions: 0,
+        correctAnswers: 0,
+        remainingAttempts: 0,
+        completedAt:
+          latestDiagnosticAttempt.completedAt ?? new Date().toISOString(),
+      });
+      setFlowStep("completed");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRemedial, isModuleLoading, latestDiagnosticAttempt]);
+
   useEffect(() => {
     if (!previewRef.current || !streamRef.current) {
       return;
@@ -402,18 +453,15 @@ export default function ClassDiagnosisContentPageTemplate({
       return;
     }
 
-    if (isRemedial) {
+    // Baca via ref — bukan dari closure — agar perubahan isRemedial di tengah quiz
+    // tidak menyebabkan effect ini re-fire dan auto-submit secara tidak sengaja.
+    if (isRemedialRef.current) {
       handleAutoSubmitRemedial();
       return;
     }
 
     handleCompleteTest();
-  }, [
-    flowStep,
-    remainingSeconds,
-    isRemedial,
-    submitRemedialVariantMutation.isPending,
-  ]);
+  }, [flowStep, remainingSeconds, submitRemedialVariantMutation.isPending]);
 
   const handleCompleteTest = async () => {
     setReviewView("diagnostic");
@@ -535,11 +583,9 @@ export default function ClassDiagnosisContentPageTemplate({
 
     // For remedial: test camera permission with a quick getUserMedia probe.
     // Do NOT call emotion.start() here — videoRef.current is null at this
-    // flowStep because the quiz JSX (which contains the video element) hasn't
-    // rendered yet. emotion.start() is deferred to a useEffect that fires
-    // after flowStep transitions to "quiz" and the video element is mounted.
+    // flowStep (quiz JSX belum render). emotion.start() deferred ke useEffect.
     if (isRemedial) {
-      if (!isEmotionSupported()) {
+      if (!emotionSupported) {
         setCameraState("denied");
         setCameraError(
           "Browser ini belum mendukung deteksi emosi. Gunakan Chrome/Edge/Firefox versi terbaru.",
@@ -709,14 +755,23 @@ export default function ClassDiagnosisContentPageTemplate({
       return;
 
     if (!emotion.hasSample) {
-      showToast.info("Sedang mendeteksi emosi, mohon tunggu sebentar...");
+      // Spec §15: bedakan antara model masih loading vs wajah tidak terdeteksi.
+      if (!emotion.ready) {
+        showToast.info("Sedang memuat model deteksi emosi, mohon tunggu...");
+      } else {
+        showToast.warning("Pastikan wajah kamu terlihat di kamera.");
+      }
       return;
     }
 
-    // hasSample is true → flushOrUnknown() is guaranteed non-null here.
-    // Using flushOrUnknown() directly avoids the double-reset edge case.
+    // Spec §12.2: flush atomik via flushOrUnknown() — satu panggilan, window timestamp utuh.
+    // flushAndReset() ?? flushOrUnknown() TIDAK dipakai: bila flushAndReset() null,
+    // flushOrUnknown() dipanggil setelah reset → startedAt sudah di-reset → durationMs ≈ 0.
     const emotionResult = emotion.flushOrUnknown();
     const emotionInput = toEmotionInput(emotionResult);
+    // Spec §4.3 & §12.5: startedAt/completedAt di level input, diambil dari window emosi.
+    const startedAt = new Date(emotionResult.startedAtMs).toISOString();
+    const completedAt = new Date(emotionResult.endedAtMs).toISOString();
 
     submitRemedialVariantMutation.mutate(
       {
@@ -724,6 +779,8 @@ export default function ClassDiagnosisContentPageTemplate({
         input: {
           variantId: currentVariant.variantId,
           selectedOptionId: selectedRemedialOptionId,
+          startedAt,
+          completedAt,
           emotion: emotionInput,
         },
       },
@@ -754,7 +811,7 @@ export default function ClassDiagnosisContentPageTemplate({
             },
           ]);
 
-          // Show emotion feedback when answer is incorrect
+          // Tampilkan feedback emosi saat jawaban salah
           if (!data.isCorrect) {
             setEmotionFeedbackMsg(pickFeedback(emotionResult.mode));
           }
@@ -1633,12 +1690,36 @@ export default function ClassDiagnosisContentPageTemplate({
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href={materialHref}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
-            >
-              Kembali ke Materi
-            </Link>
+            {/* Tombol primer: "Mulai Remedial" kalau belum lulus,
+                "Kembali ke Materi" kalau sudah lulus.
+                CATATAN: remediaId di URL = contentId — nilai URL hanya dipakai
+                sebagai flag isRemedial, semua API call tetap pakai contentId.
+                Tidak memakai gate apiModule?.remedialTestId karena
+                GET /course-modules/:id tidak selalu mengembalikan field itu. */}
+            {!isReviewRemedial && !isPassedKKMResolved ? (
+              <Link
+                href={`${materialHref}/remedia/${encodeURIComponent(contentId)}`}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+              >
+                Mulai Remedial
+              </Link>
+            ) : (
+              <Link
+                href={materialHref}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+              >
+                Kembali ke Materi
+              </Link>
+            )}
+            {/* Kembali ke Materi sebagai tombol sekunder saat Mulai Remedial tampil */}
+            {!isReviewRemedial && !isPassedKKMResolved && (
+              <Link
+                href={materialHref}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
+              >
+                Kembali ke Materi
+              </Link>
+            )}
             {!isReviewRemedial && (
               <Link
                 href={diagnosticHref}
@@ -1661,15 +1742,15 @@ export default function ClassDiagnosisContentPageTemplate({
   if (isRemedial) {
     return (
       <section className="mx-auto w-full max-w-[1200px] py-2 sm:py-4">
-        {/* Blocking overlays for emotion/camera errors */}
-        {!isEmotionSupported() && (
+        {/* Blocking overlays: browser tidak support atau error kamera */}
+        {!emotionSupported && (
           <CameraRequiredScreen reason="Browser kamu tidak mendukung deteksi emosi. Gunakan Chrome/Edge/Firefox versi terbaru." />
         )}
-        {isEmotionSupported() && emotion.error && (
+        {emotionSupported && emotion.error && (
           <CameraRequiredScreen reason={emotion.error} />
         )}
 
-        {/* Emotion live widget */}
+        {/* Live emotion widget */}
         {emotion.ready && (
           <EmotionDetectionWidget
             videoRef={emotion.videoRef}
@@ -1678,7 +1759,7 @@ export default function ClassDiagnosisContentPageTemplate({
           />
         )}
 
-        {/* Feedback notification on incorrect answer */}
+        {/* Feedback emosi saat jawaban salah */}
         {emotionFeedbackMsg && (
           <EmotionNotification
             questionIndex={activeQuestionIndex}
@@ -1833,7 +1914,9 @@ export default function ClassDiagnosisContentPageTemplate({
                   {submitRemedialVariantMutation.isPending
                     ? "Mengoreksi..."
                     : !emotion.hasSample
-                      ? "Mendeteksi emosi..."
+                      ? emotion.ready
+                        ? "Pastikan wajah di kamera..."
+                        : "Memuat deteksi emosi..."
                       : "Kirim Jawaban"}
                 </button>
               )}
@@ -1843,13 +1926,17 @@ export default function ClassDiagnosisContentPageTemplate({
           {/* Sidebar */}
           <aside className="h-fit rounded-3xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
             <div className="rounded-2xl border border-[#E2E8F0] bg-[#0F172A] p-2">
-              <video
-                ref={emotion.videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="h-28 w-full rounded-xl bg-[#0B1120] object-cover"
-              />
+              {/* Status emosi — video sumber ada di EmotionDetectionWidget (floating).
+                  Satu ref hanya bisa menempel ke satu node; sidebar cukup tampilkan status. */}
+              <div className="flex h-28 w-full items-center justify-center rounded-xl bg-[#0B1120]">
+                <p className="text-center text-xs font-semibold text-white/70">
+                  {emotion.ready
+                    ? (emotion.currentEmotion?.label ?? "Mendeteksi...")
+                    : emotion.error
+                      ? "Error kamera"
+                      : "Memuat..."}
+                </p>
+              </div>
             </div>
             <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">

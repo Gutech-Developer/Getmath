@@ -102,6 +102,13 @@ export class EmotionAggregator {
         Math.round((distribution[mode] + residual) * 10000) / 10000;
     }
 
+    // Guard: pastikan tidak ada nilai negatif akibat drift floating-point.
+    // Kalau residual negatif dan lebih besar dari nilai distribution[mode],
+    // koreksi di atas bisa menghasilkan nilai negatif kecil.
+    for (const k of LABELS) {
+      if (distribution[k] < 0) distribution[k] = 0;
+    }
+
     const endedAtMs = this.samples[this.samples.length - 1].ts;
     return {
       mode,

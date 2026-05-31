@@ -26,13 +26,21 @@ export function useEmotionDetectorBucketed(
   const submitBucket = useSubmitEmotionBucket(courseModuleId);
   const flushTimer = useRef<number | null>(null);
 
+  // Stabilize flush + mutate via ref agar tick() tidak capture stale closure.
+  // detector object identity berubah tiap render, tapi flushAndReset & mutate
+  // sendiri stabil (useCallback / RQ internal). Dengan ref kita eksplisit.
+  const flushRef = useRef(detector.flushAndReset);
+  const mutateRef = useRef(submitBucket.mutate);
+  flushRef.current = detector.flushAndReset;
+  mutateRef.current = submitBucket.mutate;
+
   useEffect(() => {
     if (!detector.ready || !enabled) return;
 
     const tick = () => {
-      const result = detector.flushAndReset();
+      const result = flushRef.current();
       if (result && result.sampleCount > 0) {
-        submitBucket.mutate({
+        mutateRef.current({
           context: "MODULE_LEARNING",
           attemptId: null,
           emotion: toEmotionInput(result),
@@ -49,9 +57,9 @@ export function useEmotionDetectorBucketed(
         flushTimer.current = null;
       }
       // Flush final saat unmount (best-effort, jangan await)
-      const final = detector.flushAndReset();
+      const final = flushRef.current();
       if (final && final.sampleCount > 0) {
-        submitBucket.mutate({
+        mutateRef.current({
           context: "MODULE_LEARNING",
           attemptId: null,
           emotion: toEmotionInput(final),
