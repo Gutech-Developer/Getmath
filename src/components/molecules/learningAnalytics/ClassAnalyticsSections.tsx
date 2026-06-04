@@ -37,13 +37,16 @@ import {
   useGsModuleById,
   useGsModulesByCourse,
   useGsMyDiagnosticTests,
+  useGsDiagnosticTestsByTeacher,
   useGsMySubjects,
+  useGsSubjectsByTeacher,
   useGsReorderCourseModules,
   useGsUpdateCourseModule,
 } from "@/services";
 import {
   useGsRemedialTestById,
   useGsMyRemedialTests,
+  useGsRemedialTestsByTeacher,
 } from "@/services/hooks/useGsRemedialTest";
 import { 
   useGsDiagnosticScores, 
@@ -110,6 +113,7 @@ interface IBaseSiswaSectionProps {
 export interface IBaseMateriSectionProps {
   materials: ILearningAnalyticsMaterialItem[];
   courseId?: string;
+  teacherId?: string;
   sequenceItems?: IMateriSequenceItem[];
   assetOptions?: IMateriAssetItem[];
   diagnosticOptions?: ILearningAnalyticsDiagnosticOption[];
@@ -1120,6 +1124,7 @@ export function BaseSiswaSection({
 export function BaseMateriSection({
   materials,
   courseId,
+  teacherId,
   sequenceItems: sequenceItemsProp,
   assetOptions,
   diagnosticOptions,
@@ -1154,7 +1159,7 @@ export function BaseMateriSection({
   const [diagnosticItemsPerPage, setDiagnosticItemsPerPage] = useState(10);
 
   const {
-    data: courseModules = [],
+    data: courseModules,
     isLoading: isCourseModulesLoading,
     error: courseModulesError,
   } = useGsModulesByCourse(courseId ?? "");
@@ -1171,17 +1176,36 @@ export function BaseMateriSection({
     }
   }, [courseModules]);
 
-  const { data: subjectsData, isLoading: isSubjectsLoading } = useGsMySubjects(
+  const { data: mySubjectsData, isLoading: isMySubjectsLoading } = useGsMySubjects(
     { limit: 200 },
-    { enabled: isApiMode },
+    { enabled: isApiMode && !teacherId },
   );
-  const { data: diagnosticTestsData, isLoading: isDiagnosticTestsLoading } =
+  const { data: teacherSubjectsData, isLoading: isTeacherSubjectsLoading } = useGsSubjectsByTeacher(
+    teacherId ?? "",
+    { limit: 200 },
+  );
+  const subjectsData = teacherId ? teacherSubjectsData : mySubjectsData;
+  const isSubjectsLoading = teacherId ? isTeacherSubjectsLoading : isMySubjectsLoading;
+
+  const { data: myDiagnosticTestsData, isLoading: isMyDiagnosticTestsLoading } =
     useGsMyDiagnosticTests(
       { page: diagnosticPage, limit: diagnosticItemsPerPage },
-      { enabled: isApiMode },
+      { enabled: isApiMode && !teacherId },
     );
-  const { data: remedialTestsData, isLoading: isRemedialTestsLoading } =
-    useGsMyRemedialTests({ page: 1, limit: 100 }, { enabled: isApiMode });
+  const { data: teacherDiagnosticTestsData, isLoading: isTeacherDiagnosticTestsLoading } =
+    useGsDiagnosticTestsByTeacher(
+      teacherId ?? "",
+      { page: diagnosticPage, limit: diagnosticItemsPerPage },
+    );
+  const diagnosticTestsData = teacherId ? teacherDiagnosticTestsData : myDiagnosticTestsData;
+  const isDiagnosticTestsLoading = teacherId ? isTeacherDiagnosticTestsLoading : isMyDiagnosticTestsLoading;
+
+  const { data: myRemedialTestsData, isLoading: isMyRemedialTestsLoading } =
+    useGsMyRemedialTests({ page: 1, limit: 100 }, { enabled: isApiMode && !teacherId });
+  const { data: teacherRemedialTestsData, isLoading: isTeacherRemedialTestsLoading } =
+    useGsRemedialTestsByTeacher(teacherId ?? "", { page: 1, limit: 100 });
+  const remedialTestsData = teacherId ? teacherRemedialTestsData : myRemedialTestsData;
+  const isRemedialTestsLoading = teacherId ? isTeacherRemedialTestsLoading : isMyRemedialTestsLoading;
 
   const [selectedDiagnosticForPairing, setSelectedDiagnosticForPairing] =
     useState<ILearningAnalyticsDiagnosticOption | null>(null);
@@ -1476,7 +1500,7 @@ export function BaseMateriSection({
   };
 
   const originalOrderIds = useMemo(() => {
-    return [...courseModules]
+    return [...(courseModules ?? [])]
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((m) => m.id);
   }, [courseModules]);

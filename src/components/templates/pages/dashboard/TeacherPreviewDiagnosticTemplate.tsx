@@ -2,8 +2,9 @@ import TeacherPreviewDiagnosticContent from "@/components/organisms/TeacherPrevi
 
 interface IProps {
   id: string;
+  role?: "admin" | "teacher";
 }
 
-export default function TeacherPreviewDiagnosticTemplate({ id }: IProps) {
-  return <TeacherPreviewDiagnosticContent id={id} />;
+export default function TeacherPreviewDiagnosticTemplate({ id, role = "teacher" }: IProps) {
+  return <TeacherPreviewDiagnosticContent id={id} role={role} />;
 }

@@ -5,6 +5,7 @@ import { showToast } from "@/libs/toast";
 import type {
   IAdminClassListItem,
   IClassFormPayload,
+  ITeacherOption,
 } from "@/types/adminClassList";
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -45,6 +46,20 @@ export default function AdminClassListTemplate() {
   const unarchiveCourse = useGsUnarchiveCourse();
   const deleteCourse = useGsDeleteCourse();
 
+  const teacherOptions: ITeacherOption[] = useMemo(() => {
+    const teachersMap = new Map<string, string>();
+    coursesData?.courses?.forEach((course) => {
+      if (course.teacher?.id && course.teacher?.fullName) {
+        teachersMap.set(course.teacher.id, course.teacher.fullName);
+      }
+    });
+
+    return Array.from(teachersMap.entries()).map(([id, label]) => ({
+      id,
+      label,
+    }));
+  }, [coursesData]);
+
   const classes: IAdminClassListItem[] = useMemo(
     () =>
       (coursesData?.courses ?? []).map((course) => ({
@@ -63,7 +78,10 @@ export default function AdminClassListTemplate() {
   const handleCreateClass = useCallback(
     (payload: IClassFormPayload) => {
       createCourse.mutate(
-        { courseName: payload.className.trim() },
+        {
+          courseName: payload.className.trim(),
+          ...(payload.teacherId ? { teacherId: payload.teacherId } : {}),
+        },
         {
           onSuccess: () => showToast.success("Kelas baru berhasil ditambahkan"),
           onError: (error) =>
@@ -77,7 +95,13 @@ export default function AdminClassListTemplate() {
   const handleUpdateClass = useCallback(
     (classId: string, payload: IClassFormPayload) => {
       updateCourse.mutate(
-        { id: classId, data: { courseName: payload.className.trim() } },
+        {
+          id: classId,
+          data: {
+            courseName: payload.className.trim(),
+            ...(payload.teacherId ? { teacherId: payload.teacherId } : {}),
+          },
+        },
         {
           onSuccess: () =>
             showToast.success("Perubahan kelas berhasil disimpan"),
@@ -156,8 +180,8 @@ export default function AdminClassListTemplate() {
   return (
     <AdminClassListContent
       classes={classes}
-      teacherOptions={[]}
-      showTeacherSelection={false}
+      teacherOptions={teacherOptions}
+      showTeacherSelection={!isTeacherDashboard}
       onCreateClass={handleCreateClass}
       onUpdateClass={handleUpdateClass}
       onDeleteClass={handleDeleteClass}

@@ -65,6 +65,7 @@ export interface ILearningAnalyticsClassDetail {
   slug: string;
   className: string;
   teacherName: string;
+  teacherId?: string;
   studentCount: number;
   averageScore: number;
   passedCount: number;

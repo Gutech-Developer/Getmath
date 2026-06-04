@@ -39,7 +39,10 @@ function buildQuery(params?: GsPaginationParams): string {
 
 // ─── ADMIN/TEACHER: GET /diagnostic-tests ────────────────────────────────────
 
-export function useGsAllDiagnosticTests(params?: GsPaginationParams) {
+export function useGsAllDiagnosticTests(
+  params?: GsPaginationParams,
+  options?: { enabled?: boolean }
+) {
   return useQuery<GsPaginatedDiagnosticTests, Error>({
     queryKey: queryKeys.gsDiagnosticTests.list(
       params as Record<string, unknown>,
@@ -49,6 +52,7 @@ export function useGsAllDiagnosticTests(params?: GsPaginationParams) {
         `/diagnostic-tests${buildQuery(params)}`,
       ),
     staleTime: 2 * 60 * 1000,
+    ...options,
   });
 }
 

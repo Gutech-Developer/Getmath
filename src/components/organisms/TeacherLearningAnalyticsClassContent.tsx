@@ -263,6 +263,7 @@ export default function TeacherLearningAnalyticsClassContent({
       <BaseMateriSection
         materials={materials}
         courseId={classDetail.id}
+        teacherId={classDetail.teacherId}
         students={classDetail.students}
         {...materiSectionProps}
       />

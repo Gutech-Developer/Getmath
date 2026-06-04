@@ -127,6 +127,7 @@ export interface GsCreateSubjectInput {
   subjectFileUrl?: string | null;
   videoUrl?: string | null;
   eLKPD?: GsCreateELKPDInput;
+  teacherId?: string;
 }
 
 export interface GsUpdateSubjectInput {
@@ -137,6 +138,7 @@ export interface GsUpdateSubjectInput {
   eLKPDTitle?: string | null;
   eLKPDDescription?: string | null;
   eLKPDFileUrl?: string | null;
+  teacherId?: string;
 }
 
 // ─── Input: E-LKPD ───────────────────────────────────────────────────────────

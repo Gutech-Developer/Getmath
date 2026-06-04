@@ -68,10 +68,12 @@ export interface GsCourse {
 export interface GsCreateCourseInput {
   /** Hanya courseName yang diterima backend; info sekolah diambil dari profil guru */
   courseName: string;
+  teacherId?: string;
 }
 
 export interface GsUpdateCourseInput {
   courseName?: string;
+  teacherId?: string;
 }
 
 export interface GsPaginatedCourses {
