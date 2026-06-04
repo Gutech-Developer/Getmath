@@ -14,9 +14,12 @@ import {
   useGsUpdateSubject,
   useGsDeleteSubject,
 } from "@/services";
+import { TablePagination } from "@/components/molecules/table";
+import SearchableInput from "@/components/atoms/SearchableInput";
 
 interface ITeacherManageMaterialContentProps {
   useSubjectsQuery?: typeof useGsMySubjects;
+  role?: "admin" | "teacher";
 }
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -29,6 +32,8 @@ interface ISubjectForm {
   elkpdTitle: string;
   elkpdDescription: string;
   elkpdFileUrl: string;
+  teacherId?: string;
+  teacherName?: string;
 }
 
 function createEmptyForm(): ISubjectForm {
@@ -194,6 +199,7 @@ function SubjectModal({
   onChange,
   onClose,
   onSubmit,
+  role,
 }: {
   isOpen: boolean;
   isEditing: boolean;
@@ -202,6 +208,7 @@ function SubjectModal({
   onChange: (patch: Partial<ISubjectForm>) => void;
   onClose: () => void;
   onSubmit: () => void;
+  role?: "admin" | "teacher";
 }) {
   useEffect(() => {
     if (!isOpen) return;
@@ -255,6 +262,30 @@ function SubjectModal({
           <div className="rounded-2xl border border-[#EFF6FF] bg-[#EFF6FF] px-4 py-3 text-sm text-[#1E40AF]">
             Judul Materi wajib diisi. Silakan lengkapi minimal satu komponen pembelajaran (PDF, Video, atau E-LKPD) sesuai kebutuhan materi Anda.
           </div>
+
+          {/* Input Guru (Hanya Admin) */}
+          {role === "admin" && (
+            <div className="space-y-2">
+              <SearchableInput
+                label="Guru (Pembuat Materi)"
+                placeholder="Cari guru..."
+                value={form.teacherName || ""}
+                onChange={(label, option) => {
+                  onChange({
+                    teacherName: label,
+                    teacherId: option?.value,
+                  });
+                }}
+                options={[
+                  // TODO: Nanti diisi dengan data dari endpoint API khusus pencarian guru
+                  { value: "dummy-1", label: "Guru Dummy 1" },
+                  { value: "dummy-2", label: "Guru Dummy 2" },
+                ]}
+                required
+              />
+            </div>
+          )}
+
           {/* Judul */}
           <div className="space-y-2">
             <label className={labelClass}>
@@ -284,13 +315,13 @@ function SubjectModal({
           {/* Link Materi */}
           <div className="space-y-2">
             <label className={labelClass}>
-              Link Materi (PDF / File)
+              Link Materi (PDF / File) - Opsional
             </label>
             <input
               type="url"
               value={form.subjectFileUrl}
               onChange={(e) => onChange({ subjectFileUrl: e.target.value })}
-              placeholder="https://drive.google.com/file/..."
+              placeholder="https://heyzine.com/flip-book/3094f26f1e.html"
               className={inputClass}
             />
           </div>
@@ -298,7 +329,7 @@ function SubjectModal({
           {/* Link Video */}
           <div className="space-y-2">
             <label className={labelClass}>
-              Link Video (YouTube)
+              Link Video (YouTube) - Opsional
             </label>
             <input
               type="url"
@@ -389,14 +420,17 @@ function SubjectModal({
 
 export default function TeacherManageMaterialContent({
   useSubjectsQuery = useGsMySubjects,
+  role = "teacher",
 }: ITeacherManageMaterialContentProps = {}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [form, setForm] = useState<ISubjectForm>(createEmptyForm);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<IPreview | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(5);
 
-  const { data: subjectsData, isLoading } = useSubjectsQuery({ limit: 50 });
+  const { data: subjectsData, isLoading } = useSubjectsQuery({ page, limit });
   const createSubject = useGsCreateSubject();
   const updateSubject = useGsUpdateSubject();
   const deleteSubject = useGsDeleteSubject();
@@ -480,6 +514,7 @@ export default function TeacherManageMaterialContent({
         eLKPDTitle: form.elkpdTitle.trim() || null,
         eLKPDDescription: form.elkpdDescription.trim() || null,
         eLKPDFileUrl: form.elkpdFileUrl.trim() || null,
+        teacherId: form.teacherId || undefined,
       };
 
       updateSubject.mutate(
@@ -500,6 +535,7 @@ export default function TeacherManageMaterialContent({
           description: form.description.trim() || null,
           subjectFileUrl: form.subjectFileUrl.trim() || null,
           videoUrl: form.videoUrl.trim() || null,
+          teacherId: form.teacherId || undefined,
           ...elkpdData,
         },
         {
@@ -800,6 +836,19 @@ export default function TeacherManageMaterialContent({
             })}
           </ul>
         )}
+
+        {subjectsData?.pagination && subjectsData.pagination.totalPages > 1 && (
+          <TablePagination
+            currentPage={subjectsData.pagination.currentPage}
+            totalPages={subjectsData.pagination.totalPages}
+            onPageChange={setPage}
+            itemsPerPage={limit}
+            onItemsPerPageChange={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+          />
+        )}
       </section>
 
       <SubjectModal
@@ -810,6 +859,7 @@ export default function TeacherManageMaterialContent({
         onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
         onClose={closeModal}
         onSubmit={handleSave}
+        role={role}
       />
 
       <PreviewModal preview={preview} onClose={() => setPreview(null)} />

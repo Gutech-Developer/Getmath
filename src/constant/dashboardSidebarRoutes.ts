@@ -5,6 +5,7 @@ import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import NotificationIcon from "@/components/atoms/icons/NotificationIcon";
 import ProfileIcon from "@/components/atoms/icons/ProfileIcon";
 import TrendUpIcon from "@/components/atoms/icons/TrendUpIcon";
+import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
 import type { UserRole } from "@/types/auth";
 
 export type DashboardSidebarRouteKey =
@@ -19,7 +20,9 @@ export type DashboardSidebarRouteKey =
   | "learning analytics"
   | "class list"
   | "material management"
-  | "test management";
+  | "test management"
+  | "manage-users"
+  | "manage-schools";
 
 export interface IDashboardSidebarRouteItem {
   key: DashboardSidebarRouteKey;
@@ -27,6 +30,7 @@ export interface IDashboardSidebarRouteItem {
   href: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   badgeCount?: number;
+  subMenu?: { name: string; url: string }[];
 }
 
 interface DashboardSidebarRouteOptions {
@@ -130,20 +134,42 @@ const adminDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
   },
   {
     key: "class list",
-    label: "Daftar Kelas",
+    label: "Manajemen Kelas",
     href: "/admin/dashboard/class-list",
     icon: ActivityIcon,
   },
   {
-    key: "material management",
-    label: "Manajemen Materi",
-    href: "/admin/dashboard/material-management",
+    key: "manage-users",
+    label: "Manajemen User",
+    href: "/admin/dashboard/manage-users",
+    icon: ThreeUserGroupIcon,
+    subMenu: [
+      { name: "Siswa", url: "/admin/dashboard/manage-users/student" },
+      { name: "Guru", url: "/admin/dashboard/manage-users/teacher" },
+    ],
+  },
+  {
+    key: "manage-schools",
+    label: "Manajemen Sekolah",
+    href: "/admin/dashboard/manage-schools",
     icon: NotebookIcon,
   },
   {
-    key: "test management",
-    label: "Manajemen Tes",
-    href: "/admin/dashboard/test-management",
+    key: "manage-material",
+    label: "Kelola Materi",
+    href: "/admin/dashboard/manage-material",
+    icon: NotebookIcon,
+  },
+  {
+    key: "manage-diagnostics",
+    label: "Kelola Diagnostik",
+    href: "/admin/dashboard/manage-diagnostics",
+    icon: DocumentIcon,
+  },
+  {
+    key: "manage-remedial",
+    label: "Kelola Remedial",
+    href: "/admin/dashboard/manage-remedial",
     icon: DocumentIcon,
   },
 ];
@@ -221,12 +247,24 @@ export function resolveDashboardSidebarRouteKey(
       return "class list";
     }
 
-    if (normalizedPathname.includes("/dashboard/material-management")) {
-      return "material management";
+    if (normalizedPathname.includes("/dashboard/manage-material")) {
+      return "manage-material";
     }
 
-    if (normalizedPathname.includes("/dashboard/test-management")) {
-      return "test management";
+    if (normalizedPathname.includes("/dashboard/manage-diagnostics")) {
+      return "manage-diagnostics";
+    }
+
+    if (normalizedPathname.includes("/dashboard/manage-remedial")) {
+      return "manage-remedial";
+    }
+
+    if (normalizedPathname.includes("/dashboard/manage-users")) {
+      return "manage-users";
+    }
+
+    if (normalizedPathname.includes("/dashboard/manage-schools")) {
+      return "manage-schools";
     }
 
     return "dashboard";

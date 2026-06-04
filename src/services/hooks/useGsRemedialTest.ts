@@ -29,12 +29,16 @@ function buildQuery(params?: GsPaginationParams): string {
 
 // ─── ADMIN/TEACHER: GET /remedial-tests ──────────────────────────────────────
 
-export function useGsAllRemedialTests(params?: GsPaginationParams) {
+export function useGsAllRemedialTests(
+  params?: GsPaginationParams,
+  options?: { enabled?: boolean }
+) {
   return useQuery<GsPaginatedRemedialTests, Error>({
     queryKey: queryKeys.gsRemedialTests.list(params as Record<string, unknown>),
     queryFn: () =>
       gsGet<GsPaginatedRemedialTests>(`/remedial-tests${buildQuery(params)}`),
     staleTime: 2 * 60 * 1000,
+    ...options,
   });
 }
 

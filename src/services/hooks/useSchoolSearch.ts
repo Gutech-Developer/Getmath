@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * useSchoolSearch - Hook untuk mencari sekolah dengan debouncing
  * Prevents excessive API calls while user is typing

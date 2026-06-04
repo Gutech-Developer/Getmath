@@ -2,8 +2,9 @@ import TeacherPreviewRemedialContent from "@/components/organisms/TeacherPreview
 
 interface IProps {
   id: string;
+  role?: "admin" | "teacher";
 }
 
-export default function TeacherPreviewRemedialTemplate({ id }: IProps) {
-  return <TeacherPreviewRemedialContent id={id} />;
+export default function TeacherPreviewRemedialTemplate({ id, role = "teacher" }: IProps) {
+  return <TeacherPreviewRemedialContent id={id} role={role} />;
 }

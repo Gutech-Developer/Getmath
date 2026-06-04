@@ -240,6 +240,8 @@ export default function AdminLearningAnalyticsClassContent({
     Materi: (
       <BaseMateriSection
         materials={materials}
+        courseId={classDetail.id ?? classDetail.slug}
+        teacherId={classDetail.teacherId}
         students={classDetail.students}
       />
     ),
@@ -267,6 +269,7 @@ export default function AdminLearningAnalyticsClassContent({
         courseId={classDetail.id ?? classDetail.slug}
         slug={classDetail.slug}
         role="admin"
+        materials={materials}
       />
     ),
   };
