@@ -15,6 +15,7 @@ import {
   useGsUploadFile,
   useGsDeleteFile,
 } from "@/services";
+import SearchableInput from "@/components/atoms/SearchableInput";
 import type { GsRemedialTest, GsRemedialVariant } from "@/types/gs-remedial";
 import MathText from "../atoms/MathText";
 
@@ -201,9 +202,11 @@ function prefillQuestions(rt: GsRemedialTest): IRemedialQuestionDraft[] {
 
 interface IProps {
   editId?: string;
+  role?: "admin" | "teacher";
 }
 
-export default function TeacherCreateRemedialContent({ editId }: IProps) {
+export default function TeacherCreateRemedialContent({ editId, role = "teacher" }: IProps) {
+  const basePath = role === "admin" ? "/admin/dashboard" : "/teacher/dashboard";
   const router = useRouter();
   const isEditing = Boolean(editId);
   const { data: existingTest, isLoading: loadingExisting } =
@@ -224,6 +227,9 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
   const [activePackage, setActivePackage] = useState<VariantLabel>("A");
   const [openQuestionIds, setOpenQuestionIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
+
+  const [teacherId, setTeacherId] = useState<string>("");
+  const [teacherName, setTeacherName] = useState<string>("");
 
   useEffect(() => {
     if (isEditing && existingTest && !hydrated) {
@@ -406,13 +412,14 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
             description: description || null,
             durationMinutes: Number(durationMinutes) || 60,
             passingScore: kkm,
+            teacherId: teacherId || undefined,
             questions: buildPayload(true),
           },
         },
         {
           onSuccess: () => {
             showToast.success("Tes remedial berhasil diperbarui");
-            router.push("/teacher/dashboard/manage-remedial");
+            router.push(`${basePath}/manage-remedial`);
           },
           onError: () => showToast.error("Gagal memperbarui tes remedial"),
         },
@@ -424,6 +431,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
           description: description || null,
           durationMinutes: Number(durationMinutes) || 60,
           passingScore: kkm,
+          teacherId: teacherId || undefined,
           questions: buildPayload(false),
         },
         {
@@ -432,8 +440,8 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
             const id = (data as GsRemedialTest).id;
             router.push(
               id
-                ? `/teacher/dashboard/manage-remedial/${id}`
-                : "/teacher/dashboard/manage-remedial",
+                ? `${basePath}/manage-remedial/${id}`
+                : `${basePath}/manage-remedial`,
             );
           },
           onError: () => showToast.error("Gagal membuat tes remedial"),
@@ -457,7 +465,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push("/teacher/dashboard/manage-remedial")}
+          onClick={() => router.push(`${basePath}/manage-remedial`)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:bg-[#F3F4F6]"
           aria-label="Kembali"
         >
@@ -529,6 +537,29 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
             className="w-full resize-none rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
           />
         </div>
+
+        {/* Input Guru (Hanya Admin) */}
+        {role === "admin" && (
+          <div className="space-y-1.5">
+            <SearchableInput
+              label="Guru (Pembuat Tes)"
+              placeholder="Cari guru..."
+              value={teacherName}
+              onChange={(label, option) => {
+                setTeacherName(label);
+                if (option?.value) {
+                  setTeacherId(option.value);
+                }
+              }}
+              options={[
+                // TODO: Nanti diisi dengan data dari endpoint API khusus pencarian guru
+                { value: "dummy-1", label: "Guru Dummy 1" },
+                { value: "dummy-2", label: "Guru Dummy 2" },
+              ]}
+              required
+            />
+          </div>
+        )}
       </section>
 
       {/* Paket Soal */}
@@ -812,7 +843,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       <div className="flex flex-wrap items-center justify-end gap-3 rounded-3xl border border-[#E5E7EB] bg-white px-6 py-4">
         <button
           type="button"
-          onClick={() => router.push("/teacher/dashboard/manage-remedial")}
+          onClick={() => router.push(`${basePath}/manage-remedial`)}
           className="rounded-2xl border border-[#D1D5DB] bg-[#F9FAFB] px-8 py-2.5 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F3F4F6]"
         >
           Batal

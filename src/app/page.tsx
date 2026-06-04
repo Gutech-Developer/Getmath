@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+import LandingPageTemplate from "@/components/templates/pages/landing/LandingPageTemplate";
 
-// Root route redirects to login
 export default function RootPage() {
-  redirect("/login");
+  return <LandingPageTemplate />;
 }

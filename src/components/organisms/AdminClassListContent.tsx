@@ -7,6 +7,7 @@ import FilterIcon from "@/components/atoms/icons/FilterIcon";
 import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import SortIcon from "@/components/atoms/icons/SortIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
+import SearchableInput from "@/components/atoms/SearchableInput";
 import { Modal } from "@/components/molecules/Modal";
 import { showToast } from "@/libs/toast";
 import { cn } from "@/libs/utils";
@@ -147,23 +148,21 @@ function ClassFormModal({
               <label className="block text-lg font-semibold text-[#374151]">
                 Pilih Guru
               </label>
-              <select
+              <SearchableInput
                 value={values.teacherId}
-                onChange={(event) =>
+                onChange={(val) =>
                   onValuesChange({
                     ...values,
-                    teacherId: event.target.value,
+                    teacherId: val,
                   })
                 }
-                className="h-12 w-full rounded-2xl border border-[#D1D5DB] bg-white px-4 text-base text-[#111827] outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
-              >
-                <option value="">Pilih guru pengampu</option>
-                {teacherOptions.map((teacher) => (
-                  <option key={teacher.id} value={teacher.id}>
-                    {teacher.label}
-                  </option>
-                ))}
-              </select>
+                options={teacherOptions.map((t) => ({
+                  value: t.id,
+                  label: t.label,
+                }))}
+                placeholder="Pilih guru pengampu"
+                className="w-full"
+              />
             </div>
           )}
 

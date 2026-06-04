@@ -51,11 +51,15 @@ function buildQuery(params?: GsPaginationParams): string {
 
 // ─── ALL: GET /subjects ───────────────────────────────────────────────────────
 
-export function useGsAllSubjects(params?: GsPaginationParams) {
+export function useGsAllSubjects(
+  params?: GsPaginationParams,
+  options?: { enabled?: boolean }
+) {
   return useQuery<GsPaginatedSubjects, Error>({
     queryKey: queryKeys.gsSubjects.list(params as Record<string, unknown>),
     queryFn: () => gsGet<GsPaginatedSubjects>(`/subjects${buildQuery(params)}`),
     staleTime: 2 * 60 * 1000,
+    ...options,
   });
 }
 

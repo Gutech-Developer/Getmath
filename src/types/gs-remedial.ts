@@ -81,6 +81,7 @@ export interface GsCreateRemedialTestInput {
   durationMinutes: number;
   passingScore: number;
   questions: GsCreateRemedialQuestionInput[];
+  teacherId?: string;
 }
 
 export interface GsUpsertRemedialOptionInput {
@@ -113,4 +114,5 @@ export interface GsUpdateRemedialTestInput {
   durationMinutes?: number;
   passingScore?: number;
   questions?: GsUpsertRemedialQuestionInput[];
+  teacherId?: string;
 }

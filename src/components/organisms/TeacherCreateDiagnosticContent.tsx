@@ -15,6 +15,7 @@ import {
   useGsUploadFile,
   useGsDeleteFile,
 } from "@/services";
+import SearchableInput from "@/components/atoms/SearchableInput";
 import type { GsDiagnosticTest } from "@/types/gs-diagnostic-test";
 import MathText from "../atoms/MathText";
 
@@ -154,9 +155,11 @@ function prefillQuestions(dt: GsDiagnosticTest): IQuestionDraft[] {
 
 interface IProps {
   editId?: string;
+  role?: "admin" | "teacher";
 }
 
-export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
+export default function TeacherCreateDiagnosticContent({ editId, role = "teacher" }: IProps) {
+  const basePath = role === "admin" ? "/admin/dashboard" : "/teacher/dashboard";
   const router = useRouter();
   const isEditing = Boolean(editId);
   const { data: existingTest, isLoading: loadingExisting } =
@@ -175,6 +178,9 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
   ]);
   const [openQuestionIds, setOpenQuestionIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
+
+  const [teacherId, setTeacherId] = useState<string>("");
+  const [teacherName, setTeacherName] = useState<string>("");
 
   if (isEditing && existingTest && !hydrated) {
     setTestTitle(existingTest.testName);
@@ -294,13 +300,14 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
             description: description || null,
             durationMinutes: Number(durationMinutes) || 60,
             passingScore: kkm,
+            teacherId: teacherId || undefined,
             questions: buildPayload(true),
           },
         },
         {
           onSuccess: () => {
             showToast.success("Tes diagnostik berhasil diperbarui");
-            router.push("/teacher/dashboard/manage-diagnostics");
+            router.push(`${basePath}/manage-diagnostics`);
           },
           onError: () => showToast.error("Gagal memperbarui tes diagnostik"),
         },
@@ -312,6 +319,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
           description: description || null,
           durationMinutes: Number(durationMinutes) || 60,
           passingScore: kkm,
+          teacherId: teacherId || undefined,
           questions: buildPayload(false),
         },
         {
@@ -320,8 +328,8 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
             const id = (data as GsDiagnosticTest).id;
             router.push(
               id
-                ? `/teacher/dashboard/manage-diagnostics/${id}`
-                : "/teacher/dashboard/manage-diagnostics",
+                ? `${basePath}/manage-diagnostics/${id}`
+                : `${basePath}/manage-diagnostics`,
             );
           },
           onError: () => showToast.error("Gagal membuat tes diagnostik"),
@@ -346,7 +354,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push("/teacher/dashboard/manage-diagnostics")}
+          onClick={() => router.push(`${basePath}/manage-diagnostics`)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:bg-[#F3F4F6]"
           aria-label="Kembali"
         >
@@ -418,6 +426,29 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
             className="w-full resize-none rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
           />
         </div>
+
+        {/* Input Guru (Hanya Admin) */}
+        {role === "admin" && (
+          <div className="space-y-1.5">
+            <SearchableInput
+              label="Guru (Pembuat Tes)"
+              placeholder="Cari guru..."
+              value={teacherName}
+              onChange={(label, option) => {
+                setTeacherName(label);
+                if (option?.value) {
+                  setTeacherId(option.value);
+                }
+              }}
+              options={[
+                // TODO: Nanti diisi dengan data dari endpoint API khusus pencarian guru
+                { value: "dummy-1", label: "Guru Dummy 1" },
+                { value: "dummy-2", label: "Guru Dummy 2" },
+              ]}
+              required
+            />
+          </div>
+        )}
       </section>
 
       {/* Soal Tes */}
@@ -627,7 +658,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
       <div className="flex flex-wrap items-center justify-end gap-3 rounded-3xl border border-[#E5E7EB] bg-white px-6 py-4">
         <button
           type="button"
-          onClick={() => router.push("/teacher/dashboard/manage-diagnostics")}
+          onClick={() => router.push(`${basePath}/manage-diagnostics`)}
           className="rounded-2xl border border-[#D1D5DB] bg-[#F9FAFB] px-8 py-2.5 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F3F4F6]"
         >
           Batal

@@ -6,8 +6,10 @@ import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import { showToast } from "@/libs/toast";
 import { useRouter } from "next/navigation";
-import { useGsMyDiagnosticTests, useGsDeleteDiagnosticTest } from "@/services";
+import { useGsMyDiagnosticTests, useGsAllDiagnosticTests, useGsDeleteDiagnosticTest } from "@/services";
 import type { GsDiagnosticTest } from "@/types/gs-diagnostic-test";
+import { TablePagination } from "@/components/molecules/table";
+import { useState } from "react";
 
 /* ------------------------------------------------------------------ */
 /*  Mapper                                                             */
@@ -21,8 +23,8 @@ interface IDiagnosticItem {
     questionCount: number;
   }>;
   totalQuestions: number;
-  durationMinutes: number;
-  kkm: number;
+  durationMinutes: number | string;
+  kkm: number | string;
   dateLabel: string;
 }
 
@@ -44,8 +46,8 @@ function mapGsDiagnosticToItem(dt: GsDiagnosticTest): IDiagnosticItem {
     description: dt.description ?? "",
     packageSummaries,
     totalQuestions,
-    durationMinutes: dt.durationMinutes,
-    kkm: dt.passingScore,
+    durationMinutes: dt.durationMinutes ?? "-",
+    kkm: dt.passingScore ?? "-",
     dateLabel: new Date(dt.createdAt).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
@@ -57,13 +59,30 @@ function mapGsDiagnosticToItem(dt: GsDiagnosticTest): IDiagnosticItem {
 /* ------------------------------------------------------------------ */
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
-export default function TeacherManageDiagnosticsContent() {
+export default function TeacherManageDiagnosticsContent({
+  role = "teacher",
+}: {
+  role?: "admin" | "teacher";
+}) {
   const router = useRouter();
-  // Use pagination defaults (page=1, limit=10) to match list endpoints
-  const { data: diagnosticTestsData, isLoading } = useGsMyDiagnosticTests({
-    page: 1,
-    limit: 10,
-  });
+  const basePath = role === "admin" ? "/admin/dashboard" : "/teacher/dashboard";
+
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(5);
+
+  const { data: myData, isLoading: myLoading } = useGsMyDiagnosticTests(
+    { page, limit },
+    { enabled: role === "teacher" }
+  );
+
+  const { data: allData, isLoading: allLoading } = useGsAllDiagnosticTests(
+    { page, limit },
+    { enabled: role === "admin" }
+  );
+
+  const diagnosticTestsData = role === "admin" ? allData : myData;
+  const isLoading = role === "admin" ? allLoading : myLoading;
+
   const deleteMutation = useGsDeleteDiagnosticTest();
 
   const diagnostics: IDiagnosticItem[] = (
@@ -95,7 +114,7 @@ export default function TeacherManageDiagnosticsContent() {
         <button
           type="button"
           onClick={() =>
-            router.push("/teacher/dashboard/manage-diagnostics/create")
+            router.push(`${basePath}/manage-diagnostics/create`)
           }
           className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
         >
@@ -172,7 +191,7 @@ export default function TeacherManageDiagnosticsContent() {
                   type="button"
                   onClick={() =>
                     router.push(
-                      `/teacher/dashboard/manage-diagnostics/${diagnostic.id}`,
+                      `${basePath}/manage-diagnostics/${diagnostic.id}`,
                     )
                   }
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
@@ -184,7 +203,7 @@ export default function TeacherManageDiagnosticsContent() {
                   type="button"
                   onClick={() =>
                     router.push(
-                      `/teacher/dashboard/manage-diagnostics/${diagnostic.id}/edit`,
+                      `${basePath}/manage-diagnostics/${diagnostic.id}/edit`,
                     )
                   }
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
@@ -205,6 +224,19 @@ export default function TeacherManageDiagnosticsContent() {
           </li>
         ))}
       </ul>
+
+      {diagnosticTestsData?.pagination && diagnosticTestsData.pagination.totalPages > 1 && (
+        <TablePagination
+          currentPage={diagnosticTestsData.pagination.currentPage}
+          totalPages={diagnosticTestsData.pagination.totalPages}
+          onPageChange={setPage}
+          itemsPerPage={limit}
+          onItemsPerPageChange={(newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          }}
+        />
+      )}
     </section>
   );
 }

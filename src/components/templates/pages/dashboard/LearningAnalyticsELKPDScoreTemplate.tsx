@@ -1,7 +1,6 @@
 "use client";
 
 import LearningAnalyticsELKPDScoreContent from "@/components/organisms/LearningAnalyticsELKPDScoreContent";
-import { LEARNING_ANALYTICS_CLASS_DATA } from "@/components/templates/pages/dashboard/AdminLearningAnalyticsClassTemplate";
 import { useGsCourseBySlug, useELKPDGradesByModule } from "@/services";
 import type { IClassLearningAnalyticsDetail } from "@/types/learningAnalytics";
 import { useMemo } from "react";
@@ -74,9 +73,6 @@ export default function LearningAnalyticsELKPDScoreTemplate({
 
   // ── Build class detail from API data or fallback ─────────────────────
   const classDetail = useMemo<IClassLearningAnalyticsDetail>(() => {
-    const staticDetail = LEARNING_ANALYTICS_CLASS_DATA.find(
-      (item) => item.slug === slug,
-    );
     const apiGrades = submissionsData?.eLKPDs?.[0]?.grades ?? [];
     const apiStudents = apiGrades.map((sub, index) => {
       const score = sub.score ?? 0;
@@ -96,54 +92,36 @@ export default function LearningAnalyticsELKPDScoreTemplate({
             apiStudents.reduce((sum, student) => sum + student.score, 0) /
               apiStudents.length,
           )
-        : (staticDetail?.averageScore ?? 0);
+        : 0;
 
-    const fallbackClassName =
-      course?.courseName ??
-      staticDetail?.className ??
-      formatClassTitleFromSlug(slug);
-    const fallbackClassCode =
-      course?.courseCode ?? staticDetail?.classCode ?? "MATH-X-001";
+    const fallbackClassName = course?.courseName ?? formatClassTitleFromSlug(slug);
+    const fallbackClassCode = course?.courseCode ?? "MATH-X-001";
 
     return {
       id: course?.id,
       slug,
       className: fallbackClassName,
-      teacherName: staticDetail?.teacherName ?? "Guru Kelas",
-      studentCount: apiStudents.length || staticDetail?.studentCount || 0,
+      teacherName: course?.teacher?.fullName ?? "Guru Kelas",
+      teacherId: course?.teacherId,
+      studentCount: course?.enrolledCount ?? apiStudents.length,
       averageScore,
-      passedCount: apiStudents.length
-        ? passedCount
-        : (staticDetail?.passedCount ?? 0),
-      remedialCount: apiStudents.length
-        ? apiStudents.length - passedCount
-        : (staticDetail?.remedialCount ?? 0),
-      progress: staticDetail?.progress ?? 0,
+      passedCount,
+      remedialCount: apiStudents.length > 0 ? apiStudents.length - passedCount : 0,
+      progress: course?.averageProgressPercent ?? 0,
       classCode: fallbackClassCode,
-      gradeLabel: staticDetail?.gradeLabel ?? "Umum",
-      semesterLabel: staticDetail?.semesterLabel ?? "Ganjil 2024/2025",
-      subjectLabel:
-        staticDetail?.subjectLabel ?? course?.courseName ?? "Matematika",
-      defaultViewType: staticDetail?.defaultViewType,
-      students:
-        apiStudents.length > 0 ? apiStudents : (staticDetail?.students ?? []),
-      materials: staticDetail?.materials,
+      gradeLabel: "Umum",
+      semesterLabel: "Ganjil 2024/2025",
+      subjectLabel: course?.courseName ?? "Matematika",
+      students: apiStudents,
       elkpdItems:
         submissionsData?.eLKPDs?.map((item) => ({
           id: item.eLKPDId,
           title: item.title,
-          dueLabel:
-            staticDetail?.elkpdItems?.find((elkpd) => elkpd.id === item.eLKPDId)
-              ?.dueLabel ?? "-",
+          dueLabel: "-",
           submittedCount:
             item.grades?.filter((grade) => grade.submissionId).length ?? 0,
           status: "Aktif" as const,
-        })) ??
-        staticDetail?.elkpdItems ??
-        [],
-      reportSummaryCards: staticDetail?.reportSummaryCards,
-      scoreBuckets: staticDetail?.scoreBuckets,
-      emotionSegments: staticDetail?.emotionSegments,
+        })) ?? [],
     };
   }, [slug, course, submissionsData]);
 
