@@ -19,29 +19,18 @@ import type {
   GsPaginatedDiagnosticTests,
   GsPaginationParams,
 } from "@/types/gs-diagnostic-test";
+import { buildQuery } from "./helper";
 
 interface IGsMyDiagnosticTestsQueryOptions {
   enabled?: boolean;
   staleTime?: number;
 }
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
-
-function buildQuery(params?: GsPaginationParams): string {
-  if (!params) return "";
-  const q = new URLSearchParams();
-  if (params.page) q.set("page", String(params.page));
-  if (params.limit) q.set("limit", String(params.limit));
-  if (params.search) q.set("search", params.search);
-  const qs = q.toString();
-  return qs ? `?${qs}` : "";
-}
-
 // ─── ADMIN/TEACHER: GET /diagnostic-tests ────────────────────────────────────
 
 export function useGsAllDiagnosticTests(
   params?: GsPaginationParams,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ) {
   return useQuery<GsPaginatedDiagnosticTests, Error>({
     queryKey: queryKeys.gsDiagnosticTests.list(

@@ -22,6 +22,7 @@ export interface GsPaginationParams {
   page?: number;
   limit?: number;
   search?: string;
+  role?: string;
 }
 
 // ── Shared nested types ───────────────────────────────────────────────────────
