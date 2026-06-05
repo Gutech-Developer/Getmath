@@ -123,11 +123,14 @@ export class EmotionSampler {
         }
       }
 
-      if (maxScore < CONFIDENCE_THRESHOLD) return;
+      // Spec §7.1: frame ambigu (confidence < threshold) dilabel "unknown",
+      // bukan di-drop — supaya tidak mendistorsi distribusi ke arah neutral.
+      const label: EmotionLabel =
+        maxScore < CONFIDENCE_THRESHOLD ? "unknown" : argmaxLabel;
 
       this.stats.sampled += 1;
       this.opts.onSample({
-        label: argmaxLabel,
+        label,
         confidence: maxScore,
         vector,
         ts: Date.now(),

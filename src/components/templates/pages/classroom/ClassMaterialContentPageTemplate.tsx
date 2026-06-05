@@ -161,10 +161,7 @@ function moduleFromSubject(
     });
   }
 
-  if (
-    (subject?.eLKPDTitle && subject?.eLKPDFileUrl) ||
-    flat.hasELKPD
-  ) {
+  if ((subject?.eLKPDTitle && subject?.eLKPDFileUrl) || flat.hasELKPD) {
     steps.push({
       id: `${moduleId}-elkpd-${subject?.id || moduleId}`,
       moduleId,
@@ -204,7 +201,10 @@ function moduleFromDiagnostic(
     `Tes Diagnostik ${module.order ?? index + 1}`;
   const diagnosticTestId = module.diagnosticTestId ?? test?.id ?? "";
   const remedialTestId =
-    module.remedialTestId ?? module.remedialTest?.id ?? flat.remedialTestId ?? "";
+    module.remedialTestId ??
+    module.remedialTest?.id ??
+    flat.remedialTestId ??
+    "";
 
   const steps: IFlatStep[] = [
     {
@@ -351,8 +351,11 @@ export default function ClassMaterialContentPageTemplate({
                 fileRead: (m as any).fileRead,
                 videoWatched: (m as any).videoWatched,
                 eLKPDGraded: (m as any).eLKPDGraded,
-                completed: (detailModule as any).completed ?? (m as any).completed,
-                remedialCompleted: (detailModule as any).remedialCompleted ?? (m as any).remedialCompleted,
+                completed:
+                  (detailModule as any).completed ?? (m as any).completed,
+                remedialCompleted:
+                  (detailModule as any).remedialCompleted ??
+                  (m as any).remedialCompleted,
                 hasVideo: (m as any).hasVideo,
                 hasELKPD: (m as any).hasELKPD,
               } as GsCourseModule)
@@ -490,7 +493,7 @@ export default function ClassMaterialContentPageTemplate({
     activeModuleDataAny?.diagnosticTestId ||
     activeModuleDataAny?.diagnosticTest?.id ||
     "";
-    
+
   const isRemedialCompleted = useMemo(() => {
     const remedialStep = flatSteps.find(
       (s) => s.moduleId === activeStep?.moduleId && s.kind === "REMEDIAL",
@@ -568,7 +571,11 @@ export default function ClassMaterialContentPageTemplate({
           );
           return;
         } else if (step.moduleId !== contentId) {
-          router.push(
+          // Shallow URL sync — pushState agar page TIDAK remount, sehingga
+          // kamera emotion detection tetap hidup saat pindah modul SUBJECT.
+          window.history.pushState(
+            null,
+            "",
             `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}`,
           );
         }
@@ -698,6 +705,17 @@ export default function ClassMaterialContentPageTemplate({
       {isSubjectStep && emotionSupported && subjectEmotion.error && (
         <CameraRequiredScreen reason={subjectEmotion.error} />
       )}
+
+      {/* Hidden camera feed — videoRef must be mounted before start() runs,
+          otherwise useEmotionDetector bails out (videoRef.current === null). */}
+      <video
+        ref={subjectEmotion.videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="pointer-events-none fixed -left-[9999px] top-0 h-60 w-80"
+        aria-hidden="true"
+      />
 
       {/* ---- Breadcrumb ---- */}
       <nav className="mb-3 flex flex-wrap items-center gap-2 text-sm text-[#64748B]">
@@ -866,7 +884,8 @@ export default function ClassMaterialContentPageTemplate({
                     (() => {
                       const attemptCount = testAttempts?.attempts?.length ?? 0;
                       const finishedAttemptCount =
-                        testAttempts?.attempts?.filter((a) => !!a.completedAt)?.length ?? 0;
+                        testAttempts?.attempts?.filter((a) => !!a.completedAt)
+                          ?.length ?? 0;
                       const hasPassed =
                         testAttempts?.attempts?.some((a) => a.isPassed) ??
                         false;
@@ -942,7 +961,8 @@ export default function ClassMaterialContentPageTemplate({
                                 Batas percobaan tes sudah habis (1/1)
                               </div>
                               <p className="text-xs text-[#94A3B8]">
-                                Tidak ada tes remedial yang tersedia untuk modul ini. Hubungi guru kamu.
+                                Tidak ada tes remedial yang tersedia untuk modul
+                                ini. Hubungi guru kamu.
                               </p>
                             </div>
                           );
@@ -955,12 +975,12 @@ export default function ClassMaterialContentPageTemplate({
                             slug,
                           )}/materi/${encodeURIComponent(
                             activeStep?.moduleId ?? contentId,
-                          )}/${encodeURIComponent(
-                            resolvedDiagnosticTestId,
-                          )}`}
+                          )}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
                           className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
                         >
-                          {attemptCount > 0 ? "Lanjutkan Tes Diagnostik" : "Mulai Tes Diagnostik"}
+                          {attemptCount > 0
+                            ? "Lanjutkan Tes Diagnostik"
+                            : "Mulai Tes Diagnostik"}
                         </Link>
                       );
                     })()}
@@ -1036,7 +1056,11 @@ export default function ClassMaterialContentPageTemplate({
                   {slug &&
                     resolvedRemedialTestId &&
                     (() => {
-                      if (isRemedialCompleted || activeModuleDataAny?.hasCompleted || activeModuleDataAny?.remedialCompleted) {
+                      if (
+                        isRemedialCompleted ||
+                        activeModuleDataAny?.hasCompleted ||
+                        activeModuleDataAny?.remedialCompleted
+                      ) {
                         return (
                           <div className="mt-4">
                             <Link
@@ -1083,7 +1107,7 @@ export default function ClassMaterialContentPageTemplate({
                             )}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
                             className="inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
                           >
-                            Lihat Hasil & Pembahasan  
+                            Lihat Hasil & Pembahasan
                           </Link>
                         </div>
                       );
