@@ -2,64 +2,44 @@
 
 /**
  * useSchoolSearch - Hook untuk mencari sekolah dengan debouncing
- * Prevents excessive API calls while user is typing
+ * Menggunakan endpoint /schools/public dari backend
  */
 
-import { useState, useEffect, useCallback } from "react";
-import { searchSchoolsByName } from "@/utils/schoolSearch";
-import type { ISchoolSearchResult } from "@/utils/schoolSearch";
+import { useState, useEffect } from "react";
+import { usePublicSchools } from "./useGsSchool";
 
 interface UseSchoolSearchProps {
   searchTerm: string;
   debounceMs?: number;
 }
 
-interface UseSchoolSearchReturn {
-  schools: ISchoolSearchResult[];
-  isLoading: boolean;
-  error: string | null;
-}
-
 export function useSchoolSearch({
   searchTerm,
   debounceMs = 500,
-}: UseSchoolSearchProps): UseSchoolSearchReturn {
-  const [schools, setSchools] = useState<ISchoolSearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+}: UseSchoolSearchProps) {
+  const [debouncedTerm, setDebouncedTerm] = useState("");
 
   useEffect(() => {
     if (!searchTerm || searchTerm.length < 2) {
-      setSchools([]);
-      setError(null);
+      setDebouncedTerm("");
       return;
     }
 
-    // Set a timeout for debouncing
-    const timer = setTimeout(async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const results = await searchSchoolsByName(searchTerm);
-        setSchools(results);
-        if (results.length === 0 && searchTerm.length >= 2) {
-          setError("Tidak ada sekolah yang ditemukan");
-        }
-      } catch (err) {
-        setError("Gagal mencari sekolah");
-        setSchools([]);
-        console.error("School search error:", err);
-      } finally {
-        setIsLoading(false);
-      }
+    const timer = setTimeout(() => {
+      setDebouncedTerm(searchTerm);
     }, debounceMs);
 
     return () => clearTimeout(timer);
   }, [searchTerm, debounceMs]);
 
+  const { data, isLoading, error } = usePublicSchools({
+    search: debouncedTerm,
+    limit: 20,
+  });
+
   return {
-    schools,
-    isLoading,
-    error,
+    schools: data?.schools || [],
+    isLoading: isLoading && debouncedTerm.length >= 2,
+    error: error ? error.message : null,
   };
 }

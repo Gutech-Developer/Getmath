@@ -1,12 +1,375 @@
-import InitTemplate from "@/components/templates/init/InitTemplate";
+"use client";
+
+import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
+import TrashIcon from "@/components/atoms/icons/TrashIcon";
+import PlusIcon from "@/components/atoms/icons/PlusIcon";
+import EyeIcon from "@/components/atoms/icons/EyeIcon";
+import EditIcon from "@/components/atoms/icons/EditIcon";
+import { cn } from "@/libs/utils";
+import { toast } from "sonner";
+import { useSearchUser, useDeleteUser, useCreateUser, useUpdateUser, useUserStats } from "@/services/hooks/useUser";
+import { Modal } from "@/components/molecules/Modal";
+import { TablePagination } from "@/components/molecules/table/TablePagination";
+import { CreateUserInput, GsUserData, UpdateUserInput } from "@/types/user";
+import SearchableInput from "@/components/atoms/SearchableInput";
+import { useSchoolSearch } from "@/services/hooks/useSchoolSearch";
 
 interface IAdminManageUsersTemplateProps {
   role: "siswa" | "guru";
 }
 
-export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemplateProps) {
+function UserFormModal({
+  isOpen,
+  onClose,
+  role,
+  initialData,
+  onSubmit,
+  isSubmitting,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  role: "siswa" | "guru";
+  initialData?: GsUserData | null;
+  onSubmit: (data: CreateUserInput | UpdateUserInput) => void;
+  isSubmitting: boolean;
+}) {
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    phoneNumber: "",
+    identityNumber: "", // NIS or NIP
+    schoolId: "",
+    isActive: true,
+  });
+  const [schoolSearch, setSchoolSearch] = useState("");
+
+  const { schools, isLoading: loadingSchools } = useSchoolSearch({
+    searchTerm: schoolSearch,
+    debounceMs: 500,
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        const idNum = role === "siswa" ? initialData.student?.NIS : initialData.teacher?.NIP;
+        setForm({
+          fullName: initialData.fullName || "",
+          email: initialData.email || "",
+          password: "",
+          phoneNumber: initialData.phoneNumber || "",
+          identityNumber: idNum || "",
+          schoolId: initialData.schoolId || "",
+          isActive: initialData.isActive !== undefined ? initialData.isActive : true,
+        });
+        setSchoolSearch(initialData.schoolName || "");
+      } else {
+        setForm({
+          fullName: "",
+          email: "",
+          password: "",
+          phoneNumber: "",
+          identityNumber: "",
+          schoolId: "",
+          isActive: true,
+        });
+        setSchoolSearch("");
+      }
+    }
+  }, [isOpen, initialData, role]);
+
+  const isSubmitDisabled =
+    !form.fullName ||
+    !form.email ||
+    (!initialData && !form.password) || // password is required only for creation
+    !form.identityNumber ||
+    !form.schoolId ||
+    isSubmitting;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitDisabled) return;
+
+    const payload: any = {
+      fullName: form.fullName,
+      email: form.email,
+      phoneNumber: form.phoneNumber,
+      schoolId: form.schoolId,
+    };
+
+    if (initialData) {
+      payload.isActive = form.isActive;
+    }
+
+    if (form.password) {
+      payload.password = form.password;
+    }
+
+    if (role === "siswa") {
+      payload.role = "STUDENT";
+      payload.NIS = form.identityNumber;
+    } else {
+      payload.role = "TEACHER";
+      payload.NIP = form.identityNumber;
+    }
+
+    onSubmit(payload);
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 pb-16">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/45 p-4">
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+        aria-label="Tutup popup"
+      />
+      <div className="relative w-full max-w-[500px] max-h-[90vh] overflow-y-auto rounded-[28px] border border-[#E5E7EB] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)]">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E5E7EB] bg-white px-6 py-5 rounded-t-[28px]">
+          <h2 className="text-xl font-semibold leading-tight text-[#111827]">
+            {initialData ? "Edit" : "Tambah"} {role === "siswa" ? "Siswa" : "Guru"}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#1F2937]"
+            aria-label="Tutup modal"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <form className="space-y-4 px-6 py-5" onSubmit={handleSubmit}>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-[#374151]">Nama Lengkap</label>
+            <input
+              type="text"
+              value={form.fullName}
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              placeholder="Contoh: Budi Santoso"
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-[#374151]">
+              {role === "siswa" ? "NIS" : "NIP"}
+            </label>
+            <input
+              type="text"
+              value={form.identityNumber}
+              onChange={(e) => setForm({ ...form, identityNumber: e.target.value })}
+              placeholder={role === "siswa" ? "Nomor Induk Siswa" : "Nomor Induk Pegawai"}
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-[#374151]">Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="email@example.com"
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-[#374151]">Password</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              placeholder={initialData ? "Kosongkan jika tidak ingin mengubah password" : "Minimal 8 karakter"}
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-[#374151]">Nomor HP (Opsional)</label>
+            <input
+              type="text"
+              value={form.phoneNumber}
+              onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+              placeholder="Contoh: 08123456789"
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+            />
+          </div>
+
+          {initialData && (
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-[#374151]">Status Akun</label>
+              <select
+                value={form.isActive ? "true" : "false"}
+                onChange={(e) => setForm({ ...form, isActive: e.target.value === "true" })}
+                className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              >
+                <option value="true">Aktif</option>
+                <option value="false">Nonaktif</option>
+              </select>
+            </div>
+          )}
+
+          <SearchableInput
+            label="Asal Sekolah"
+            placeholder="Ketik untuk mencari sekolah..."
+            value={schoolSearch}
+            onChange={(val, selected) => {
+              if (selected) {
+                setSchoolSearch(selected.metadata?.schoolName || selected.value);
+                setForm({ ...form, schoolId: selected.metadata?.schoolId || "" });
+              } else {
+                setSchoolSearch(val);
+                if (form.schoolId) setForm({ ...form, schoolId: "" });
+              }
+            }}
+            options={schools.map((s) => ({
+              value: s.name,
+              label: s.name,
+              metadata: { schoolName: s.name, schoolId: s.id },
+            }))}
+            isLoading={loadingSchools}
+            emptyMessage={schoolSearch.length >= 2 ? "Sekolah tidak ditemukan" : "Ketik minimal 2 karakter"}
+            required
+          />
+
+          <button
+            type="submit"
+            disabled={isSubmitDisabled}
+            className={cn(
+              "mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition",
+              isSubmitDisabled
+                ? "cursor-not-allowed bg-[#E5E7EB] text-white"
+                : "bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+            )}
+          >
+            {initialData ? (
+              <span>{isSubmitting ? "Menyimpan Perubahan..." : "Simpan Perubahan"}</span>
+            ) : (
+              <>
+                <PlusIcon className="h-4 w-4" />
+                <span>{isSubmitting ? "Menyimpan..." : "Simpan Akun"}</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemplateProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<GsUserData | null>(null);
+  const [deletingUser, setDeletingUser] = useState<GsUserData | null>(null);
+
+  const backendRole = role === "siswa" ? "student" : "teacher";
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  const { data: statsData } = useUserStats();
+
+  // Fetch all users of the role
+  const { data: usersData, isLoading } = useSearchUser({
+    page: 1,
+    limit: 1000,
+    role: backendRole,
+  });
+
+  const allUsers = usersData?.users || [];
+
+  // Frontend filtering
+  const filteredUsers = useMemo(() => {
+    let result = allUsers;
+
+    if (statusFilter === "ACTIVE") {
+      result = result.filter(u => u.isActive === true);
+    } else if (statusFilter === "INACTIVE") {
+      result = result.filter(u => u.isActive === false);
+    }
+
+    if (debouncedSearch) {
+      const query = debouncedSearch.toLowerCase();
+      result = result.filter((user) => {
+        return (
+          user.fullName.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query) ||
+          (user.schoolName && user.schoolName.toLowerCase().includes(query))
+        );
+      });
+    }
+
+    return result;
+  }, [allUsers, debouncedSearch, statusFilter]);
+
+  // Frontend pagination
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / limit);
+  const startIndex = (page - 1) * limit;
+  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + limit);
+
+  const deleteUser = useDeleteUser();
+  const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
+
+  const handleCreate = async (data: CreateUserInput | UpdateUserInput) => {
+    try {
+      await createUser.mutateAsync(data as CreateUserInput);
+      toast.success(`${role === "siswa" ? "Siswa" : "Guru"} berhasil ditambahkan`);
+      setIsAddOpen(false);
+    } catch (error: any) {
+      toast.error(error?.message || "Gagal menambahkan user");
+    }
+  };
+
+  const handleUpdate = async (data: CreateUserInput | UpdateUserInput) => {
+    if (!editingUser) return;
+    try {
+      await updateUser.mutateAsync({ id: editingUser.userId, data: data as UpdateUserInput });
+      toast.success(`${role === "siswa" ? "Siswa" : "Guru"} berhasil diperbarui`);
+      setEditingUser(null);
+    } catch (error: any) {
+      toast.error(error?.message || "Gagal memperbarui user");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingUser) return;
+    try {
+      await deleteUser.mutateAsync(deletingUser.userId);
+      toast.success(`${role === "siswa" ? "Siswa" : "Guru"} berhasil dihapus`);
+      setDeletingUser(null);
+    } catch (error: any) {
+      toast.error(error?.message || "Gagal menghapus user");
+      setDeletingUser(null);
+    }
+  };
+
+  const rolePath = role === "siswa" ? "student" : "teacher";
+
+  return (
+    <div className="mx-auto w-full max-w-full space-y-6 pb-16">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#111827]">
@@ -18,21 +381,208 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
         </div>
       </div>
 
-      <InitTemplate
-        title={role === "siswa" ? "Daftar Siswa" : "Daftar Guru"}
-        description={`Halaman ini akan menampilkan tabel daftar ${role} beserta fitur tambah, edit, dan hapus.`}
-      >
-        <div className="mt-4 flex items-center justify-center rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] p-8 text-sm text-[#475569]">
-          <div className="text-center">
-            <p className="font-semibold text-[#334155]">
-              UI Tabel {role === "siswa" ? "Siswa" : "Guru"}
+      {statsData && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Total Guru</p>
+            <p className="mt-2 text-2xl font-bold text-[#111827]">
+              {statsData.totalTeachers || 0}
             </p>
-            <p className="mt-1">
-              (Data akan dimuat dari API endpoint khusus {role === "siswa" ? "siswa" : "guru"})
+          </div>
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Total Siswa</p>
+            <p className="mt-2 text-2xl font-bold text-[#111827]">
+              {statsData.totalStudents || 0}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Total Orang Tua</p>
+            <p className="mt-2 text-2xl font-bold text-[#111827]">
+              {statsData.totalParents || 0}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Akun Aktif</p>
+            <p className="mt-2 text-2xl font-bold text-[#059669]">
+              {statsData.activeUsers || 0}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Akun Nonaktif</p>
+            <p className="mt-2 text-2xl font-bold text-[#DC2626]">
+              {statsData.inactiveUsers || 0}
             </p>
           </div>
         </div>
-      </InitTemplate>
+      )}
+
+      <section className="w-full space-y-4">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <h2 className="text-xl font-semibold leading-tight text-[#111827]">
+            Daftar {role === "siswa" ? "Siswa" : "Guru"} ({totalItems})
+          </h2>
+          <button
+            type="button"
+            onClick={() => setIsAddOpen(true)}
+            className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+          >
+            <PlusIcon className="h-4 w-4" />
+            <span>Tambah {role === "siswa" ? "Siswa" : "Guru"}</span>
+          </button>
+        </header>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={`Cari nama, email, atau asal sekolah...`}
+            className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="h-12 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE] min-w-[140px]"
+          >
+            <option value="ALL">Semua Status</option>
+            <option value="ACTIVE">Aktif</option>
+            <option value="INACTIVE">Nonaktif</option>
+          </select>
+        </div>
+
+        {isLoading ? (
+          <div className="p-8 text-center text-sm text-[#6B7280]">Memuat data {role}...</div>
+        ) : paginatedUsers.length > 0 ? (
+          <ul className="space-y-4">
+            {paginatedUsers.map((user) => (
+              <li
+                key={user.userId}
+                className={cn(
+                  "rounded-3xl border p-5 md:p-6 transition",
+                  user.isActive
+                    ? "border-[#E5E7EB] bg-white hover:border-[#BFDBFE]"
+                    : "border-[#FECACA] bg-[#FEF2F2] opacity-80"
+                )}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#111827] flex items-center gap-2">
+                      {user.fullName}
+                      {user.isActive ? (
+                        <span className="inline-flex items-center rounded-full bg-[#D1FAE5] px-2.5 py-0.5 text-xs font-semibold text-[#065F46]">Aktif</span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-[#FEE2E2] px-2.5 py-0.5 text-xs font-semibold text-[#991B1B]">Nonaktif</span>
+                      )}
+                    </h3>
+                    <div className="mt-2 flex flex-col gap-1 text-sm text-[#6B7280]">
+                      <span>Email: <strong className="text-[#374151]">{user.email}</strong></span>
+                      <span>Sekolah: <strong className="text-[#374151]">{user.schoolName || "-"}</strong></span>
+                      {role === "siswa" && user.role === "STUDENT" && user.student?.NIS && (
+                        <span>NIS: <strong className="text-[#374151]">{user.student.NIS}</strong></span>
+                      )}
+                      {role === "guru" && user.role === "TEACHER" && user.teacher?.NIP && (
+                        <span>NIP: <strong className="text-[#374151]">{user.teacher.NIP}</strong></span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/admin/dashboard/manage-users/${rolePath}/${user.userId}`}
+                      className="p-2 border border-[#BFDBFE] rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition"
+                      title={`Detail ${role}`}
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setEditingUser(user)}
+                      className="p-2 border border-[#FEF08A] rounded-xl bg-[#FEF9C3] text-[#A16207] hover:bg-[#FEF08A] transition"
+                      title={`Edit ${role}`}
+                    >
+                      <EditIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingUser(user)}
+                      className="p-2 border border-[#FECACA] rounded-xl bg-[#FEF2F2] text-[#DC2626] hover:bg-[#FEE2E2] transition"
+                      title={`Hapus ${role}`}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="p-8 text-center border border-dashed border-[#D1D5DB] rounded-2xl text-sm text-[#6B7280]">
+            Belum ada {role} yang terdaftar atau tidak ditemukan.
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <TablePagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            itemsPerPage={limit}
+            onItemsPerPageChange={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+          />
+        )}
+      </section>
+
+      {/* MODAL TAMBAH USER */}
+      <UserFormModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        role={role}
+        onSubmit={handleCreate}
+        isSubmitting={createUser.isPending}
+      />
+
+      {/* MODAL EDIT USER */}
+      <UserFormModal
+        isOpen={Boolean(editingUser)}
+        onClose={() => setEditingUser(null)}
+        role={role}
+        initialData={editingUser}
+        onSubmit={handleUpdate}
+        isSubmitting={updateUser.isPending}
+      />
+
+      <Modal
+        isOpen={Boolean(deletingUser)}
+        onClose={() => setDeletingUser(null)}
+        title={`Hapus ${role === "siswa" ? "Siswa" : "Guru"}`}
+      >
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FEF2F2]">
+            <TrashIcon className="h-7 w-7 text-[#DC2626]" />
+          </div>
+          <p className="text-center text-sm text-[#4B5563]">
+            Apakah Anda yakin ingin menghapus {role} <strong className="text-gray-900">{deletingUser?.fullName}</strong>? Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <div className="mt-4 flex w-full justify-end gap-3 pt-4">
+            <button
+              onClick={() => setDeletingUser(null)}
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-[#4B5563] hover:bg-[#F3F4F6] transition"
+              disabled={deleteUser.isPending}
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleteUser.isPending}
+              className="rounded-xl bg-[#DC2626] px-4 py-2 text-sm font-semibold text-white hover:bg-[#B91C1C] transition disabled:opacity-50"
+            >
+              {deleteUser.isPending ? "Menghapus..." : "Ya, Hapus"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
