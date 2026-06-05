@@ -270,6 +270,8 @@ export default function ClassMaterialListPageTemplate({
       )
     : modules;
 
+  console.log("Module: ", modules);
+
   /* ================================================================ */
   /*  RENDER                                                           */
   /* ================================================================ */

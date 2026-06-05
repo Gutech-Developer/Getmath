@@ -90,6 +90,7 @@ export interface GsCourseModuleSubject {
   description: string | null;
   subjectFileUrl: string;
   eLKPDTitle: string | null;
+  hasPDF?: boolean | null;
   eLKPDDescription: string | null;
   eLKPDFileUrl: string | null;
   videoUrl: string | null;
@@ -198,6 +199,20 @@ export interface GsCourseModule {
   remedialTest?: GsCourseModuleDiagnosticTest;
 }
 
+// Tambahkan tipe ini tepat di atas komponen Anda
+export type ExtendedGsCourseModule = GsCourseModule & {
+  hasPDF?: boolean;
+  hasVideo?: boolean;
+  hasELKPD?: boolean;
+  // Tambahkan juga field flat dari API jika dibutuhkan
+  accessible?: boolean;
+  fileRead?: boolean;
+  videoWatched?: boolean;
+  eLKPDGraded?: boolean;
+  eLKPDSubmitted?: boolean;
+  completed?: boolean;
+  remedialCompleted?: boolean;
+};
 /**
  * POST /course-modules/:courseId returns single module yang baru dibuat.
  * Caller harus invalidate query byCourse untuk mendapatkan list terbaru.

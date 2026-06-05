@@ -31,7 +31,7 @@ import { formatBreadcrumbLabel, formatContentTitle } from "@/utils";
 import { showToast } from "@/libs/toast";
 
 /* ------------------------------------------------------------------ */
-/*  Types                                                              */
+/* Types                                                              */
 /* ------------------------------------------------------------------ */
 type StepKind = "PDF" | "VIDEO" | "ELKPD" | "DIAGNOSTIC" | "REMEDIAL";
 
@@ -44,12 +44,9 @@ interface IFlatStep {
   kind: StepKind;
   typeLabel: string;
   title: string;
-  /** URL embed yang siap dimasukkan ke <iframe>. Untuk DIAGNOSTIC & REMEDIAL: kosong. */
   url: string | null;
-  /** URL asli (sebelum di-rewrite ke /embed) untuk tombol "Buka di tab baru". */
   rawUrl: string | null;
   state: ModuleStepState;
-  /** Backend-driven completion status for sidebar rendering. */
   status: "completed" | "in-progress" | "locked";
 }
 
@@ -61,7 +58,7 @@ interface IModuleView {
 }
 
 /* ------------------------------------------------------------------ */
-/*  API → view-model                                                   */
+/* API → view-model                                                   */
 /* ------------------------------------------------------------------ */
 function buildModuleView(
   module: GsCourseModule,
@@ -131,20 +128,22 @@ function moduleFromSubject(
   const flat = module as any;
   const steps: IFlatStep[] = [];
 
-  steps.push({
-    id: `${moduleId}-pdf`,
-    moduleId,
-    moduleTitle: subject?.subjectName ?? flat.subjectName ?? "",
-    kind: "PDF",
-    typeLabel: "Materi",
-    title: subject?.subjectName ?? flat.subjectName ?? "",
-    url: subject?.subjectFileUrl
-      ? toEmbedUrl(subject.subjectFileUrl, "pdf")
-      : null,
-    rawUrl: subject?.subjectFileUrl || null,
-    state: index === 0 ? "active" : "upcoming",
-    status: flat.fileRead ? "completed" : "in-progress",
-  });
+  if (subject.subjectFileUrl || flat.hasPDF) {
+    steps.push({
+      id: `${moduleId}-pdf`,
+      moduleId,
+      moduleTitle: subject?.subjectName ?? flat.subjectName ?? "",
+      kind: "PDF",
+      typeLabel: "Materi",
+      title: subject?.subjectName ?? flat.subjectName ?? "",
+      url: subject?.subjectFileUrl
+        ? toEmbedUrl(subject.subjectFileUrl, "pdf")
+        : null,
+      rawUrl: subject?.subjectFileUrl || null,
+      state: index === 0 ? "active" : "upcoming",
+      status: flat.fileRead ? "completed" : "in-progress",
+    });
+  }
 
   if (subject?.videoUrl || flat.hasVideo) {
     steps.push({
@@ -161,10 +160,7 @@ function moduleFromSubject(
     });
   }
 
-  if (
-    (subject?.eLKPDTitle && subject?.eLKPDFileUrl) ||
-    flat.hasELKPD
-  ) {
+  if ((subject?.eLKPDTitle && subject?.eLKPDFileUrl) || flat.hasELKPD) {
     steps.push({
       id: `${moduleId}-elkpd-${subject?.id || moduleId}`,
       moduleId,
@@ -204,7 +200,10 @@ function moduleFromDiagnostic(
     `Tes Diagnostik ${module.order ?? index + 1}`;
   const diagnosticTestId = module.diagnosticTestId ?? test?.id ?? "";
   const remedialTestId =
-    module.remedialTestId ?? module.remedialTest?.id ?? flat.remedialTestId ?? "";
+    module.remedialTestId ??
+    module.remedialTest?.id ??
+    flat.remedialTestId ??
+    "";
 
   const steps: IFlatStep[] = [
     {
@@ -247,7 +246,7 @@ function moduleFromDiagnostic(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Step icon helpers                                                  */
+/* Step icon helpers                                                  */
 /* ------------------------------------------------------------------ */
 function getStepIcon(kind: StepKind) {
   switch (kind) {
@@ -296,7 +295,7 @@ function ContentBadge({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Component                                                          */
+/* Component                                                          */
 /* ------------------------------------------------------------------ */
 export default function ClassMaterialContentPageTemplate({
   courseId,
@@ -307,13 +306,12 @@ export default function ClassMaterialContentPageTemplate({
   const router = useRouter();
   const searchParams = useSearchParams();
   const stepParam = searchParams?.get("step");
+
   const { data: courseModules, isPending } = useGsModulesByCourse(courseId);
 
-  // ── Progress tracking hooks ──────────────────────────────────────────
   const markFileRead = useMarkFileRead(contentId);
   const markVideoWatched = useMarkVideoWatched(contentId);
 
-  // Evaluasi sekali (lazy init) agar tidak dijalankan tiap render.
   const [emotionSupported] = useState(() => isEmotionSupported());
 
   const [openModuleId, setOpenModuleId] = useState<string | null>(
@@ -331,6 +329,7 @@ export default function ClassMaterialContentPageTemplate({
 
   const { data: detailModule } = useGsModuleById(openModuleId ?? "");
 
+  // ── REFACTOR: Mengintegrasikan State Lokal Langsung ke Pemetaan Objek Modules ──
   const modules = useMemo<IModuleView[]>(() => {
     return (courseModules ?? [])
       .filter(
@@ -340,10 +339,10 @@ export default function ClassMaterialContentPageTemplate({
       .map((m: GsCourseModule, i: number) => {
         const mId = m.id ?? (m as any).courseModuleId;
         const dId = detailModule?.id ?? (detailModule as any)?.courseModuleId;
-        // Merge: use detailModule for rich content fields, but preserve
-        // progress flags (accessible, fileRead, etc.) from the list module (m)
-        // because the detail endpoint does NOT return those flat fields.
-        const moduleToUse: GsCourseModule =
+
+        // REFACTOR: Pastikan bendera penanda tipe materi selalu diprioritaskan dari list 'm'
+        // agar struktur 'steps' langsung terbentuk sempurna sejak aplikasi pertama kali dimuat.
+        const moduleToUse: any =
           dId && mId === dId
             ? ({
                 ...detailModule,
@@ -351,22 +350,48 @@ export default function ClassMaterialContentPageTemplate({
                 fileRead: (m as any).fileRead,
                 videoWatched: (m as any).videoWatched,
                 eLKPDGraded: (m as any).eLKPDGraded,
-                completed: (detailModule as any).completed ?? (m as any).completed,
-                remedialCompleted: (detailModule as any).remedialCompleted ?? (m as any).remedialCompleted,
+                eLKPDSubmitted: (m as any).eLKPDSubmitted,
+                completed:
+                  (detailModule as any).completed ?? (m as any).completed,
+                remedialCompleted:
+                  (detailModule as any).remedialCompleted ??
+                  (m as any).remedialCompleted,
+                // Kunci konsistensi: kunci keberadaan konten harus konsisten antara list & detail
+                hasPDF:
+                  (m as any).hasPDF ?? !!detailModule?.subject?.subjectFileUrl,
+                hasVideo:
+                  (m as any).hasVideo ?? !!(detailModule as any).hasVideo,
+                hasELKPD:
+                  (m as any).hasELKPD ?? !!(detailModule as any).hasELKPD,
+              } as GsCourseModule)
+            : {
+                ...m,
+                // Pastikan data list m juga mengenali benderanya sendiri
+                hasPDF: (m as any).hasPDF ?? !!m.subject?.subjectFileUrl,
                 hasVideo: (m as any).hasVideo,
                 hasELKPD: (m as any).hasELKPD,
-              } as GsCourseModule)
-            : m;
-        return buildModuleView(moduleToUse, i);
+              };
+
+        const view = buildModuleView(moduleToUse, i);
+        if (!view) return null;
+
+        // Sinkronisasi state lokal
+        view.steps = view.steps.map((step) => {
+          if (step.kind === "VIDEO" && videoFinished[step.id]) {
+            return { ...step, status: "completed" };
+          }
+          if (step.kind === "ELKPD" && elkpdFinished[step.id]) {
+            return { ...step, status: "completed" };
+          }
+          return step;
+        });
+
+        return view;
       })
       .filter((m: IModuleView | null): m is IModuleView => m !== null);
-  }, [courseModules, detailModule]);
+  }, [courseModules, detailModule, videoFinished, elkpdFinished]);
 
-  console.log("MODULES: ", modules);
-
-  // ── Reflect progress state on steps ──────────────────────────────────
-  // @deprecated: progressData tracking [UNREADY] - removed
-  // All steps render as "in-progress" until endpoint is available
+  // ── REFACTOR: flatSteps murni memetakan data modules yang sudah ter-update ──
   const flatSteps = useMemo<IFlatStep[]>(() => {
     return modules.flatMap((m) => m.steps);
   }, [modules]);
@@ -388,9 +413,9 @@ export default function ClassMaterialContentPageTemplate({
     if (target.steps[0]) setSelectedStepId(target.steps[0].id);
   }, [modules, contentId, selectedStepId, stepParam]);
 
-  const toggleModule = (moduleId: string) => {
+  const toggleModule = useCallback((moduleId: string) => {
     setOpenModuleId((cur) => (cur === moduleId ? null : moduleId));
-  };
+  }, []);
 
   /* ---------- Derived Progress Data ---------- */
   const totalModules = modules.length;
@@ -418,9 +443,13 @@ export default function ClassMaterialContentPageTemplate({
       : 0;
 
   /* ---------- Breadcrumb ---------- */
-  const currentModuleTitle =
-    modules.find((module) => module.id === contentId)?.title ??
-    formatContentTitle(contentId);
+  const currentModuleTitle = useMemo(() => {
+    return (
+      modules.find((module) => module.id === contentId)?.title ??
+      formatContentTitle(contentId)
+    );
+  }, [modules, contentId]);
+
   const breadcrumbItems = useMemo(() => {
     if (!pathname) return [];
     const segments = pathname.split("/").filter(Boolean);
@@ -468,15 +497,12 @@ export default function ClassMaterialContentPageTemplate({
   useEffect(() => {
     if (!isSubjectStep || !emotionSupported) return;
     subjectEmotion.start().catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSubjectStep]);
+  }, [isSubjectStep, emotionSupported]);
 
-  // ── Stop emotion detection when leaving SUBJECT step ─────────────────
   useEffect(() => {
     if (!isSubjectStep) {
       subjectEmotion.stop();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSubjectStep]);
 
   const { data: activeModuleData } = useGsModuleById(
@@ -484,13 +510,14 @@ export default function ClassMaterialContentPageTemplate({
       ? activeStep.moduleId
       : "",
   );
+
   const activeModuleDataAny = activeModuleData as any;
   const resolvedDiagnosticTestId =
     activeStep?.diagnosticTestId ||
     activeModuleDataAny?.diagnosticTestId ||
     activeModuleDataAny?.diagnosticTest?.id ||
     "";
-    
+
   const isRemedialCompleted = useMemo(() => {
     const remedialStep = flatSteps.find(
       (s) => s.moduleId === activeStep?.moduleId && s.kind === "REMEDIAL",
@@ -498,7 +525,6 @@ export default function ClassMaterialContentPageTemplate({
     return remedialStep?.status === "completed";
   }, [flatSteps, activeStep?.moduleId]);
 
-  // When DIAGNOSTIC step is active, remedialTestId is on the REMEDIAL sibling step (same moduleId)
   const remedialSiblingStep = flatSteps.find(
     (s) => s.kind === "REMEDIAL" && s.moduleId === activeStep?.moduleId,
   );
@@ -518,7 +544,6 @@ export default function ClassMaterialContentPageTemplate({
       ? flatSteps[activeIndex + 1]
       : null;
 
-  // ── Diagnostic test hooks ───────────────────────────────────────────
   const { data: testAttempts } = useMyTestAttempts(activeStep?.moduleId ?? "", {
     enabled: activeStep?.kind === "DIAGNOSTIC" && !!activeStep?.moduleId,
   });
@@ -531,8 +556,6 @@ export default function ClassMaterialContentPageTemplate({
         new Date(a.startedAt ?? 0).getTime(),
     )[0];
   }, [testAttempts]);
-
-  const startTestAttempt = useStartTestAttempt(activeStep?.moduleId ?? "");
 
   useEffect(() => {
     if (activeIndex > maxUnlockedIndex) {
@@ -568,14 +591,14 @@ export default function ClassMaterialContentPageTemplate({
           );
           return;
         } else if (step.moduleId !== contentId) {
-          router.push(
+          window.history.pushState(
+            null,
+            "",
             `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}`,
           );
         }
       }
 
-      // ── Auto-track progress when LEAVING current step ────────────────
-      // Mark the step we're leaving, not the one we're navigating to
       if (activeStep?.moduleId === contentId) {
         if (activeStep?.kind === "PDF") {
           markFileRead.mutate({ target: "SUBJECT" });
@@ -604,10 +627,9 @@ export default function ClassMaterialContentPageTemplate({
     }
 
     let player: any;
-    const iframeId = `youtube-player-${activeStep.id}`;
+    const iframeId = `Youtubeer-${activeStep.id}`;
 
     const initPlayer = () => {
-      // Check if iframe exists in DOM
       if (!document.getElementById(iframeId)) return;
       player = new (window as any).YT.Player(iframeId, {
         events: {
@@ -624,7 +646,6 @@ export default function ClassMaterialContentPageTemplate({
     if (!(window as any).YT) {
       (window as any).onYouTubeIframeAPIReady = initPlayer;
     } else if ((window as any).YT.Player) {
-      // Use setTimeout to ensure iframe is rendered before initializing
       setTimeout(initPlayer, 500);
     }
 
@@ -656,16 +677,19 @@ export default function ClassMaterialContentPageTemplate({
       { threshold: 1.0 },
     );
 
-    if (bottomRef.current) {
-      observer.observe(bottomRef.current);
+    const currentBottomRef = bottomRef.current;
+    if (currentBottomRef) {
+      observer.observe(currentBottomRef);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      if (currentBottomRef) {
+        observer.unobserve(currentBottomRef);
+      }
+      observer.disconnect();
+    };
   }, [activeStep?.id, activeStep?.kind, elkpdFinished, markFileRead]);
 
-  /* ================================================================ */
-  /*  RENDER                                                           */
-  /* ================================================================ */
   if (isPending) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center text-sm text-[#9CA3AF]">
@@ -694,10 +718,18 @@ export default function ClassMaterialContentPageTemplate({
 
   return (
     <section className="min-h-screen rounded-3xl sm:p-3 lg:p-0">
-      {/* Blocking overlay if emotion camera fails on SUBJECT modules */}
       {isSubjectStep && emotionSupported && subjectEmotion.error && (
         <CameraRequiredScreen reason={subjectEmotion.error} />
       )}
+
+      <video
+        ref={subjectEmotion.videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="pointer-events-none fixed -left-[9999px] top-0 h-60 w-80"
+        aria-hidden="true"
+      />
 
       {/* ---- Breadcrumb ---- */}
       <nav className="mb-3 flex flex-wrap items-center gap-2 text-sm text-[#64748B]">
@@ -725,7 +757,6 @@ export default function ClassMaterialContentPageTemplate({
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
         {/* ==================== LEFT COLUMN ==================== */}
         <div>
-          {/* ------- Header ------- */}
           <div className="overflow-hidden rounded-t-2xl">
             <div className="flex flex-wrap items-center justify-between gap-3 bg-[#1F2E46] px-4 py-3 text-xs text-white/90">
               <div className="inline-flex items-center gap-3">
@@ -742,14 +773,13 @@ export default function ClassMaterialContentPageTemplate({
             </div>
           </div>
 
-          {/* ------- Content area ------- */}
           <div className="rounded-b-2xl bg-[#F8FAFC] p-4 sm:p-6">
             {isVideo && activeStep?.url && (
               <>
                 <ContentBadge icon={VideoIcon} label="Video Pembelajaran" />
                 <div className="aspect-video overflow-hidden rounded-2xl border border-[#E2E8F0] bg-black">
                   <iframe
-                    id={`youtube-player-${activeStep.id}`}
+                    id={`Youtubeer-${activeStep.id}`}
                     key={activeStep.id}
                     src={activeStep.url}
                     title={activeStep.title}
@@ -866,7 +896,8 @@ export default function ClassMaterialContentPageTemplate({
                     (() => {
                       const attemptCount = testAttempts?.attempts?.length ?? 0;
                       const finishedAttemptCount =
-                        testAttempts?.attempts?.filter((a) => !!a.completedAt)?.length ?? 0;
+                        testAttempts?.attempts?.filter((a) => !!a.completedAt)
+                          ?.length ?? 0;
                       const hasPassed =
                         testAttempts?.attempts?.some((a) => a.isPassed) ??
                         false;
@@ -880,19 +911,12 @@ export default function ClassMaterialContentPageTemplate({
                         );
                       }
 
-                      // Jika sudah menyelesaikan tes diagnostik (finishedAttemptCount > 0) dan belum lulus
                       if (finishedAttemptCount > 0) {
                         if (hasPassed || isRemedialCompleted) {
                           return (
                             <div className="mt-4">
                               <Link
-                                href={`/student/dashboard/class/${encodeURIComponent(
-                                  slug,
-                                )}/materi/${encodeURIComponent(
-                                  activeStep?.moduleId ?? contentId,
-                                )}/${encodeURIComponent(
-                                  resolvedDiagnosticTestId,
-                                )}`}
+                                href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
                                 className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
                               >
                                 Lihat Hasil & Pembahasan
@@ -909,25 +933,13 @@ export default function ClassMaterialContentPageTemplate({
                               </div>
                               <div className="flex gap-2">
                                 <Link
-                                  href={`/student/dashboard/class/${encodeURIComponent(
-                                    slug,
-                                  )}/materi/${encodeURIComponent(
-                                    activeStep?.moduleId ?? contentId,
-                                  )}/remedia/${encodeURIComponent(
-                                    resolvedRemedialTestId,
-                                  )}`}
+                                  href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
                                   className="inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
                                 >
                                   Kerjakan Tes Remedial
                                 </Link>
                                 <Link
-                                  href={`/student/dashboard/class/${encodeURIComponent(
-                                    slug,
-                                  )}/materi/${encodeURIComponent(
-                                    activeStep?.moduleId ?? contentId,
-                                  )}/${encodeURIComponent(
-                                    resolvedDiagnosticTestId,
-                                  )}`}
+                                  href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
                                   className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
                                 >
                                   Lihat Hasil & Pembahasan
@@ -942,7 +954,8 @@ export default function ClassMaterialContentPageTemplate({
                                 Batas percobaan tes sudah habis (1/1)
                               </div>
                               <p className="text-xs text-[#94A3B8]">
-                                Tidak ada tes remedial yang tersedia untuk modul ini. Hubungi guru kamu.
+                                Tidak ada tes remedial yang tersedia untuk modul
+                                ini. Hubungi guru kamu.
                               </p>
                             </div>
                           );
@@ -951,16 +964,12 @@ export default function ClassMaterialContentPageTemplate({
 
                       return (
                         <Link
-                          href={`/student/dashboard/class/${encodeURIComponent(
-                            slug,
-                          )}/materi/${encodeURIComponent(
-                            activeStep?.moduleId ?? contentId,
-                          )}/${encodeURIComponent(
-                            resolvedDiagnosticTestId,
-                          )}`}
+                          href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
                           className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
                         >
-                          {attemptCount > 0 ? "Lanjutkan Tes Diagnostik" : "Mulai Tes Diagnostik"}
+                          {attemptCount > 0
+                            ? "Lanjutkan Tes Diagnostik"
+                            : "Mulai Tes Diagnostik"}
                         </Link>
                       );
                     })()}
@@ -1036,17 +1045,15 @@ export default function ClassMaterialContentPageTemplate({
                   {slug &&
                     resolvedRemedialTestId &&
                     (() => {
-                      if (isRemedialCompleted || activeModuleDataAny?.hasCompleted || activeModuleDataAny?.remedialCompleted) {
+                      if (
+                        isRemedialCompleted ||
+                        activeModuleDataAny?.hasCompleted ||
+                        activeModuleDataAny?.remedialCompleted
+                      ) {
                         return (
                           <div className="mt-4">
                             <Link
-                              href={`/student/dashboard/class/${encodeURIComponent(
-                                slug,
-                              )}/materi/${encodeURIComponent(
-                                activeStep?.moduleId ?? contentId,
-                              )}/remedia/${encodeURIComponent(
-                                resolvedRemedialTestId,
-                              )}`}
+                              href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
                               className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
                             >
                               Lihat Hasil & Pembahasan
@@ -1076,14 +1083,10 @@ export default function ClassMaterialContentPageTemplate({
                             </div>
                           )}
                           <Link
-                            href={`/student/dashboard/class/${encodeURIComponent(
-                              slug,
-                            )}/materi/${encodeURIComponent(
-                              activeStep?.moduleId ?? contentId,
-                            )}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
+                            href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
                             className="inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
                           >
-                            Lihat Hasil & Pembahasan  
+                            Lihat Hasil & Pembahasan
                           </Link>
                         </div>
                       );
@@ -1110,7 +1113,6 @@ export default function ClassMaterialContentPageTemplate({
             <div ref={bottomRef} className="h-px w-full" />
           </div>
 
-          {/* ------- Step navigation ------- */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
@@ -1147,7 +1149,6 @@ export default function ClassMaterialContentPageTemplate({
             Daftar Modul
           </p>
 
-          {/* Header Progress (Ukuran Kecil) */}
           <div className="mt-3 overflow-hidden rounded-2xl bg-[#1F2375] p-4 text-white shadow-[0px_10px_20px_rgba(39,48,132,0.28)]">
             <div className="flex flex-col gap-3">
               <div>
@@ -1173,7 +1174,6 @@ export default function ClassMaterialContentPageTemplate({
               </div>
             </div>
 
-            {/* Overall progress */}
             <div className="mt-4">
               <div className="flex items-center justify-between text-[10px] font-medium text-white/85">
                 <span>Progres keseluruhan</span>
@@ -1310,13 +1310,8 @@ export default function ClassMaterialContentPageTemplate({
                                     {step.typeLabel} · Langkah {stepIndex + 1}
                                   </p>
                                 </div>
-                                {stepIsCompleted && !isActive && (
+                                {stepIsCompleted && (
                                   <CheckCircleIcon className="h-5 w-5 shrink-0 text-[#22C55E]" />
-                                )}
-                                {stepIsInProgress && !isActive && (
-                                  <span className="shrink-0 rounded-full bg-[#2563EB] px-2.5 py-0.5 text-[10px] font-semibold text-white">
-                                    Lanjutkan
-                                  </span>
                                 )}
                               </button>
                             )}
