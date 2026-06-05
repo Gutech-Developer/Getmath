@@ -102,8 +102,19 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                     </span>
                     <div className="min-w-0 flex-1 space-y-4">
                       {/* Pertanyaan */}
-                      <div className="prose prose-sm max-w-none text-[#374151]">
-                        <MathText text={variant.textQuestion || ""} />
+                      <div className="space-y-4">
+                        <div className="prose prose-sm max-w-none text-[#374151]">
+                          <MathText text={variant.textQuestion || ""} />
+                        </div>
+                        {variant.imageQuestionUrl && (
+                          <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
+                            <img
+                              src={variant.imageQuestionUrl}
+                              alt="Gambar Soal"
+                              className="max-h-80 w-auto object-contain rounded-lg mx-auto"
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {/* Options */}
@@ -128,8 +139,17 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                             >
                               {opt.option}
                             </span>
-                            <div className="prose prose-sm max-w-none">
-                              <MathText text={opt.textAnswer || ""} />
+                            <div className="min-w-0 flex-1 space-y-3">
+                              <div className="prose prose-sm max-w-none">
+                                <MathText text={opt.textAnswer || ""} />
+                              </div>
+                              {opt.imageAnswerUrl && (
+                                <img
+                                  src={opt.imageAnswerUrl}
+                                  alt={`Gambar Opsi ${opt.option}`}
+                                  className="max-h-40 w-auto object-contain rounded-lg"
+                                />
+                              )}
                             </div>
                           </li>
                         ))}
@@ -184,12 +204,14 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
 /* ------------------------------------------------------------------ */
 interface IProps {
   id: string;
+  role?: "admin" | "teacher";
 }
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
-export default function TeacherPreviewRemedialContent({ id }: IProps) {
+export default function TeacherPreviewRemedialContent({ id, role = "teacher" }: IProps) {
+  const basePath = role === "admin" ? "/admin/dashboard" : "/teacher/dashboard";
   const router = useRouter();
   const { data: test, isLoading } = useGsRemedialTestById(id);
 
@@ -208,7 +230,7 @@ export default function TeacherPreviewRemedialContent({ id }: IProps) {
         <p className="text-sm text-[#9CA3AF]">Tes remedial tidak ditemukan.</p>
         <button
           type="button"
-          onClick={() => router.push("/teacher/dashboard/manage-remedial")}
+          onClick={() => router.push(`${basePath}/manage-remedial`)}
           className="rounded-2xl bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white"
         >
           Kembali ke Daftar
@@ -225,7 +247,7 @@ export default function TeacherPreviewRemedialContent({ id }: IProps) {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.push("/teacher/dashboard/manage-remedial")}
+            onClick={() => router.push(`${basePath}/manage-remedial`)}
             className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:bg-[#F3F4F6]"
             aria-label="Kembali"
           >
@@ -247,7 +269,7 @@ export default function TeacherPreviewRemedialContent({ id }: IProps) {
         <button
           type="button"
           onClick={() =>
-            router.push(`/teacher/dashboard/manage-remedial/${id}/edit`)
+            router.push(`${basePath}/manage-remedial/${id}/edit`)
           }
           className="inline-flex items-center gap-2 rounded-2xl bg-[#EFF6FF] px-4 py-2.5 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
         >

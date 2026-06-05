@@ -339,6 +339,23 @@ export const queryKeys = {
       [...queryKeys.gsProgress.all, "testAttempts", courseModuleId] as const,
     elkpdGrades: (courseModuleId: string) =>
       [...queryKeys.gsProgress.all, "elkpdGrades", courseModuleId] as const,
+    diagnosticScores: (courseModuleId: string) =>
+      [
+        ...queryKeys.gsProgress.all,
+        "diagnosticScores",
+        courseModuleId,
+      ] as const,
+    remedialScores: (courseModuleId: string) =>
+      [...queryKeys.gsProgress.all, "remedialScores", courseModuleId] as const,
+  },
+  // user managemnet
+  userMangement: {
+    all: ["gs", "user"] as const,
+    lists: () => [...queryKeys.userMangement.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.userMangement.lists(), filters] as const,
+    details: () => [...queryKeys.userMangement.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.userMangement.details(), id] as const,
   },
 
   // Remediation / Diagnostic Tests Results
@@ -391,5 +408,11 @@ export const queryKeys = {
         "course",
         courseId,
       ] as const,
+  },
+
+  // Emotion Detection
+  emotions: {
+    all: ["emotions"] as const,
+    // Sub-key untuk hook pembacaan/analitik akan ditambahkan saat fase analitik dirilis
   },
 } as const;

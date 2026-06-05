@@ -3,7 +3,9 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Mathematics from "@tiptap/extension-mathematics";
+import Image from "@tiptap/extension-image";
 import "katex/dist/katex.min.css";
+import TrashIcon from "./icons/TrashIcon";
 import katex from "katex";
 import { cn } from "@/libs/utils";
 import { useEffect, useRef, useState } from "react";
@@ -51,6 +53,9 @@ interface IMathEditorProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  onImageUpload?: (file: File) => Promise<string>;
+  onImageDelete?: (url: string) => void;
+  isUploadingImage?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -62,6 +67,9 @@ export default function MathEditor({
   placeholder = "Ketik teks di sini…",
   className,
   disabled = false,
+  onImageUpload,
+  onImageDelete,
+  isUploadingImage,
 }: IMathEditorProps) {
   /* math dialog state */
   const [showMathDialog, setShowMathDialog] = useState(false);
@@ -81,11 +89,27 @@ export default function MathEditor({
     extensions: [
       StarterKit.configure({ heading: false, codeBlock: false }),
       Mathematics,
+      Image.configure({
+        HTMLAttributes: {
+          class: "max-h-64 object-contain rounded-lg border border-[#E5E7EB] my-2 inline-block max-w-full",
+        },
+      }),
     ],
     content: value,
     editable: !disabled,
     onUpdate({ editor: e }) {
       const html = e.getHTML();
+      
+      // Detect deleted images using regex
+      const imageRegex = /https?:\/\/[^\s"'>]+\/uploads\/images\/[^\s"'>]+/g;
+      const oldImages = Array.from(lastOnUpdateHtml.current.match(imageRegex) || []);
+      const newImages = Array.from(html.match(imageRegex) || []);
+      
+      const deletedImages = oldImages.filter(url => !newImages.includes(url));
+      deletedImages.forEach(url => {
+        if (onImageDelete) onImageDelete(url);
+      });
+
       lastOnUpdateHtml.current = html;
       onChange(html);
     },
@@ -204,6 +228,41 @@ export default function MathEditor({
           <span className="text-base leading-none">∑</span>
           Rumus
         </button>
+
+        {onImageUpload && (
+          <label
+            title="Sisipkan Gambar"
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border border-[#BFDBFE] bg-[#EFF6FF] px-2 py-0.5 text-xs font-semibold text-[#1D4ED8] transition hover:bg-[#DBEAFE] cursor-pointer",
+              isUploadingImage && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Gambar
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={isUploadingImage}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file && onImageUpload && editor) {
+                  try {
+                    const url = await onImageUpload(file);
+                    if (url) {
+                      editor.chain().focus().setImage({ src: url }).run();
+                    }
+                  } catch (err) {
+                    console.error("Image upload failed", err);
+                  }
+                }
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
       </div>
 
       {/* ── Math insert dialog ── */}
@@ -292,6 +351,49 @@ export default function MathEditor({
           "[&_.tiptap_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]",
         )}
       />
+
+      {/* ── Image preview & delete ── */}
+      {(() => {
+        const currentHtml = editor ? editor.getHTML() : value;
+        const imageRegex = /https?:\/\/[^\s"'>]+\/uploads\/images\/[^\s"'>]+/g;
+        const images = Array.from(currentHtml?.match(imageRegex) || []);
+        if (images.length === 0) return null;
+        
+        return (
+          <div className="border-t border-[#E5E7EB] p-3 flex flex-wrap gap-3 bg-[#F9FAFB] rounded-b-xl">
+            {images.map((url, idx) => (
+              <div key={idx} className="relative group">
+                <img
+                  src={url}
+                  alt={`Lampiran ${idx + 1}`}
+                  className="h-16 w-16 object-cover rounded border border-[#E5E7EB] bg-white"
+                  title="Gambar dalam teks"
+                />
+                {onImageDelete && (
+                  <button
+                    type="button"
+                    title="Hapus Gambar"
+                    onClick={() => {
+                      if (editor) {
+                        const html = editor.getHTML();
+                        const temp = document.createElement("div");
+                        temp.innerHTML = html;
+                        const imgs = temp.querySelectorAll(`img[src="${url}"]`);
+                        imgs.forEach(img => img.remove());
+                        editor.commands.setContent(temp.innerHTML);
+                      }
+                    }}
+                    className="absolute -top-1.5 -right-1.5 bg-white border border-[#DC2626] text-[#DC2626] p-1 rounded-full shadow-sm hover:bg-[#FEF2F2] transition"
+                  >
+                    <TrashIcon className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
     </div>
   );
 }

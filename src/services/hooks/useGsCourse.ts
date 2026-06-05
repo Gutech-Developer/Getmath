@@ -19,18 +19,7 @@ import type {
   GsPaginatedCourses,
   GsPaginationParams,
 } from "@/types/gs-course";
-
-// ─── Helper: build query string ───────────────────────────────────────────────
-
-function buildQuery(params?: GsPaginationParams): string {
-  if (!params) return "";
-  const q = new URLSearchParams();
-  if (params.page) q.set("page", String(params.page));
-  if (params.limit) q.set("limit", String(params.limit));
-  if (params.search) q.set("search", params.search);
-  const qs = q.toString();
-  return qs ? `?${qs}` : "";
-}
+import { buildQuery } from "./helper";
 
 // ─── ADMIN: GET /courses — semua kelas ───────────────────────────────────────
 
@@ -47,7 +36,8 @@ export function useGsAllCourses(params?: GsPaginationParams) {
 export function useGsSchoolCourses(params?: GsPaginationParams) {
   return useQuery<GsPaginatedCourses, Error>({
     queryKey: queryKeys.gsCourses.schoolList(params as Record<string, unknown>),
-    queryFn: () => gsGet<GsPaginatedCourses>(`/courses/school${buildQuery(params)}`),
+    queryFn: () =>
+      gsGet<GsPaginatedCourses>(`/courses/school${buildQuery(params)}`),
     staleTime: 2 * 60 * 1000,
   });
 }

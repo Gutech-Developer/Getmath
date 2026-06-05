@@ -6,7 +6,7 @@ import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import { cn } from "@/libs/utils";
 import { showToast } from "@/libs/toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   useGsCreateRemedialTest,
@@ -15,8 +15,10 @@ import {
   useGsUploadFile,
   useGsDeleteFile,
 } from "@/services";
+import SearchableInput from "@/components/atoms/SearchableInput";
 import type { GsRemedialTest, GsRemedialVariant } from "@/types/gs-remedial";
 import MathText from "../atoms/MathText";
+import { useSearchUser } from "@/services/hooks/useUser";
 
 const MathEditor = dynamic(() => import("@/components/atoms/MathEditor"), {
   ssr: false,
@@ -47,11 +49,10 @@ interface IRemedialQuestionDraft {
   id: string;
   pembahasan: string;
   videoUrl: string;
-  imageUrl: string;
   variants: Record<VariantLabel, IVariantDraft>;
 }
 
-function createEmptyVariant(): IVariantDraft {
+function createEmptyVariant(label: string): IVariantDraft {
   return {
     prompt: "",
     options: {
@@ -69,19 +70,17 @@ function createEmptyQuestion(): IRemedialQuestionDraft {
     id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     pembahasan: "",
     videoUrl: "",
-    imageUrl: "",
     variants: {
-      A: createEmptyVariant(),
-      B: createEmptyVariant(),
-      C: createEmptyVariant(),
+      A: createEmptyVariant("A"),
+      B: createEmptyVariant("B"),
+      C: createEmptyVariant("C"),
     },
   };
 }
 
 function latexTextToTiptapHtml(text: string): string {
   if (!text) return "";
-
-  // Convert each line into a Tiptap <p> block so newlines are preserved in the editor
+  if (text.includes("<p>") || text.includes("<span data-type=")) return text;
   return text
     .split("\n")
     .map((line) => {
@@ -103,7 +102,7 @@ function latexTextToTiptapHtml(text: string): string {
     .join("");
 }
 
-function tiptapHtmlToLatexText(html: string): string {
+function tiptapHtmlToLatexHtml(html: string): string {
   if (!html) return "";
   if (typeof window === "undefined") return html.replace(/<[^>]*>/g, "").trim();
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -122,16 +121,17 @@ function tiptapHtmlToLatexText(html: string): string {
       }
       const tag = el.tagName.toLowerCase();
       const inner = Array.from(el.childNodes).map(processNode).join("");
-      if (tag === "p") return inner + "\n";
-      if (tag === "br") return "\n";
-      return inner;
+      const attributes = Array.from(el.attributes)
+        .map((attr) => `${attr.name}="${attr.value}"`)
+        .join(" ");
+      return `<${tag}${attributes ? " " + attributes : ""}>${inner}</${tag}>`;
     }
     return "";
   }
   return Array.from(doc.body.childNodes)
     .map(processNode)
     .join("")
-    .replace(/\n+$/, ""); // trim trailing newlines only
+    .replace(/\n+$/, "");
 }
 
 function getYouTubeEmbedUrl(url: string): string | null {
@@ -150,8 +150,11 @@ function getYouTubeEmbedUrl(url: string): string | null {
   }
 }
 
-function parseVariant(v?: GsRemedialVariant): IVariantDraft {
-  if (!v) return createEmptyVariant();
+function parseVariant(
+  v?: GsRemedialVariant,
+  label: string = "A",
+): IVariantDraft {
+  if (!v) return createEmptyVariant(label);
   return {
     id: v.id,
     prompt: latexTextToTiptapHtml(v.textQuestion ?? ""),
@@ -192,20 +195,33 @@ function prefillQuestions(rt: GsRemedialTest): IRemedialQuestionDraft[] {
     id: q.id,
     pembahasan: latexTextToTiptapHtml(q.discussionText ?? ""),
     videoUrl: q.discussionVideoUrl ?? "",
-    imageUrl: q.discussionImageUrl ?? "",
     variants: {
-      A: parseVariant(q.variants.find((v) => v.packageLabel === "A")),
-      B: parseVariant(q.variants.find((v) => v.packageLabel === "B")),
-      C: parseVariant(q.variants.find((v) => v.packageLabel === "C")),
+      A: parseVariant(
+        q.variants.find((v) => v.packageLabel === "A"),
+        "A",
+      ),
+      B: parseVariant(
+        q.variants.find((v) => v.packageLabel === "B"),
+        "B",
+      ),
+      C: parseVariant(
+        q.variants.find((v) => v.packageLabel === "C"),
+        "C",
+      ),
     },
   }));
 }
 
 interface IProps {
   editId?: string;
+  role?: "admin" | "teacher";
 }
 
-export default function TeacherCreateRemedialContent({ editId }: IProps) {
+export default function TeacherCreateRemedialContent({
+  editId,
+  role = "teacher",
+}: IProps) {
+  const basePath = role === "admin" ? "/admin/dashboard" : "/teacher/dashboard";
   const router = useRouter();
   const isEditing = Boolean(editId);
   const { data: existingTest, isLoading: loadingExisting } =
@@ -227,18 +243,77 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
   const [openQuestionIds, setOpenQuestionIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
+  const [teacherId, setTeacherId] = useState<string>("");
+  const [teacherName, setTeacherName] = useState<string>("");
+  const [debounceQuery, setDebounceQuery] = useState<string>("");
+
+  // ── HIT ENDPOINT API SEARCH USER ──
+  const { data: teachers, isPending } = useSearchUser({
+    role: "teacher",
+    limit: 10,
+    search: debounceQuery,
+  });
+
+  const teacherOptions = useMemo(() => {
+    if (!teachers?.users) return [];
+    return teachers.users.map((user) => ({
+      value: user.profileId,
+      label: `${user.fullName} (${user.schoolName ?? "Tanpa Sekolah"})`,
+    }));
+  }, [teachers]);
+
+  // ── SINKRONISASI DATA UTAMA SAAT PROSES EDIT (HYDRATION) ──
   useEffect(() => {
     if (isEditing && existingTest && !hydrated) {
       setTestTitle(existingTest.testName);
       setDurationMinutes(String(existingTest.durationMinutes));
       setKkm(existingTest.passingScore);
       setDescription(existingTest.description ?? "");
+
       const prefilled = prefillQuestions(existingTest);
       setQuestions(prefilled);
       setOpenQuestionIds(prefilled.map((q) => q.id));
+      setTeacherId(existingTest.teacherId);
+
+      // KUNCI PERBAIKAN 1: Pasang langsung nama guru dari API jika tersedia, agar bypass debounce antrean awal
+      if ((existingTest as any).teacherName) {
+        setTeacherName((existingTest as any).teacherName);
+        setDebounceQuery((existingTest as any).teacherName);
+      }
+
       setHydrated(true);
     }
   }, [isEditing, existingTest, hydrated]);
+
+  // KUNCI PERBAIKAN 2: Jika backend tidak melempar teacherName flat, cari nama secara manual dari list users ter-load
+  useEffect(() => {
+    if (isEditing && teacherId && teachers?.users && !teacherName) {
+      const currentTeacher = teachers.users.find(
+        (u) => u.profileId === teacherId,
+      );
+      if (currentTeacher) {
+        setTeacherName(currentTeacher.fullName);
+        setDebounceQuery(currentTeacher.fullName);
+      }
+    }
+  }, [isEditing, teacherId, teachers, teacherName]);
+
+  // Debounce input interval pencarian guru pengampu
+  useEffect(() => {
+    if (
+      isEditing &&
+      existingTest &&
+      teacherName === (existingTest as any).teacherName
+    ) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDebounceQuery(teacherName);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [teacherName, isEditing, existingTest]);
 
   /* ── helpers ── */
   const addQuestion = () => {
@@ -248,6 +323,31 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
   };
 
   const removeQuestion = (qId: string) => {
+    const targetQ = questions.find((q) => q.id === qId);
+    if (targetQ) {
+      const urlsToDelete: string[] = [];
+      const imageRegex = /https?:\/\/[^\s"'>]+\/uploads\/images\/[^\s"'>]+/g;
+      const extractUrls = (html: string) => {
+        const matches = html.match(imageRegex);
+        if (matches) urlsToDelete.push(...matches);
+      };
+
+      extractUrls(targetQ.pembahasan);
+      VARIANT_LABELS.forEach((vLabel) => {
+        const variant = targetQ.variants[vLabel];
+        extractUrls(variant.prompt);
+        CHOICE_KEYS.forEach((key) => {
+          extractUrls(variant.options[key].text);
+        });
+      });
+
+      urlsToDelete.forEach(async (url) => {
+        try {
+          await deleteMutation.mutateAsync(url);
+        } catch (e) {}
+      });
+    }
+
     setQuestions((prev) => {
       const next = prev.filter((q) => q.id !== qId);
       if (next.length === 0) {
@@ -272,10 +372,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
     setQuestions((prev) =>
       prev.map((q) => {
         if (q.id !== qId) return q;
-        return {
-          ...q,
-          ...updater(q),
-        };
+        return { ...q, ...updater(q) };
       }),
     );
   };
@@ -300,32 +397,37 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
 
   /* ── build payload ── */
   const buildPayload = (isUpsert: boolean) =>
-    questions.map((q, qi) => ({
-      ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
-      questionNumber: qi + 1,
-      discussionText:
-        tiptapHtmlToLatexText(q.pembahasan) ||
-        `Pembahasan soal ${qi + 1}`,
-      discussionVideoUrl: q.videoUrl || undefined,
-      discussionImageUrl: q.imageUrl || undefined,
-      variants: VARIANT_LABELS.map((label) => {
-        const variant = q.variants[label];
-        return {
-          ...(isUpsert && variant.id ? { id: variant.id } : {}),
-          packageLabel: label,
-          textQuestion:
-            tiptapHtmlToLatexText(variant.prompt) || `Soal ${label} ${qi + 1}`,
-          options: CHOICE_KEYS.map((key) => ({
-            ...(isUpsert && variant.options[key].id
-              ? { id: variant.options[key].id }
-              : {}),
-            option: key,
-            textAnswer: tiptapHtmlToLatexText(variant.options[key].text),
-            isCorrect: variant.correctAnswer === key,
-          })),
-        };
-      }),
-    }));
+    questions.map((q, qi) => {
+      return {
+        ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
+        questionNumber: qi + 1,
+        discussionText:
+          tiptapHtmlToLatexHtml(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
+        discussionVideoUrl: q.videoUrl || null,
+        variants: VARIANT_LABELS.map((label) => {
+          const variant = q.variants[label];
+          return {
+            ...(isUpsert && variant.id ? { id: variant.id } : {}),
+            packageLabel: label,
+            textQuestion:
+              tiptapHtmlToLatexHtml(variant.prompt) ||
+              `Soal ${label} ${qi + 1}`,
+            options: CHOICE_KEYS.map((key) => {
+              return {
+                ...(isUpsert && variant.options[key].id
+                  ? { id: variant.options[key].id }
+                  : {}),
+                option: key,
+                textAnswer:
+                  tiptapHtmlToLatexHtml(variant.options[key].text) ||
+                  `Jawaban ${key}`,
+                isCorrect: variant.correctAnswer === key,
+              };
+            }),
+          };
+        }),
+      };
+    });
 
   /* ── submit ── */
   const handleSave = () => {
@@ -333,18 +435,20 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       showToast.error("Judul tes tidak boleh kosong");
       return;
     }
+    if (role === "admin" && !teacherId) {
+      showToast.error("Silakan pilih guru pengampu terlebih dahulu");
+      return;
+    }
 
-    // Validate each question
     for (let qi = 0; qi < questions.length; qi++) {
       const q = questions[qi];
       const errorLabel = `Soal ${qi + 1}`;
 
-      if (!tiptapHtmlToLatexText(q.pembahasan).trim()) {
+      if (!tiptapHtmlToLatexHtml(q.pembahasan).trim()) {
         showToast.error(`${errorLabel}: Pembahasan tidak boleh kosong`);
         setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
         return;
       }
-
       if (!q.videoUrl.trim()) {
         showToast.error(`${errorLabel}: URL video pembahasan wajib diisi`);
         setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
@@ -361,7 +465,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       for (const label of VARIANT_LABELS) {
         const variant = q.variants[label];
         const varErrorLabel = `Paket ${label}, Soal ${qi + 1}`;
-        if (!tiptapHtmlToLatexText(variant.prompt).trim()) {
+        if (!tiptapHtmlToLatexHtml(variant.prompt).trim()) {
           showToast.error(`${varErrorLabel}: Pertanyaan tidak boleh kosong`);
           setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
           setActivePackage(label);
@@ -376,16 +480,17 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
           id: editId,
           data: {
             testName: testTitle,
-            description: description || undefined,
+            description: description || null,
             durationMinutes: Number(durationMinutes) || 60,
             passingScore: kkm,
+            teacherId: teacherId || undefined,
             questions: buildPayload(true),
           },
         },
         {
           onSuccess: () => {
             showToast.success("Tes remedial berhasil diperbarui");
-            router.push("/teacher/dashboard/manage-remedial");
+            router.push(`${basePath}/manage-remedial`);
           },
           onError: () => showToast.error("Gagal memperbarui tes remedial"),
         },
@@ -394,9 +499,10 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       createMutation.mutate(
         {
           testName: testTitle,
-          description: description || undefined,
+          description: description || null,
           durationMinutes: Number(durationMinutes) || 60,
           passingScore: kkm,
+          teacherId: teacherId || undefined,
           questions: buildPayload(false),
         },
         {
@@ -405,8 +511,8 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
             const id = (data as GsRemedialTest).id;
             router.push(
               id
-                ? `/teacher/dashboard/manage-remedial/${id}`
-                : "/teacher/dashboard/manage-remedial",
+                ? `${basePath}/manage-remedial/${id}`
+                : `${basePath}/manage-remedial`,
             );
           },
           onError: () => showToast.error("Gagal membuat tes remedial"),
@@ -430,7 +536,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push("/teacher/dashboard/manage-remedial")}
+          onClick={() => router.push(`${basePath}/manage-remedial`)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:bg-[#F3F4F6]"
           aria-label="Kembali"
         >
@@ -502,6 +608,28 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
             className="w-full resize-none rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
           />
         </div>
+
+        {/* Input Guru (Hanya Admin) */}
+        {role === "admin" && (
+          <div className="space-y-1.5">
+            <SearchableInput
+              label="Guru (Pembuat Tes)"
+              placeholder="Cari guru..."
+              value={teacherName}
+              onChange={(label, option) => {
+                setTeacherName(label);
+                if (option?.value) {
+                  setTeacherId(option.value);
+                } else {
+                  setTeacherId("");
+                }
+              }}
+              options={teacherOptions}
+              isLoading={isPending}
+              required
+            />
+          </div>
+        )}
       </section>
 
       {/* Paket Soal */}
@@ -532,14 +660,13 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
           {questions.map((question, qi) => {
             const isOpen = openQuestionIds.includes(question.id);
             const variant = question.variants[activePackage];
-            const preview = tiptapHtmlToLatexText(variant.prompt);
+            const preview = tiptapHtmlToLatexHtml(variant.prompt);
 
             return (
               <div
                 key={question.id}
                 className="overflow-hidden rounded-2xl border border-[#E5E7EB]"
               >
-                {/* Accordion header */}
                 <button
                   type="button"
                   onClick={() => toggleQuestion(question.id)}
@@ -549,9 +676,9 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                     <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-sm font-semibold text-white">
                       {qi + 1}
                     </span>
-                    <p className="max-w-md">
-                      <MathText text={preview ?? `Soal ${qi + 1}`} />
-                    </p>
+                    <div className="max-w-md truncate text-sm">
+                      <MathText text={preview || `Soal ${qi + 1}`} />
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="shrink-0 rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
@@ -566,10 +693,8 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                   </div>
                 </button>
 
-                {/* Accordion body */}
                 {isOpen && (
                   <div className="space-y-5 border-t border-[#E5E7EB] p-4">
-                    {/* Pertanyaan */}
                     <div className="space-y-1.5">
                       <label className="block text-sm font-semibold text-[#4B5563]">
                         Pertanyaan <span className="text-[#EF4444]">*</span>
@@ -583,10 +708,23 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                           }))
                         }
                         placeholder="Masukkan teks soal…"
+                        isUploadingImage={uploadMutation.isPending}
+                        onImageUpload={async (file) => {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          const res =
+                            await uploadMutation.mutateAsync(formData);
+                          showToast.success("Gambar berhasil diunggah");
+                          return res.url;
+                        }}
+                        onImageDelete={async (url) => {
+                          try {
+                            await deleteMutation.mutateAsync(url);
+                          } catch {}
+                        }}
                       />
                     </div>
 
-                    {/* Pilihan Jawaban */}
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-[#4B5563]">
                         Pilihan Jawaban (A – D)
@@ -598,53 +736,71 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                             <div
                               key={key}
                               className={cn(
-                                "rounded-2xl border p-3",
+                                "flex items-start gap-3 rounded-2xl border p-3 transition-colors",
                                 isCorrect
-                                  ? "border-[#93C5FD] bg-[#EFF6FF]"
+                                  ? "border-[#3B82F6] bg-[#EFF6FF]"
                                   : "border-[#E5E7EB] bg-white",
                               )}
                             >
-                              <div className="mb-2 flex items-center gap-2">
-                                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F3F4F6] text-sm font-semibold text-[#374151]">
-                                  {key}
-                                </span>
-                                <label className="flex items-center gap-1.5 text-xs font-medium text-[#4B5563]">
-                                  <input
-                                    type="radio"
-                                    name={`correct-${question.id}-${activePackage}`}
-                                    checked={isCorrect}
-                                    onChange={() =>
-                                      updateVariant(question.id, (prev) => ({
-                                        ...prev,
-                                        correctAnswer: key,
-                                      }))
-                                    }
-                                    className="h-4 w-4 accent-[#2563EB]"
-                                  />
-                                  Jawaban benar
-                                </label>
-                              </div>
-                              <MathEditor
-                                value={variant.options[key].text}
-                                onChange={(v) =>
+                              <button
+                                type="button"
+                                onClick={() =>
                                   updateVariant(question.id, (prev) => ({
                                     ...prev,
-                                    options: {
-                                      ...prev.options,
-                                      [key]: { text: v },
-                                    },
+                                    correctAnswer: key,
                                   }))
                                 }
-                                placeholder={`Pilihan ${key}`}
-                                className="min-h-14"
-                              />
+                                className={cn(
+                                  "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition",
+                                  isCorrect
+                                    ? "border-[#3B82F6] bg-[#3B82F6] text-white"
+                                    : "border-[#D1D5DB] text-[#9CA3AF] hover:border-[#9CA3AF]",
+                                )}
+                              >
+                                {key}
+                              </button>
+                              <div className="min-w-0 flex-1">
+                                <MathEditor
+                                  value={variant.options[key].text}
+                                  onChange={(v) =>
+                                    updateVariant(question.id, (prev) => ({
+                                      ...prev,
+                                      options: {
+                                        ...prev.options,
+                                        [key]: {
+                                          ...prev.options[key],
+                                          text: v,
+                                        },
+                                      },
+                                    }))
+                                  }
+                                  placeholder={`Jawaban ${key}…`}
+                                  isUploadingImage={uploadMutation.isPending}
+                                  onImageUpload={async (file) => {
+                                    const formData = new FormData();
+                                    formData.append("file", file);
+                                    const res =
+                                      await uploadMutation.mutateAsync(
+                                        formData,
+                                      );
+                                    showToast.success(
+                                      "Gambar berhasil diunggah",
+                                    );
+                                    return res.url;
+                                  }}
+                                  onImageDelete={async (url) => {
+                                    try {
+                                      await deleteMutation.mutateAsync(url);
+                                    } catch {}
+                                  }}
+                                />
+                              </div>
                             </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Pembahasan */}
                     <div className="space-y-1.5">
                       <label className="block text-sm font-semibold text-[#4B5563]">
                         Pembahasan <span className="text-[#EF4444]">*</span>
@@ -652,89 +808,26 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                       <MathEditor
                         value={question.pembahasan}
                         onChange={(v) =>
-                          updateQuestion(question.id, () => ({
-                            pembahasan: v,
-                          }))
+                          updateQuestion(question.id, () => ({ pembahasan: v }))
                         }
                         placeholder="Tuliskan pembahasan…"
+                        isUploadingImage={uploadMutation.isPending}
+                        onImageUpload={async (file) => {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          const res =
+                            await uploadMutation.mutateAsync(formData);
+                          showToast.success("Gambar berhasil diunggah");
+                          return res.url;
+                        }}
+                        onImageDelete={async (url) => {
+                          try {
+                            await deleteMutation.mutateAsync(url);
+                          } catch {}
+                        }}
                       />
                     </div>
 
-                    {/* Gambar Pembahasan */}
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-[#4B5563]">
-                        Gambar Pembahasan (Opsional)
-                      </label>
-                      {question.imageUrl ? (
-                        <div className="relative overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 flex flex-col items-center gap-3">
-                          <img
-                            src={question.imageUrl}
-                            alt="Gambar Pembahasan"
-                            className="max-h-60 object-contain rounded-xl"
-                          />
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await deleteMutation.mutateAsync(question.imageUrl);
-                                updateQuestion(question.id, () => ({ imageUrl: "" }));
-                                showToast.success("Gambar berhasil dihapus");
-                              } catch {
-                                showToast.error("Gagal menghapus gambar");
-                              }
-                            }}
-                            disabled={deleteMutation.isPending}
-                            className="inline-flex items-center gap-2 rounded-xl bg-[#FEF2F2] px-4 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                            Hapus Gambar
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-6 text-center transition hover:border-[#93C5FD]">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              const formData = new FormData();
-                              formData.append("file", file);
-                              try {
-                                const res = await uploadMutation.mutateAsync(formData);
-                                updateQuestion(question.id, () => ({ imageUrl: res.url }));
-                                showToast.success("Gambar berhasil diunggah");
-                              } catch (err: any) {
-                                showToast.error(err.message || "Gagal mengunggah gambar");
-                              }
-                            }}
-                            className="absolute inset-0 cursor-pointer opacity-0"
-                          />
-                          <svg
-                            className="mx-auto h-10 w-10 text-[#9CA3AF]"
-                            stroke="currentColor"
-                            fill="none"
-                            viewBox="0 0 48 48"
-                            aria-hidden="true"
-                          >
-                            <path
-                              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          <p className="mt-2 text-sm font-medium text-[#4B5563]">
-                            {uploadMutation.isPending ? "Mengunggah..." : "Pilih gambar untuk diunggah"}
-                          </p>
-                          <p className="mt-1 text-xs text-[#9CA3AF]">
-                            PNG, JPG, JPEG, atau WEBP hingga 5MB
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Video URL */}
                     <div className="space-y-1.5">
                       <label className="block text-sm font-semibold text-[#4B5563]">
                         Video Pembahasan (URL){" "}
@@ -768,15 +861,14 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
                       })()}
                     </div>
 
-                    {/* Hapus soal */}
                     <div className="flex justify-end">
                       <button
                         type="button"
                         onClick={() => removeQuestion(question.id)}
                         className="inline-flex items-center gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
                       >
-                        <TrashIcon className="h-4 w-4" />
-                        Hapus Soal (Seluruh Paket)
+                        <TrashIcon className="h-4 w-4" /> Hapus Soal (Seluruh
+                        Paket)
                       </button>
                     </div>
                   </div>
@@ -785,14 +877,12 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
             );
           })}
 
-          {/* Tambah Soal */}
           <button
             type="button"
             onClick={addQuestion}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#93C5FD] bg-[#F0F9FF] py-3 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
           >
-            <PlusIcon className="h-4 w-4" />
-            Tambah Soal Baru
+            <PlusIcon className="h-4 w-4" /> Tambah Soal Baru
           </button>
         </div>
       </section>
@@ -801,7 +891,7 @@ export default function TeacherCreateRemedialContent({ editId }: IProps) {
       <div className="flex flex-wrap items-center justify-end gap-3 rounded-3xl border border-[#E5E7EB] bg-white px-6 py-4">
         <button
           type="button"
-          onClick={() => router.push("/teacher/dashboard/manage-remedial")}
+          onClick={() => router.push(`${basePath}/manage-remedial`)}
           className="rounded-2xl border border-[#D1D5DB] bg-[#F9FAFB] px-8 py-2.5 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F3F4F6]"
         >
           Batal

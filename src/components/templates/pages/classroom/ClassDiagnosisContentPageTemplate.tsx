@@ -25,6 +25,7 @@ import type {
 import { formatDiagnosticTime } from "@/utils";
 import { showToast } from "@/libs/toast";
 import {
+  useGsModulesByCourse,
   useGsModuleById,
   useStartTestAttempt,
   useMyTestAttempts,
@@ -41,6 +42,12 @@ import type {
   SubmitTestAttemptResult,
   RemedialVariant,
 } from "@/services/hooks/useGsProgress";
+import { useEmotionDetector } from "@/services/hooks/useEmotionDetector";
+import { toEmotionInput } from "@/libs/emotion/normalize";
+import { pickFeedback } from "@/libs/emotion/feedback";
+import { isEmotionSupported } from "@/libs/emotion";
+import CameraRequiredScreen from "@/components/molecules/classroom/CameraRequiredScreen";
+import EmotionNotification from "@/components/molecules/classroom/EmotionNotification";
 
 export default function ClassDiagnosisContentPageTemplate({
   slug,
@@ -75,6 +82,18 @@ export default function ClassDiagnosisContentPageTemplate({
   const { data: apiModule, isLoading: isModuleLoading } =
     useGsModuleById(contentId);
 
+  const { data: courseModules } = useGsModulesByCourse(
+    apiModule?.courseId ?? "",
+  );
+
+  const currentModuleIndex =
+    courseModules?.findIndex((m) => m.id === contentId) ?? -1;
+  const nextModule =
+    currentModuleIndex >= 0 &&
+    currentModuleIndex < (courseModules?.length ?? 0) - 1
+      ? courseModules![currentModuleIndex + 1]
+      : null;
+
   const latestDiagnosticAttempt = useMemo(() => {
     const history = apiModule?.attemptHistory ?? [];
     if (history.length === 0) {
@@ -102,8 +121,24 @@ export default function ClassDiagnosisContentPageTemplate({
     !!latestDiagnosticAttempt &&
     !latestDiagnosticAttempt.isPassed &&
     !(apiModule?.attemptHistory?.some((attempt) => attempt.isPassed) ?? false);
+  // ─── isRemedial derivation ───────────────────────────────────────────────
+  // Priority:
+  //   1. !!remediaId          — explicit URL param, strongest signal, available from first render
+  //   2. !diagnotisId && ...  — only when user is NOT on an explicit diagnostic URL:
+  //        a. apiModule.type === "REMEDIAL"  (backend says so)
+  //        b. hasFailedDiagnosticAttempt     (has failed before, no other URL context)
+  // IMPORTANT: apiModule.type must also be gated on !diagnotisId.
+  // If apiModule happens to return type "REMEDIAL" while user is on the diagnostic URL
+  // (diagnotisId is set), we must NOT flip isRemedial to true.
   const isRemedial =
-    !!remediaId || apiModule?.type === "REMEDIAL" || hasFailedDiagnosticAttempt;
+    !!remediaId ||
+    (!diagnotisId &&
+      (apiModule?.type === "REMEDIAL" || hasFailedDiagnosticAttempt));
+  // Ref untuk dibaca dari dalam auto-submit effect tanpa memasukkan isRemedial
+  // ke dalam dep array (mencegah race condition: isRemedial berubah saat quiz aktif
+  // bisa memicu handleAutoSubmitRemedial secara tidak sengaja).
+  const isRemedialRef = useRef(isRemedial);
+  isRemedialRef.current = isRemedial;
   const [remedialAttemptId, setRemedialAttemptId] = useState<string | null>(
     null,
   );
@@ -143,6 +178,7 @@ export default function ClassDiagnosisContentPageTemplate({
   const { data: remedialTestData } = useGsRemedialTestById(
     isRemedial ? (apiModule?.remedialTestId ?? "") : "",
   );
+
 
   const getYouTubeId = (url: string): string | null => {
     if (!url) return null;
@@ -221,12 +257,14 @@ export default function ClassDiagnosisContentPageTemplate({
     return source.map((q) => ({
       id: q.id,
       prompt: q.textQuestion ?? "",
+      imageQuestionUrl: q.imageQuestionUrl ?? null,
       topic: "Umum",
       typeLabel: "Pilihan Ganda",
       options: q.options.map((opt) => ({
         id: opt.id,
         label: opt.option,
         text: opt.textAnswer ?? "",
+        imageAnswerUrl: opt.imageAnswerUrl ?? null,
       })),
       discussion: "",
       videoUrl: "",
@@ -239,21 +277,54 @@ export default function ClassDiagnosisContentPageTemplate({
     reviewView ?? (isRemedial ? "remedial" : "diagnostic");
 
   const { data: diagnosticReviewData } = useDiagnosticAnswersReview(contentId, {
-    enabled: flowStep === "completed" && activeReviewView === "diagnostic",
+    enabled: true,
   });
   const { data: remedialReviewData } = useRemedialAnswersReview(contentId, {
-    enabled: flowStep === "completed" && activeReviewView === "remedial",
+    enabled: true,
   });
 
   const previewRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // ─── Emotion Detection (Remedial only) ────────────────────────────────────
+  // Tidak aktif saat soal diagnostik (isRemedial = false).
+  // Wajib aktif saat remedial — spec §12: emotion WAJIB di setiap submit variant.
+  const emotion = useEmotionDetector({ enabled: isRemedial, intervalMs: 500 });
+  const [emotionFeedbackMsg, setEmotionFeedbackMsg] = useState<string | null>(
+    null,
+  );
+  // Evaluasi sekali (lazy init) agar tidak dijalankan tiap render.
+  const [emotionSupported] = useState(() => isEmotionSupported());
+
+  // Start emotion detection setelah quiz render — videoRef.current dijamin non-null.
+  // handleRequestCamera hanya probe permission; start() asli di sini.
+  useEffect(() => {
+    if (!isRemedial || flowStep !== "quiz" || emotion.ready || !!emotion.error)
+      return;
+    emotion.start().catch(() => {
+      // error sudah di-set lewat setError di dalam start(); CameraRequiredScreen render.
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRemedial, flowStep, emotion.ready, emotion.error]);
+
+  // Spec §15: proactive warning saat wajah tidak terdeteksi ≥10 detik.
+  // Toast muncul sekali saat warning aktif, otomatis hilang saat wajah kembali.
+  useEffect(() => {
+    if (!emotion.noFaceWarning) return;
+    showToast.warning(
+      "Pastikan wajah kamu terlihat jelas di kamera agar deteksi emosi berjalan.",
+    );
+  }, [emotion.noFaceWarning]);
+
   const encodedSlug = encodeURIComponent(slug);
   const encodedContentId = encodeURIComponent(contentId);
-  const materialHref = `/student/dashboard/class/${encodedSlug}/materi/${encodedContentId}`;
+  const baseMaterialHref = `/student/dashboard/class/${encodedSlug}/materi/${encodedContentId}`;
+  const materialHref = isRemedial
+    ? `${baseMaterialHref}?step=remedial`
+    : baseMaterialHref;
   const diagnosticHref = isRemedial
-    ? `${materialHref}/remedia/${encodeURIComponent(remediaId ?? "")}`
-    : `${materialHref}/${encodeURIComponent(diagnotisId ?? "")}`;
+    ? `${baseMaterialHref}/remedia/${encodeURIComponent(remediaId ?? "")}`
+    : `${baseMaterialHref}/${encodeURIComponent(diagnotisId ?? "")}`;
 
   const activeQuestion = diagnosticQuestions[activeQuestionIndex] ?? null;
   const allRulesConfirmed = ruleChecklist.every(Boolean);
@@ -294,6 +365,19 @@ export default function ClassDiagnosisContentPageTemplate({
     console.log("[DiagnosticTest] attemptsData:", attemptsData);
     console.log("[DiagnosticTest] activeAttempt:", activeAttempt);
   }, [attemptsData, activeAttempt]);
+
+  useEffect(() => {
+    if (flowStep !== "quiz" && flowStep !== "completed") {
+      if (isRemedial && remedialReviewData) {
+        setReviewView("remedial");
+        setFlowStep("completed");
+      } else if (!isRemedial && diagnosticReviewData) {
+        setReviewView("diagnostic");
+        setFlowStep("completed");
+      }
+    }
+  }, [isRemedial, remedialReviewData, diagnosticReviewData, flowStep]);
+
   useEffect(() => {
     if (!discussionShow || !discussionData?.videoUrl) return;
 
@@ -339,6 +423,38 @@ export default function ClassDiagnosisContentPageTemplate({
       }
     };
   }, [discussionShow, discussionData?.videoUrl]);
+  // ─── Auto-advance to completed when student already has a past attempt ────
+  // If apiModule loads and reveals an existing attempt, skip the camera/rules
+  // screen entirely and go straight to the result view. This prevents the
+  // "Mulai Tes Sekarang" button from appearing when the student already
+  // exhausted their one diagnostic attempt.
+  useEffect(() => {
+    if (
+      !isRemedial &&
+      flowStep === "camera" &&
+      !isModuleLoading &&
+      latestDiagnosticAttempt !== null
+    ) {
+      // Hydrate submitResult so scores display correctly before the review
+      // API query fires. DiagnosticAttemptItem has score + isPassed; other
+      // fields default to 0 and will be overridden once diagnosticReviewData loads.
+      setSubmitResult({
+        attemptId: latestDiagnosticAttempt.attemptId,
+        attemptNumber: latestDiagnosticAttempt.attemptNumber,
+        score: latestDiagnosticAttempt.score ?? 0,
+        passingScore: apiModule?.passingScore ?? DIAGNOSTIC_KKM_MINIMUM_SCORE,
+        isPassed: latestDiagnosticAttempt.isPassed,
+        totalQuestions: 0,
+        correctAnswers: 0,
+        remainingAttempts: 0,
+        completedAt:
+          latestDiagnosticAttempt.completedAt ?? new Date().toISOString(),
+      });
+      setFlowStep("completed");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRemedial, isModuleLoading, latestDiagnosticAttempt]);
+
   useEffect(() => {
     if (!previewRef.current || !streamRef.current) {
       return;
@@ -377,18 +493,15 @@ export default function ClassDiagnosisContentPageTemplate({
       return;
     }
 
-    if (isRemedial) {
+    // Baca via ref — bukan dari closure — agar perubahan isRemedial di tengah quiz
+    // tidak menyebabkan effect ini re-fire dan auto-submit secara tidak sengaja.
+    if (isRemedialRef.current) {
       handleAutoSubmitRemedial();
       return;
     }
 
     handleCompleteTest();
-  }, [
-    flowStep,
-    remainingSeconds,
-    isRemedial,
-    submitRemedialVariantMutation.isPending,
-  ]);
+  }, [flowStep, remainingSeconds, submitRemedialVariantMutation.isPending]);
 
   const handleCompleteTest = async () => {
     setReviewView("diagnostic");
@@ -507,6 +620,35 @@ export default function ClassDiagnosisContentPageTemplate({
   const handleRequestCamera = async () => {
     setCameraError(null);
     setCameraState("requesting");
+
+    // For remedial: test camera permission with a quick getUserMedia probe.
+    // Do NOT call emotion.start() here — videoRef.current is null at this
+    // flowStep (quiz JSX belum render). emotion.start() deferred ke useEffect.
+    if (isRemedial) {
+      if (!emotionSupported) {
+        setCameraState("denied");
+        setCameraError(
+          "Browser ini belum mendukung deteksi emosi. Gunakan Chrome/Edge/Firefox versi terbaru.",
+        );
+        return;
+      }
+      try {
+        // Probe-only: verify the user has granted camera permission
+        const probe = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        probe.getTracks().forEach((t) => t.stop()); // release immediately
+        setCameraState("granted");
+        setFlowStep("briefing");
+      } catch {
+        setCameraState("denied");
+        setCameraError(
+          "Akses kamera ditolak. Izinkan akses kamera agar tes remedial bisa dimulai.",
+        );
+      }
+      return;
+    }
 
     if (!navigator?.mediaDevices?.getUserMedia) {
       setCameraState("denied");
@@ -652,12 +794,38 @@ export default function ClassDiagnosisContentPageTemplate({
     if (!remedialAttemptId || !currentVariant || !selectedRemedialOptionId)
       return;
 
+    if (!emotion.hasSample) {
+      // Spec §15: bedakan antara model masih loading vs wajah tidak terdeteksi.
+      if (!emotion.ready) {
+        showToast.info("Sedang memuat model deteksi emosi, mohon tunggu...");
+      } else {
+        showToast.warning("Pastikan wajah kamu terlihat di kamera.");
+      }
+      return;
+    }
+
+    // Spec §12.2: flush atomik via flushOrUnknown() — satu panggilan, window timestamp utuh.
+    const emotionResult = emotion.flushOrUnknown();
+    console.log("[Emotion] flush →", {
+      mode: emotionResult.mode,
+      sampleCount: emotionResult.sampleCount,
+      distribution: emotionResult.distribution,
+      durationMs: emotionResult.durationMs,
+    });
+    const emotionInput = toEmotionInput(emotionResult);
+    // Spec §4.3 & §12.5: startedAt/completedAt di level input, diambil dari window emosi.
+    const startedAt = new Date(emotionResult.startedAtMs).toISOString();
+    const completedAt = new Date(emotionResult.endedAtMs).toISOString();
+
     submitRemedialVariantMutation.mutate(
       {
         remedialAttemptId,
         input: {
           variantId: currentVariant.variantId,
           selectedOptionId: selectedRemedialOptionId,
+          startedAt,
+          completedAt,
+          emotion: emotionInput,
         },
       },
       {
@@ -686,6 +854,11 @@ export default function ClassDiagnosisContentPageTemplate({
               isCorrect: data.isCorrect,
             },
           ]);
+
+          // Tampilkan feedback emosi saat jawaban salah
+          if (!data.isCorrect) {
+            setEmotionFeedbackMsg(pickFeedback(emotionResult.mode));
+          }
 
           if (data.isCompleted) {
             setRemedialSummary(data.summary);
@@ -917,7 +1090,7 @@ export default function ClassDiagnosisContentPageTemplate({
               pengerjaan berjalan tertib.
             </p>
 
-            {canReviewLatestDiagnosticAttempt ? (
+            {diagnosticReviewData || remedialReviewData ? (
               <div className="rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-3">
                 <p className="text-sm font-semibold text-[#1E3A8A]">
                   Sudah ada hasil tes sebelumnya.
@@ -927,20 +1100,24 @@ export default function ClassDiagnosisContentPageTemplate({
                   sebelum memulai tes lagi.
                 </p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={handleOpenDiagnosticReview}
-                    className="inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
-                  >
-                    Review Diagnostic
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleOpenRemedialReview}
-                    className="inline-flex h-10 items-center justify-center rounded-xl border border-[#BFDBFE] bg-white px-4 text-sm font-semibold text-[#1E3A8A] transition hover:bg-[#EFF6FF]"
-                  >
-                    Review Remedial
-                  </button>
+                  {diagnosticReviewData && (
+                    <button
+                      type="button"
+                      onClick={handleOpenDiagnosticReview}
+                      className="inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                    >
+                      Review Diagnostic
+                    </button>
+                  )}
+                  {remedialReviewData && (
+                    <button
+                      type="button"
+                      onClick={handleOpenRemedialReview}
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-[#BFDBFE] bg-white px-4 text-sm font-semibold text-[#1E3A8A] transition hover:bg-[#EFF6FF]"
+                    >
+                      Review Remedial
+                    </button>
+                  )}
                 </div>
               </div>
             ) : null}
@@ -1222,27 +1399,6 @@ export default function ClassDiagnosisContentPageTemplate({
 
                 <div className="space-y-3 px-4 py-4">
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                      <p className="text-[11px] text-[#64748B]">Jawaban kamu</p>
-                      <p className="mt-1 text-sm font-semibold text-[#0F172A]">
-                        {selectedOption ? (
-                          <>
-                            {selectedOption.option}.{" "}
-                            <MathText text={selectedOption.textAnswer ?? ""} />
-                          </>
-                        ) : (
-                          "Tidak menjawab"
-                        )}
-                      </p>
-                      {selectedOption?.imageAnswerUrl ? (
-                        <div className="mt-3">
-                          {renderMediaPreview(
-                            selectedOption.imageAnswerUrl,
-                            `Jawaban kamu soal ${index + 1}`,
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
                     <div className="rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] p-3">
                       <p className="text-[11px] text-[#64748B]">
                         Jawaban benar
@@ -1561,18 +1717,44 @@ export default function ClassDiagnosisContentPageTemplate({
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href={materialHref}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
-            >
-              Kembali ke Materi
-            </Link>
-            {!isReviewRemedial && (
+            {/* Tombol primer: "Mulai Remedial" kalau belum lulus,
+                "Kembali ke Materi" kalau sudah lulus.
+                CATATAN: remediaId di URL = contentId — nilai URL hanya dipakai
+                sebagai flag isRemedial, semua API call tetap pakai contentId.
+                Tidak memakai gate apiModule?.remedialTestId karena
+                GET /course-modules/:id tidak selalu mengembalikan field itu. */}
+            {!isReviewRemedial && !isPassedKKMResolved ? (
               <Link
-                href={diagnosticHref}
+                href={`${materialHref}/remedia/${encodeURIComponent(contentId)}`}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+              >
+                Mulai Remedial
+              </Link>
+            ) : (
+              <Link
+                href={materialHref}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+              >
+                Kembali ke Materi
+              </Link>
+            )}
+            {/* Kembali ke Materi sebagai tombol sekunder saat Mulai Remedial tampil */}
+            {!isReviewRemedial && !isPassedKKMResolved && (
+              <Link
+                href={materialHref}
                 className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
               >
-                Kerjakan Ulang
+                Kembali ke Materi
+              </Link>
+            )}
+            {!isReviewRemedial && !!nextModule && (
+              <Link
+                href={`/student/dashboard/class/${encodedSlug}/materi/${encodeURIComponent(
+                  nextModule.id,
+                )}`}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+              >
+                Materi Selanjutnya
               </Link>
             )}
           </div>
@@ -1589,6 +1771,25 @@ export default function ClassDiagnosisContentPageTemplate({
   if (isRemedial) {
     return (
       <section className="mx-auto w-full max-w-[1200px] py-2 sm:py-4">
+        {/* Blocking overlays: browser tidak support atau error kamera */}
+        {!emotionSupported && (
+          <CameraRequiredScreen reason="Browser kamu tidak mendukung deteksi emosi. Gunakan Chrome/Edge/Firefox versi terbaru." />
+        )}
+        {emotionSupported && emotion.error && (
+          <CameraRequiredScreen reason={emotion.error} />
+        )}
+
+        {/* <video> is rendered in the sidebar camera box below — see aside */}
+
+        {/* Feedback emosi saat jawaban salah */}
+        {emotionFeedbackMsg && (
+          <EmotionNotification
+            questionIndex={activeQuestionIndex}
+            emotionDescription={emotionFeedbackMsg}
+            onDismiss={() => setEmotionFeedbackMsg(null)}
+          />
+        )}
+
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
           <div className="space-y-4">
             {/* Header Card */}
@@ -1630,6 +1831,14 @@ export default function ClassDiagnosisContentPageTemplate({
               <h2 className="mt-4 text-lg font-semibold leading-7 text-[#0F172A]">
                 <MathText text={currentVariant?.textQuestion ?? ""} />
               </h2>
+              {currentVariant?.imageQuestionUrl ? (
+                <div className="mt-4 max-w-[420px]">
+                  {renderMediaPreview(
+                    currentVariant.imageQuestionUrl,
+                    `Gambar soal remedial paket ${currentVariant.packageLabel} no ${currentVariant.questionNumber}`,
+                  )}
+                </div>
+              ) : null}
 
               <div className="mt-4 space-y-2.5">
                 {(currentVariant?.options ?? []).map((option) => {
@@ -1659,9 +1868,19 @@ export default function ClassDiagnosisContentPageTemplate({
                       >
                         {option.option}
                       </span>
-                      <span className="text-sm text-[#334155]">
-                        <MathText text={option.textAnswer ?? ""} />
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-sm text-[#334155]">
+                          <MathText text={option.textAnswer ?? ""} />
+                        </span>
+                        {option.imageAnswerUrl ? (
+                          <div className="mt-2 max-w-[320px]">
+                            {renderMediaPreview(
+                              option.imageAnswerUrl,
+                              `Gambar jawaban ${option.option}`,
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
                     </button>
                   );
                 })}
@@ -1727,13 +1946,21 @@ export default function ClassDiagnosisContentPageTemplate({
                   onClick={handleCorrectRemedial}
                   disabled={
                     !selectedRemedialOptionId ||
+                    !emotion.hasSample ||
+                    emotion.noFaceWarning ||
                     submitRemedialVariantMutation.isPending
                   }
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitRemedialVariantMutation.isPending
                     ? "Mengoreksi..."
-                    : "Kirim Jawaban"}
+                    : !emotion.ready
+                      ? "Memuat deteksi emosi..."
+                      : emotion.noFaceWarning
+                        ? "Wajah tidak terdeteksi..."
+                        : !emotion.hasSample
+                          ? "Pastikan wajah di kamera..."
+                          : "Kirim Jawaban"}
                 </button>
               )}
             </div>
@@ -1742,16 +1969,28 @@ export default function ClassDiagnosisContentPageTemplate({
           {/* Sidebar */}
           <aside className="h-fit rounded-3xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
             <div className="rounded-2xl border border-[#E2E8F0] bg-[#0F172A] p-2">
-              <video
-                ref={previewRef}
-                autoPlay
-                playsInline
-                muted
-                className="h-28 w-full rounded-xl bg-[#0B1120] object-cover"
-              />
+              {/* Camera feed — videoRef lives here; always mounted so the
+                  sampler's opts.video reference never becomes stale */}
+              <div className="relative h-28 w-full overflow-hidden rounded-xl bg-[#0B1120]">
+                <video
+                  ref={emotion.videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="h-full w-full object-cover scale-x-[-1]"
+                />
+                {/* Emotion label overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-2 py-1 text-center">
+                  <p className="text-xs font-semibold text-white/90">
+                    {emotion.ready
+                      ? (emotion.currentEmotion?.label ?? "Mendeteksi...")
+                      : emotion.error
+                        ? "Error kamera"
+                        : "Memuat..."}
+                  </p>
+                </div>
+              </div>
             </div>
-
-            {/* Remedial Steps Feed */}
             <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
                 Riwayat Remedial
@@ -1833,6 +2072,14 @@ export default function ClassDiagnosisContentPageTemplate({
             <h2 className="mt-4 text-lg font-semibold leading-7 text-[#0F172A]">
               <MathText text={activeQuestion?.prompt ?? ""} />
             </h2>
+            {activeQuestion?.imageQuestionUrl ? (
+              <div className="mt-4 max-w-[420px]">
+                {renderMediaPreview(
+                  activeQuestion.imageQuestionUrl,
+                  `Gambar soal ${activeQuestionIndex + 1}`,
+                )}
+              </div>
+            ) : null}
 
             <div className="mt-4 space-y-2.5">
               {(activeQuestion?.options ?? []).map((option) => {
@@ -1863,9 +2110,19 @@ export default function ClassDiagnosisContentPageTemplate({
                     >
                       {option.label}
                     </span>
-                    <span className="text-sm text-[#334155]">
-                      <MathText text={option.text} />
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-[#334155]">
+                        <MathText text={option.text} />
+                      </span>
+                      {option.imageAnswerUrl ? (
+                        <div className="mt-2 max-w-[320px]">
+                          {renderMediaPreview(
+                            option.imageAnswerUrl,
+                            `Gambar jawaban ${option.label}`,
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
                   </button>
                 );
               })}

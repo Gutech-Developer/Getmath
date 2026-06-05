@@ -5,8 +5,9 @@ import { showToast } from "@/libs/toast";
 import type {
   IAdminClassListItem,
   IClassFormPayload,
+  ITeacherOption,
 } from "@/types/adminClassList";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   useGsAllCourses,
@@ -16,6 +17,7 @@ import {
   useGsUnarchiveCourse,
   useGsUpdateCourse,
 } from "@/services";
+import { useSearchUser } from "@/services/hooks/useUser";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("id-ID", {
@@ -37,13 +39,28 @@ export default function AdminClassListTemplate() {
   const pathname = usePathname();
   const router = useRouter();
   const isTeacherDashboard = pathname?.includes("/teacher/dashboard") ?? false;
-
-  const { data: coursesData, isLoading } = useGsAllCourses({ limit: 50 });
+  const [teacherName, setTeacherName] = useState<string>("");
+  const [debounceQuery, setDebounceQuery] = useState<string>("");
+  const { data: coursesData, isPending } = useGsAllCourses({ limit: 50 });
+  const { data: teachers, isLoading } = useSearchUser({
+    limit: 2,
+    role: "role",
+    search: debounceQuery,
+  });
   const createCourse = useGsCreateCourse();
   const updateCourse = useGsUpdateCourse();
   const archiveCourse = useGsArchiveCourse();
   const unarchiveCourse = useGsUnarchiveCourse();
   const deleteCourse = useGsDeleteCourse();
+
+  const teacherOptions = useMemo(() => {
+    if (!teachers?.users) return [];
+
+    return teachers.users.map((user) => ({
+      value: user.profileId,
+      label: `${user.fullName} (${user.schoolName ?? "Tanpa Sekolah"})`,
+    }));
+  }, [teachers]);
 
   const classes: IAdminClassListItem[] = useMemo(
     () =>
@@ -63,7 +80,10 @@ export default function AdminClassListTemplate() {
   const handleCreateClass = useCallback(
     (payload: IClassFormPayload) => {
       createCourse.mutate(
-        { courseName: payload.className.trim() },
+        {
+          courseName: payload.className.trim(),
+          ...(payload.teacherId ? { teacherId: payload.teacherId } : {}),
+        },
         {
           onSuccess: () => showToast.success("Kelas baru berhasil ditambahkan"),
           onError: (error) =>
@@ -77,7 +97,13 @@ export default function AdminClassListTemplate() {
   const handleUpdateClass = useCallback(
     (classId: string, payload: IClassFormPayload) => {
       updateCourse.mutate(
-        { id: classId, data: { courseName: payload.className.trim() } },
+        {
+          id: classId,
+          data: {
+            courseName: payload.className.trim(),
+            ...(payload.teacherId ? { teacherId: payload.teacherId } : {}),
+          },
+        },
         {
           onSuccess: () =>
             showToast.success("Perubahan kelas berhasil disimpan"),
@@ -156,8 +182,8 @@ export default function AdminClassListTemplate() {
   return (
     <AdminClassListContent
       classes={classes}
-      teacherOptions={[]}
-      showTeacherSelection={false}
+      // teacherOptions={teacherOptions}
+      showTeacherSelection={!isTeacherDashboard}
       onCreateClass={handleCreateClass}
       onUpdateClass={handleUpdateClass}
       onDeleteClass={handleDeleteClass}

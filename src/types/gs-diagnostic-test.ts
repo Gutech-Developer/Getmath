@@ -79,10 +79,11 @@ export interface GsCreateTestQuestionInput {
 
 export interface GsCreateDiagnosticTestInput {
   testName: string;
-  description?: string;
+  description: string | null;
   durationMinutes: number;
   passingScore: number;
   questions: GsCreateTestQuestionInput[];
+  teacherId?: string;
 }
 
 // ─── Input: Update (upsert — id opsional) ────────────────────────────────────
@@ -115,4 +116,5 @@ export interface GsUpdateDiagnosticTestInput {
   durationMinutes?: number;
   passingScore?: number;
   questions?: GsUpsertTestQuestionInput[];
+  teacherId?: string;
 }

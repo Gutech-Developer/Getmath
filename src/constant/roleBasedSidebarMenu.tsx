@@ -62,7 +62,7 @@ function toSidebarMenuItem(route: IDashboardSidebarRouteItem): ISidebarMenu {
     name: route.label,
     url: route.href,
     icon: route.icon,
-    subMenu: [],
+    subMenu: route.subMenu || [],
   };
 }
 

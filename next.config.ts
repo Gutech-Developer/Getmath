@@ -40,6 +40,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config: any) => {
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      { module: /@vladmandic\/face-api/ },
+    ];
+    return config;
+  },
 };
 
 export default nextConfig;

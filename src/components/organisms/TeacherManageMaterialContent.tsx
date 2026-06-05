@@ -7,16 +7,20 @@ import { MATERIAL_BADGE_CLASS_BY_TYPE } from "@/constant/materialManagement";
 import { cn } from "@/libs/utils";
 import { showToast } from "@/libs/toast";
 import { toEmbedUrl, type EmbedType } from "@/libs/embed";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   useGsMySubjects,
   useGsCreateSubject,
   useGsUpdateSubject,
   useGsDeleteSubject,
 } from "@/services";
+import { TablePagination } from "@/components/molecules/table";
+import SearchableInput from "@/components/atoms/SearchableInput";
+import { useSearchUser } from "@/services/hooks/useUser";
 
 interface ITeacherManageMaterialContentProps {
   useSubjectsQuery?: typeof useGsMySubjects;
+  role?: "admin" | "teacher";
 }
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -29,6 +33,8 @@ interface ISubjectForm {
   elkpdTitle: string;
   elkpdDescription: string;
   elkpdFileUrl: string;
+  teacherId?: string;
+  teacherName?: string;
 }
 
 function createEmptyForm(): ISubjectForm {
@@ -40,6 +46,8 @@ function createEmptyForm(): ISubjectForm {
     elkpdTitle: "",
     elkpdDescription: "",
     elkpdFileUrl: "",
+    teacherId: "",
+    teacherName: "",
   };
 }
 
@@ -75,7 +83,6 @@ function PreviewModal({
   if (!preview) return null;
 
   const embedSrc = toEmbedUrl(preview.url, preview.type);
-
   const typeLabel =
     preview.type === "pdf"
       ? "PDF · Heyzine"
@@ -85,12 +92,9 @@ function PreviewModal({
 
   return (
     <div className="fixed inset-0 z-90 flex flex-col bg-[#111827]/80 p-4">
-      {/* backdrop */}
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
-      {/* panel */}
       <div className="relative z-100 mx-auto flex w-full max-w-5xl flex-1 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-        {/* header */}
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-[#9CA3AF]">
@@ -127,7 +131,6 @@ function PreviewModal({
           </div>
         </div>
 
-        {/* embed */}
         <div className="flex-1 bg-[#F3F4F6]">
           <iframe
             src={embedSrc}
@@ -186,6 +189,8 @@ function SubMaterialRow({
   );
 }
 
+// ─── Subject Modal Component ──────────────────────────────────────────────────
+
 function SubjectModal({
   isOpen,
   isEditing,
@@ -194,6 +199,8 @@ function SubjectModal({
   onChange,
   onClose,
   onSubmit,
+  role,
+  initialTeacherName = "",
 }: {
   isOpen: boolean;
   isEditing: boolean;
@@ -202,7 +209,67 @@ function SubjectModal({
   onChange: (patch: Partial<ISubjectForm>) => void;
   onClose: () => void;
   onSubmit: () => void;
+  role?: "admin" | "teacher";
+  initialTeacherName?: string;
 }) {
+  // ── STATE UNTUK NATIVE DEBOUNCE SEARCH GURU ──
+  const [teacherSearchInput, setTeacherSearchInput] = useState("");
+  const [debouncedTeacherQuery, setDebouncedTeacherQuery] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (initialTeacherName && teacherSearchInput === initialTeacherName) {
+      setDebouncedTeacherQuery(teacherSearchInput);
+      return;
+    }
+
+    const handler = setTimeout(() => {
+      setDebouncedTeacherQuery(teacherSearchInput);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [teacherSearchInput, isOpen, initialTeacherName]);
+
+  // Hit Endpoint API Pencarian User secara Internal
+  const { data: userData, isPending: isTeacherLoading } = useSearchUser({
+    role: "teacher",
+    page: 1,
+    limit: 30,
+    search: debouncedTeacherQuery,
+  });
+
+  const fetchedTeacherOptions = useMemo(() => {
+    if (!userData?.users) return [];
+    return userData.users.map((u) => ({
+      value: u.profileId,
+      label: `${u.fullName} (${u.schoolName ?? "Tanpa Sekolah"})`,
+    }));
+  }, [userData]);
+
+  // Sinkronisasi input teks saat modal terbuka (Edit vs Tambah)
+  useEffect(() => {
+    if (isOpen) {
+      if (initialTeacherName) {
+        setTeacherSearchInput(initialTeacherName);
+      } else {
+        setTeacherSearchInput("");
+      }
+    }
+  }, [isOpen, initialTeacherName]);
+
+  // Otomatis pasangkan ID jika nama hasil query awal cocok dengan nama dari list utama kelas
+  useEffect(() => {
+    if (isOpen && initialTeacherName && userData?.users && !form.teacherId) {
+      const matchedTeacher = userData.users.find(
+        (u) => u.fullName.toLowerCase() === initialTeacherName.toLowerCase(),
+      );
+      if (matchedTeacher) {
+        onChange({ teacherId: matchedTeacher.profileId });
+      }
+    }
+  }, [isOpen, initialTeacherName, userData, form.teacherId, onChange]);
+
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -227,9 +294,10 @@ function SubjectModal({
     <div className="fixed inset-0 z-80 flex items-center justify-center bg-[#111827]/50 p-4">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative z-90 w-full max-w-[820px] overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
+      {/* PERBAIKAN: Mengubah overflow-hidden menjadi overflow-visible agar dropdown search guru tidak terpotong */}
+      <div className="relative z-90 w-full max-w-[820px] overflow-visible rounded-3xl border border-[#E5E7EB] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-5">
+        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-5 overflow-hidden rounded-t-3xl">
           <h3 className="text-xl font-semibold text-[#111827]">
             {isEditing ? "Edit Materi" : "Tambah Materi Baru"}
           </h3>
@@ -251,10 +319,34 @@ function SubjectModal({
         </div>
 
         {/* Body */}
-        <div className="max-h-[72vh] space-y-5 overflow-y-auto px-6 py-5 thinnest-scrollbar">
+        <div className="max-h-[65vh] space-y-5 overflow-y-auto px-6 py-5 thinnest-scrollbar overflow-visible">
           <div className="rounded-2xl border border-[#EFF6FF] bg-[#EFF6FF] px-4 py-3 text-sm text-[#1E40AF]">
-            Judul Materi wajib diisi. Silakan lengkapi minimal satu komponen pembelajaran (PDF, Video, atau E-LKPD) sesuai kebutuhan materi Anda.
+            Judul Materi wajib diisi. Silakan lengkapi minimal satu komponen
+            pembelajaran (PDF, Video, atau E-LKPD) sesuai kebutuhan materi Anda.
           </div>
+
+          {/* Input Guru (Hanya Admin) */}
+          {role === "admin" && (
+            <div className="space-y-2 relative z-50 overflow-visible">
+              <SearchableInput
+                label="Guru (Pembuat Materi)"
+                placeholder="Cari atau ketik nama guru..."
+                value={teacherSearchInput}
+                onChange={(label, option) => {
+                  setTeacherSearchInput(label);
+                  if (option) {
+                    onChange({ teacherName: label, teacherId: option.value });
+                  } else {
+                    if (form.teacherId) onChange({ teacherId: "" });
+                  }
+                }}
+                options={fetchedTeacherOptions}
+                isLoading={isTeacherLoading}
+                required
+              />
+            </div>
+          )}
+
           {/* Judul */}
           <div className="space-y-2">
             <label className={labelClass}>
@@ -284,13 +376,13 @@ function SubjectModal({
           {/* Link Materi */}
           <div className="space-y-2">
             <label className={labelClass}>
-              Link Materi (PDF / File)
+              Link Materi (PDF / File) - Opsional
             </label>
             <input
               type="url"
               value={form.subjectFileUrl}
               onChange={(e) => onChange({ subjectFileUrl: e.target.value })}
-              placeholder="https://drive.google.com/file/..."
+              placeholder="https://heyzine.com/flip-book/3094f26f1e.html"
               className={inputClass}
             />
           </div>
@@ -298,7 +390,7 @@ function SubjectModal({
           {/* Link Video */}
           <div className="space-y-2">
             <label className={labelClass}>
-              Link Video (YouTube)
+              Link Video (YouTube) - Opsional
             </label>
             <input
               type="url"
@@ -316,9 +408,7 @@ function SubjectModal({
             </p>
             <div className="space-y-4 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-4">
               <div className="space-y-2">
-                <label className={labelClass}>
-                  Judul E-LKPD
-                </label>
+                <label className={labelClass}>Judul E-LKPD</label>
                 <input
                   type="text"
                   value={form.elkpdTitle}
@@ -340,9 +430,7 @@ function SubjectModal({
                 />
               </div>
               <div className="space-y-2">
-                <label className={labelClass}>
-                  Link E-LKPD
-                </label>
+                <label className={labelClass}>Link E-LKPD</label>
                 <input
                   type="url"
                   value={form.elkpdFileUrl}
@@ -356,7 +444,7 @@ function SubjectModal({
         </div>
 
         {/* Footer */}
-        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#E5E7EB] px-6 py-4">
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#E5E7EB] px-6 py-4 relative z-10">
           <button
             type="button"
             onClick={onClose}
@@ -385,18 +473,25 @@ function SubjectModal({
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
+/* ------------------------------------------------------------------ */
+/* MAIN COMPONENT: TeacherManageMaterialContent                      */
+/* ------------------------------------------------------------------ */
 export default function TeacherManageMaterialContent({
   useSubjectsQuery = useGsMySubjects,
+  role = "teacher",
 }: ITeacherManageMaterialContentProps = {}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [form, setForm] = useState<ISubjectForm>(createEmptyForm);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<IPreview | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(5);
 
-  const { data: subjectsData, isLoading } = useSubjectsQuery({ limit: 50 });
+  // State bantu untuk mengalirkan nama guru ke modal anak saat edit diklik
+  const [selectedTeacherName, setSelectedTeacherName] = useState("");
+
+  const { data: subjectsData, isLoading } = useSubjectsQuery({ page, limit });
   const createSubject = useGsCreateSubject();
   const updateSubject = useGsUpdateSubject();
   const deleteSubject = useGsDeleteSubject();
@@ -412,6 +507,7 @@ export default function TeacherManageMaterialContent({
 
   const openCreateModal = () => {
     setEditingSubjectId(null);
+    setSelectedTeacherName("");
     setForm(createEmptyForm());
     setIsModalOpen(true);
   };
@@ -419,7 +515,12 @@ export default function TeacherManageMaterialContent({
   const openEditModal = (subjectId: string) => {
     const s = subjects.find((x) => x.id === subjectId);
     if (!s) return;
+
+    // Type casting ke (s as any) agar garis merah hilang
+    const rawSubject = s as any;
+
     setEditingSubjectId(subjectId);
+    setSelectedTeacherName(rawSubject.teacherName ?? "");
     setForm({
       subjectName: s.subjectName,
       description: s.description ?? "",
@@ -428,6 +529,8 @@ export default function TeacherManageMaterialContent({
       elkpdTitle: s.eLKPDTitle ?? "",
       elkpdDescription: s.eLKPDDescription ?? "",
       elkpdFileUrl: s.eLKPDFileUrl ?? "",
+      teacherId: rawSubject.teacherId ?? "",
+      teacherName: rawSubject.teacherName ?? "",
     });
     setIsModalOpen(true);
   };
@@ -442,13 +545,21 @@ export default function TeacherManageMaterialContent({
       showToast.error("Judul materi wajib diisi");
       return;
     }
+    if (role === "admin" && !form.teacherId) {
+      showToast.error("Silakan pilih guru pengampu terlebih dahulu");
+      return;
+    }
 
     const hasPdf = Boolean(form.subjectFileUrl.trim());
     const hasVideo = Boolean(form.videoUrl.trim());
-    const hasElkpd = Boolean(form.elkpdTitle.trim() && form.elkpdFileUrl.trim());
+    const hasElkpd = Boolean(
+      form.elkpdTitle.trim() && form.elkpdFileUrl.trim(),
+    );
 
     if (!hasPdf && !hasVideo && !hasElkpd) {
-      showToast.error("Minimal satu komponen (PDF, Video, atau E-LKPD) harus diisi");
+      showToast.error(
+        "Minimal satu komponen (PDF, Video, atau E-LKPD) harus diisi",
+      );
       return;
     }
 
@@ -456,7 +567,9 @@ export default function TeacherManageMaterialContent({
       (form.elkpdTitle.trim() && !form.elkpdFileUrl.trim()) ||
       (!form.elkpdTitle.trim() && form.elkpdFileUrl.trim())
     ) {
-      showToast.error("Judul dan Link E-LKPD harus diisi lengkap jika ingin menambahkan E-LKPD");
+      showToast.error(
+        "Judul dan Link E-LKPD harus diisi lengkap jika ingin menambahkan E-LKPD",
+      );
       return;
     }
 
@@ -465,25 +578,30 @@ export default function TeacherManageMaterialContent({
         ? {
             eLKPD: {
               title: form.elkpdTitle.trim(),
-              description: form.elkpdDescription.trim() || undefined,
+              description: form.elkpdDescription.trim() || null,
               fileUrl: form.elkpdFileUrl.trim(),
             },
           }
         : {};
 
+    const baseSubjectPayload = {
+      subjectName: form.subjectName.trim(),
+      description: form.description.trim() || null,
+      subjectFileUrl: form.subjectFileUrl.trim() || null,
+      videoUrl: form.videoUrl.trim() || null,
+      teacherId: form.teacherId || undefined,
+    };
+
     if (editingSubjectId) {
-      const subjectData = {
-        subjectName: form.subjectName.trim(),
-        description: form.description.trim() || undefined,
-        subjectFileUrl: form.subjectFileUrl.trim() || undefined,
-        videoUrl: form.videoUrl.trim() || undefined,
-        eLKPDTitle: form.elkpdTitle.trim() || undefined,
-        eLKPDDescription: form.elkpdDescription.trim() || undefined,
-        eLKPDFileUrl: form.elkpdFileUrl.trim() || undefined,
+      const updatePayload = {
+        ...baseSubjectPayload,
+        eLKPDTitle: form.elkpdTitle.trim() || null,
+        eLKPDDescription: form.elkpdDescription.trim() || null,
+        eLKPDFileUrl: form.elkpdFileUrl.trim() || null,
       };
 
       updateSubject.mutate(
-        { id: editingSubjectId, data: subjectData },
+        { id: editingSubjectId, data: updatePayload },
         {
           onSuccess: () => {
             showToast.success("Materi berhasil diperbarui");
@@ -496,10 +614,7 @@ export default function TeacherManageMaterialContent({
     } else {
       createSubject.mutate(
         {
-          subjectName: form.subjectName.trim(),
-          description: form.description.trim() || undefined,
-          subjectFileUrl: form.subjectFileUrl.trim() || undefined,
-          videoUrl: form.videoUrl.trim() || undefined,
+          ...baseSubjectPayload,
           ...elkpdData,
         },
         {
@@ -577,15 +692,19 @@ export default function TeacherManageMaterialContent({
                   key={subject.id}
                   className="overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white"
                 >
-                  {/* ── Card header ── */}
                   <div className="flex items-center gap-4 px-5 py-5">
                     <div className="min-w-0 flex-1">
-                      <h2 className="truncate text-xl font-semibold leading-tight text-[#111827]">
+                      <h2 className="truncate text-lg font-semibold leading-tight text-[#111827]">
                         {subject.subjectName}
                       </h2>
                       {subject.description && (
                         <p className="mt-1.5 truncate text-base text-[#6B7280]">
                           {subject.description}
+                        </p>
+                      )}
+                      {role === "admin" && (subject as any).teacherName && (
+                        <p className="mt-1 text-xs font-medium text-[#4F46E5]">
+                          Oleh: {(subject as any).teacherName}
                         </p>
                       )}
 
@@ -622,16 +741,10 @@ export default function TeacherManageMaterialContent({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* Toggle sub-materials */}
                       <button
                         type="button"
                         onClick={() => toggleExpanded(subject.id)}
                         className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F9FAFB] text-[#6B7280] transition hover:bg-[#F3F4F6]"
-                        aria-label={
-                          isExpanded
-                            ? "Sembunyikan sub-materi"
-                            : "Lihat sub-materi"
-                        }
                       >
                         <svg
                           className={cn(
@@ -654,7 +767,6 @@ export default function TeacherManageMaterialContent({
                         type="button"
                         onClick={() => openEditModal(subject.id)}
                         className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
-                        aria-label={`Edit ${subject.subjectName}`}
                       >
                         <EditIcon className="h-5 w-5" />
                       </button>
@@ -663,17 +775,15 @@ export default function TeacherManageMaterialContent({
                         onClick={() => handleDelete(subject.id)}
                         disabled={deleteSubject.isPending}
                         className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2] disabled:opacity-50"
-                        aria-label={`Hapus ${subject.subjectName}`}
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
                     </div>
                   </div>
 
-                  {/* ── Sub-material dropdown ── */}
+                  {/* Dropdown item preview */}
                   {isExpanded && (
                     <div className="space-y-2 border-t border-[#E5E7EB] bg-[#F9FAFB] px-5 py-4">
-                      {/* PDF */}
                       {hasPdf && (
                         <SubMaterialRow
                           icon={
@@ -714,8 +824,6 @@ export default function TeacherManageMaterialContent({
                           }
                         />
                       )}
-
-                      {/* Video */}
                       {hasVideo && (
                         <SubMaterialRow
                           icon={
@@ -744,8 +852,6 @@ export default function TeacherManageMaterialContent({
                           }
                         />
                       )}
-
-                      {/* E-LKPD */}
                       {hasElkpd && (
                         <SubMaterialRow
                           icon={
@@ -800,6 +906,19 @@ export default function TeacherManageMaterialContent({
             })}
           </ul>
         )}
+
+        {subjectsData?.pagination && subjectsData.pagination.totalPages > 1 && (
+          <TablePagination
+            currentPage={subjectsData.pagination.currentPage}
+            totalPages={subjectsData.pagination.totalPages}
+            onPageChange={setPage}
+            itemsPerPage={limit}
+            onItemsPerPageChange={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+          />
+        )}
       </section>
 
       <SubjectModal
@@ -810,6 +929,8 @@ export default function TeacherManageMaterialContent({
         onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
         onClose={closeModal}
         onSubmit={handleSave}
+        role={role}
+        initialTeacherName={selectedTeacherName} // Kirim nama guru terpilih ke komponen anak
       />
 
       <PreviewModal preview={preview} onClose={() => setPreview(null)} />

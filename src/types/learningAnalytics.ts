@@ -2,7 +2,8 @@ export type ClassAnalyticsViewType =
   | "Beranda"
   | "Siswa"
   | "Materi"
-  | "Kelola E-LKPD"
+  | "Nilai E-LKPD"
+  | "Nilai Test"
   | "Laporan"
   | "Forum";
 
@@ -64,6 +65,7 @@ export interface ILearningAnalyticsClassDetail {
   slug: string;
   className: string;
   teacherName: string;
+  teacherId?: string;
   studentCount: number;
   averageScore: number;
   passedCount: number;

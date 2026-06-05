@@ -7,6 +7,7 @@ import FilterIcon from "@/components/atoms/icons/FilterIcon";
 import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import SortIcon from "@/components/atoms/icons/SortIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
+import SearchableInput from "@/components/atoms/SearchableInput";
 import { Modal } from "@/components/molecules/Modal";
 import { showToast } from "@/libs/toast";
 import { cn } from "@/libs/utils";
@@ -15,14 +16,13 @@ import type {
   AdminClassStatus,
   IAdminClassListItem,
   IClassFormPayload,
-  ITeacherOption,
 } from "@/types/adminClassList";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useSearchUser } from "@/services/hooks/useUser";
 
 interface IAdminClassListContentProps {
   classes: IAdminClassListItem[];
-  teacherOptions: ITeacherOption[];
   onCreateClass: (payload: IClassFormPayload) => void;
   onUpdateClass: (classId: string, payload: IClassFormPayload) => void;
   onDeleteClass: (classId: string) => void;
@@ -36,36 +36,94 @@ interface IClassFormModalProps {
   title: string;
   submitLabel: string;
   values: IClassFormPayload;
-  teacherOptions: ITeacherOption[];
+  initialTeacherName?: string;
   onClose: () => void;
   onValuesChange: (values: IClassFormPayload) => void;
   onSubmit: () => void;
   showTeacherSelection: boolean;
+  isTeacherPage: boolean;
 }
 
+/* ------------------------------------------------------------------ */
+/* COMPONENT: ClassFormModal                                         */
+/* ------------------------------------------------------------------ */
 function ClassFormModal({
   isOpen,
   title,
   submitLabel,
   values,
-  teacherOptions,
+  initialTeacherName = "",
   onClose,
   onValuesChange,
   onSubmit,
   isTeacherPage,
   showTeacherSelection,
-}: IClassFormModalProps & { isTeacherPage: boolean }) {
-  const isSubmitDisabled = values.className.trim().length < 3;
+}: IClassFormModalProps) {
+  const isSubmitDisabled =
+    values.className.trim().length < 3 ||
+    (!isTeacherPage && showTeacherSelection && !values.teacherId);
+
+  const [teacherSearchInput, setTeacherSearchInput] = useState("");
+  const [debouncedTeacherQuery, setDebouncedTeacherQuery] = useState("");
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen) return;
+
+    if (initialTeacherName && teacherSearchInput === initialTeacherName) {
+      setDebouncedTeacherQuery(teacherSearchInput);
       return;
     }
 
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
+    const handler = setTimeout(() => {
+      setDebouncedTeacherQuery(teacherSearchInput);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [teacherSearchInput, isOpen, initialTeacherName]);
+
+  const { data: userData, isPending: isTeacherLoading } = useSearchUser({
+    limit: 3,
+    role: "teacher",
+    search: debouncedTeacherQuery,
+  });
+
+  const fetchedTeacherOptions = useMemo(() => {
+    if (!userData?.users) return [];
+    return userData.users.map((u) => ({
+      value: u.profileId,
+      label: `${u.fullName} (${u.schoolName ?? "Tanpa Sekolah"})`,
+    }));
+  }, [userData]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialTeacherName) {
+        setTeacherSearchInput(initialTeacherName);
+      } else {
+        setTeacherSearchInput("");
       }
+    }
+  }, [isOpen, initialTeacherName]);
+
+  useEffect(() => {
+    if (isOpen && initialTeacherName && userData?.users && !values.teacherId) {
+      const matchedTeacher = userData.users.find(
+        (u) => u.fullName.toLowerCase() === initialTeacherName.toLowerCase(),
+      );
+      if (matchedTeacher) {
+        onValuesChange({
+          ...values,
+          teacherId: matchedTeacher.profileId,
+        });
+      }
+    }
+  }, [isOpen, initialTeacherName, userData, values, onValuesChange]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
     };
 
     const previousOverflow = document.body.style.overflow;
@@ -78,9 +136,7 @@ function ClassFormModal({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) {
-    return null;
-  }
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-80 flex items-center justify-center bg-[#111827]/45 p-4">
@@ -91,12 +147,13 @@ function ClassFormModal({
         aria-label="Tutup popup"
       />
 
-      <div className="relative w-full max-w-[560px] overflow-hidden rounded-[28px] border border-[#E5E7EB] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)]">
-        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-5">
+      {/* PERBAIKAN: Mengubah overflow-hidden menjadi overflow-visible agar dropdown tidak terpotong */}
+      <div className="relative w-full max-w-[560px] overflow-visible rounded-[28px] border border-[#E5E7EB] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)]">
+        {/* PERBAIKAN: Menambahkan overflow-hidden dan rounded-t khusus di header agar sudut atas tetap melengkung rapi */}
+        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-5 overflow-hidden rounded-t-[28px]">
           <h2 className="text-2xl font-semibold leading-tight text-[#111827]">
             {title}
           </h2>
-
           <button
             type="button"
             onClick={onClose}
@@ -114,13 +171,12 @@ function ClassFormModal({
           </button>
         </div>
 
+        {/* PERBAIKAN: Memastikan form menggunakan overflow-visible */}
         <form
-          className="space-y-5 px-6 py-5"
+          className="space-y-5 px-6 py-5 overflow-visible"
           onSubmit={(event) => {
             event.preventDefault();
-            if (isSubmitDisabled) {
-              return;
-            }
+            if (isSubmitDisabled) return;
             onSubmit();
           }}
         >
@@ -132,10 +188,7 @@ function ClassFormModal({
               type="text"
               value={values.className}
               onChange={(event) =>
-                onValuesChange({
-                  ...values,
-                  className: event.target.value,
-                })
+                onValuesChange({ ...values, className: event.target.value })
               }
               placeholder="cth: Matematika Wajib Kelas X"
               className="h-12 w-full rounded-2xl border border-[#D1D5DB] px-4 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
@@ -143,27 +196,28 @@ function ClassFormModal({
           </div>
 
           {!isTeacherPage && showTeacherSelection && (
-            <div className="space-y-2">
+            // PERBAIKAN: Memastikan wrapper input pencarian memiliki z-index tinggi dan tidak mengunci overflow
+            <div className="space-y-2 relative z-50 overflow-visible">
               <label className="block text-lg font-semibold text-[#374151]">
                 Pilih Guru
               </label>
-              <select
-                value={values.teacherId}
-                onChange={(event) =>
-                  onValuesChange({
-                    ...values,
-                    teacherId: event.target.value,
-                  })
-                }
-                className="h-12 w-full rounded-2xl border border-[#D1D5DB] bg-white px-4 text-base text-[#111827] outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
-              >
-                <option value="">Pilih guru pengampu</option>
-                {teacherOptions.map((teacher) => (
-                  <option key={teacher.id} value={teacher.id}>
-                    {teacher.label}
-                  </option>
-                ))}
-              </select>
+              <SearchableInput
+                value={teacherSearchInput}
+                onChange={(text, option) => {
+                  setTeacherSearchInput(text);
+                  if (option) {
+                    onValuesChange({ ...values, teacherId: option.value });
+                  } else {
+                    if (values.teacherId)
+                      onValuesChange({ ...values, teacherId: "" });
+                  }
+                }}
+                options={fetchedTeacherOptions}
+                isLoading={isTeacherLoading}
+                placeholder="Ketik nama guru untuk mencari..."
+                className="w-full"
+                required
+              />
             </div>
           )}
 
@@ -171,7 +225,7 @@ function ClassFormModal({
             type="submit"
             disabled={isSubmitDisabled}
             className={cn(
-              "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold transition",
+              "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold transition relative z-10",
               isSubmitDisabled
                 ? "cursor-not-allowed bg-[#E5E7EB] text-white"
                 : "bg-[#2563EB] text-white hover:bg-[#1D4ED8]",
@@ -186,9 +240,11 @@ function ClassFormModal({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* MAIN COMPONENT: AdminClassListContent                             */
+/* ------------------------------------------------------------------ */
 export default function AdminClassListContent({
   classes,
-  teacherOptions,
   onCreateClass,
   onUpdateClass,
   onDeleteClass,
@@ -198,6 +254,8 @@ export default function AdminClassListContent({
 }: IAdminClassListContentProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
+  const [selectedTeacherName, setSelectedTeacherName] = useState("");
+
   const [createFormValues, setCreateFormValues] = useState<IClassFormPayload>({
     className: "",
     teacherId: "",
@@ -206,9 +264,7 @@ export default function AdminClassListContent({
     className: "",
     teacherId: "",
   });
-  const [deleteTarget, setDeleteTarget] = useState<IAdminClassListItem | null>(
-    null,
-  );
+
   const pathname = usePathname();
   const isTeacherPage = pathname?.includes("/teacher") ?? false;
 
@@ -216,6 +272,15 @@ export default function AdminClassListContent({
     "all",
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedGlobalQuery, setDebouncedGlobalQuery] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedGlobalQuery(searchQuery);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const [sortBy, setSortBy] = useState<
     | "name-asc"
     | "name-desc"
@@ -226,8 +291,7 @@ export default function AdminClassListContent({
   >("name-asc");
 
   const filteredClasses = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-
+    const normalizedQuery = debouncedGlobalQuery.trim().toLowerCase();
     let nextItems = classes;
 
     if (statusFilter !== "all") {
@@ -247,7 +311,6 @@ export default function AdminClassListContent({
     }
 
     const sorted = [...nextItems];
-
     sorted.sort((a, b) => {
       switch (sortBy) {
         case "name-desc":
@@ -267,74 +330,32 @@ export default function AdminClassListContent({
     });
 
     return sorted;
-  }, [classes, searchQuery, sortBy, statusFilter]);
-
-  const teacherIdByLabel = useMemo(
-    () =>
-      teacherOptions.reduce<Record<string, string>>((accumulator, teacher) => {
-        accumulator[teacher.label] = teacher.id;
-        return accumulator;
-      }, {}),
-    [teacherOptions],
-  );
+  }, [classes, debouncedGlobalQuery, sortBy, statusFilter]);
 
   const handleOpenAddModal = () => {
-    setCreateFormValues({
-      className: "",
-      teacherId: isTeacherPage ? (teacherOptions[0]?.id ?? "") : "",
-    });
+    setSelectedTeacherName("");
+    setCreateFormValues({ className: "", teacherId: "" });
     setIsAddModalOpen(true);
-  };
-
-  const handleCloseAddModal = () => {
-    setIsAddModalOpen(false);
   };
 
   const handleOpenEditModal = (classItem: IAdminClassListItem) => {
     setEditingClassId(classItem.id);
+    setSelectedTeacherName(classItem.teacherName);
     setEditFormValues({
       className: classItem.name,
-      teacherId:
-        teacherIdByLabel[classItem.teacherName] ??
-        (isTeacherPage ? (teacherOptions[0]?.id ?? "") : ""),
+      teacherId: "",
     });
-  };
-
-  const handleCloseEditModal = () => {
-    setEditingClassId(null);
   };
 
   const handleCreateClass = () => {
     onCreateClass(createFormValues);
-    handleCloseAddModal();
+    setIsAddModalOpen(false);
   };
 
   const handleUpdateClass = () => {
-    if (!editingClassId) {
-      return;
-    }
-
+    if (!editingClassId) return;
     onUpdateClass(editingClassId, editFormValues);
-    handleCloseEditModal();
-  };
-
-  const handleDeleteClass = (classItem: IAdminClassListItem) => {
-    setDeleteTarget(classItem);
-  };
-
-  const confirmDelete = () => {
-    if (!deleteTarget) return;
-    onDeleteClass(deleteTarget.id);
-    setDeleteTarget(null);
-  };
-
-  const handleCopyCode = async (code: string) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      showToast.success(`Kode kelas ${code} berhasil disalin`);
-    } catch {
-      showToast.error("Browser tidak mengizinkan salin kode kelas");
-    }
+    setEditingClassId(null);
   };
 
   return (
@@ -344,7 +365,6 @@ export default function AdminClassListContent({
           <h1 className="text-2xl font-semibold leading-tight text-[#111827]">
             Daftar Kelas ({filteredClasses.length})
           </h1>
-
           <button
             type="button"
             onClick={handleOpenAddModal}
@@ -360,255 +380,71 @@ export default function AdminClassListContent({
             type="text"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Cari nama kelas, guru, atau kode"
+            placeholder="Cari nama kelas, guru, atau kode..."
             className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
-            aria-label="Cari kelas"
           />
-
-          <div className="relative">
-            <FilterIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" />
-            <select
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as AdminClassStatus | "all")
-              }
-              className="h-12 min-w-[170px] appearance-none rounded-2xl border border-[#E5E7EB] bg-white pl-9 pr-8 text-sm font-semibold text-[#475569] outline-none transition focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
-              aria-label="Filter status kelas"
-            >
-              <option value="all">Semua Status</option>
-              <option value="Aktif">Aktif</option>
-              <option value="Nonaktif">Nonaktif</option>
-            </select>
-          </div>
-
-          <div className="relative">
-            <SortIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" />
-            <select
-              value={sortBy}
-              onChange={(event) =>
-                setSortBy(
-                  event.target.value as
-                    | "name-asc"
-                    | "name-desc"
-                    | "students-desc"
-                    | "students-asc"
-                    | "tests-desc"
-                    | "tests-asc",
-                )
-              }
-              className="h-12 min-w-[190px] appearance-none rounded-2xl border border-[#E5E7EB] bg-white pl-9 pr-8 text-sm font-semibold text-[#475569] outline-none transition focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
-              aria-label="Urutkan daftar kelas"
-            >
-              <option value="name-asc">Nama Kelas (A-Z)</option>
-              <option value="name-desc">Nama Kelas (Z-A)</option>
-              <option value="students-desc">Jumlah Siswa (Terbanyak)</option>
-              <option value="students-asc">Jumlah Siswa (Tersedikit)</option>
-              <option value="tests-desc">Jumlah Tes (Terbanyak)</option>
-              <option value="tests-asc">Jumlah Tes (Tersedikit)</option>
-            </select>
-          </div>
         </div>
 
         {filteredClasses.length > 0 ? (
           <ul className="space-y-4">
-            {filteredClasses.map((classItem) => {
-              const isActive = classItem.status === "Aktif";
-
-              return (
-                <li
-                  key={classItem.id}
-                  className="rounded-3xl border border-[#E5E7EB] bg-white p-5 md:p-6"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        <h2 className="text-lg font-semibold leading-tight text-[#111827]">
-                          {classItem.name}
-                        </h2>
-                        <span
-                          className={cn(
-                            "inline-flex rounded-full px-3 py-1 text-base font-semibold",
-                            isActive
-                              ? "bg-[#ECFDF5] text-[#059669]"
-                              : "bg-[#F3F4F6] text-[#6B7280]",
-                          )}
-                        >
-                          {classItem.status}
-                        </span>
-                      </div>
-
-                      <p className="mt-1 text-sm text-[#6B7280]">
-                        Guru: {classItem.teacherName}
-                      </p>
-
-                      <p className="mt-1  text-sm text-[#9CA3AF]">
-                        Dibuat: {classItem.createdAt}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditModal(classItem)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
-                        aria-label={`Edit ${classItem.name}`}
-                      >
-                        <EditIcon className="h-4 w-4" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => onToggleClassStatus(classItem.id)}
-                        className={cn(
-                          "inline-flex h-10 w-10 items-center justify-center rounded-xl border transition",
-                          isActive
-                            ? "border-[#BBF7D0] bg-[#ECFDF5] text-[#16A34A] hover:bg-[#DCFCE7]"
-                            : "border-[#D1D5DB] bg-[#F9FAFB] text-[#6B7280] hover:bg-[#F3F4F6]",
-                        )}
-                        aria-label={`Ubah status ${classItem.name}`}
-                      >
-                        <CheckCircleIcon className="h-4 w-4" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClass(classItem)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#FECACA] bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2]"
-                        aria-label={`Hapus ${classItem.name}`}
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
+            {filteredClasses.map((classItem) => (
+              <li
+                key={classItem.id}
+                className="rounded-3xl border border-[#E5E7EB] bg-white p-5 md:p-6"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-[#111827]">
+                      {classItem.name}
+                    </h2>
+                    <p className="text-sm text-[#6B7280]">
+                      Guru: {classItem.teacherName}
+                    </p>
                   </div>
-
-                  <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <div className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-center">
-                      <p className="text-xl font-semibold text-[#2563EB]">
-                        {classItem.studentCount}
-                      </p>
-                      <p className="text-sm text-[#9CA3AF]">Siswa</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-center">
-                      <p className="text-xl font-semibold text-[#2563EB]">
-                        {classItem.testCount}
-                      </p>
-                      <p className="text-sm text-[#9CA3AF]">Tes</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-center">
-                      <p className="text-xl font-semibold text-[#2563EB]">
-                        {classItem.code}
-                      </p>
-                      <p className="text-sm text-[#9CA3AF]">Kode</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1.5  font-semibold text-[#2563EB]">
-                        {classItem.code}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCode(classItem.code)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280] transition hover:bg-[#F3F4F6]"
-                        aria-label={`Salin kode ${classItem.code}`}
-                      >
-                        <CopyIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => onManageClass?.(classItem.id)}
-                      className="inline-flex items-center gap-2 rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-5 py-2  font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
-                    >
-                      <span>Kelola Kelas</span>
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M9 6L15 12L9 18"
-                          stroke="currentColor"
-                          strokeWidth="1.7"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditModal(classItem)}
+                    className="p-2 border border-[#BFDBFE] rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition"
+                  >
+                    <EditIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </li>
+            ))}
           </ul>
         ) : (
-          <div className="rounded-2xl border border-dashed border-[#D1D5DB] bg-[#F8FAFC] p-8 text-center text-sm text-[#6B7280]">
+          <div className="p-8 text-center border border-dashed border-[#D1D5DB] rounded-2xl text-sm text-[#6B7280]">
             Belum ada kelas yang terdaftar.
           </div>
         )}
       </section>
 
+      {/* MODAL FORM TAMBAH */}
       <ClassFormModal
         isOpen={isAddModalOpen}
         title="Tambah Kelas Baru"
         submitLabel="Tambah Kelas"
         values={createFormValues}
-        teacherOptions={teacherOptions}
-        onClose={handleCloseAddModal}
+        onClose={() => setIsAddModalOpen(false)}
         onValuesChange={setCreateFormValues}
         onSubmit={handleCreateClass}
         isTeacherPage={isTeacherPage}
         showTeacherSelection={showTeacherSelection}
       />
 
+      {/* MODAL FORM EDIT */}
       <ClassFormModal
         isOpen={Boolean(editingClassId)}
         title="Edit Kelas"
         submitLabel="Simpan Perubahan"
         values={editFormValues}
-        teacherOptions={teacherOptions}
-        onClose={handleCloseEditModal}
+        initialTeacherName={selectedTeacherName}
+        onClose={() => setEditingClassId(null)}
         onValuesChange={setEditFormValues}
         onSubmit={handleUpdateClass}
         isTeacherPage={isTeacherPage}
         showTeacherSelection={showTeacherSelection}
       />
-
-      <Modal
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title="Hapus Kelas"
-        size="md"
-      >
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
-            <p className="text-sm font-semibold text-[#991B1B]">
-              Yakin ingin menghapus kelas ini?
-            </p>
-            <p className="mt-1 text-sm text-[#B91C1C]">
-              {deleteTarget?.name} · Seluruh data kelas dan progres siswa akan
-              dihapus secara permanen.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => setDeleteTarget(null)}
-              className="h-12 flex-1 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 text-sm font-semibold text-[#64748B] transition hover:bg-[#F1F5F9]"
-            >
-              Batal
-            </button>
-            <button
-              type="button"
-              onClick={confirmDelete}
-              className="h-12 flex-1 rounded-2xl bg-[#DC2626] px-5 text-sm font-semibold text-white transition hover:bg-[#B91C1C]"
-            >
-              Hapus Kelas
-            </button>
-          </div>
-        </div>
-      </Modal>
     </>
   );
 }

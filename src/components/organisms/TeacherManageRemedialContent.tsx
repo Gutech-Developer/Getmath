@@ -6,8 +6,10 @@ import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import { showToast } from "@/libs/toast";
 import { useRouter } from "next/navigation";
-import { useGsMyRemedialTests, useGsDeleteRemedialTest } from "@/services";
+import { useGsMyRemedialTests, useGsAllRemedialTests, useGsDeleteRemedialTest } from "@/services";
 import type { GsRemedialTest } from "@/types/gs-remedial";
+import { TablePagination } from "@/components/molecules/table";
+import { useState } from "react";
 
 /* ------------------------------------------------------------------ */
 /*  Mapper                                                             */
@@ -21,8 +23,8 @@ interface IRemedialItem {
     questionCount: number;
   }>;
   totalQuestions: number;
-  durationMinutes: number;
-  kkm: number;
+  durationMinutes: number | string;
+  kkm: number | string;
   dateLabel: string;
 }
 
@@ -51,8 +53,8 @@ function mapGsRemedialToItem(rt: GsRemedialTest): IRemedialItem {
     description: rt.description ?? "",
     packageSummaries,
     totalQuestions,
-    durationMinutes: rt.durationMinutes,
-    kkm: rt.passingScore,
+    durationMinutes: rt.durationMinutes ?? "-",
+    kkm: rt.passingScore ?? "-",
     dateLabel: new Date(rt.createdAt).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
@@ -64,13 +66,30 @@ function mapGsRemedialToItem(rt: GsRemedialTest): IRemedialItem {
 /* ------------------------------------------------------------------ */
 /*  Component                                                           */
 /* ------------------------------------------------------------------ */
-export default function TeacherManageRemedialContent() {
+export default function TeacherManageRemedialContent({
+  role = "teacher",
+}: {
+  role?: "admin" | "teacher";
+}) {
   const router = useRouter();
-  // Use pagination defaults (page=1, limit=10) to match list endpoints
-  const { data: remedialTestsData, isLoading } = useGsMyRemedialTests({
-    page: 1,
-    limit: 10,
-  });
+  const basePath = role === "admin" ? "/admin/dashboard" : "/teacher/dashboard";
+
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(5);
+
+  const { data: myData, isLoading: myLoading } = useGsMyRemedialTests(
+    { page, limit },
+    { enabled: role === "teacher" }
+  );
+
+  const { data: allData, isLoading: allLoading } = useGsAllRemedialTests(
+    { page, limit },
+    { enabled: role === "admin" }
+  );
+
+  const remedialTestsData = role === "admin" ? allData : myData;
+  const isLoading = role === "admin" ? allLoading : myLoading;
+
   const deleteMutation = useGsDeleteRemedialTest();
 
   const remedials: IRemedialItem[] = (
@@ -104,7 +123,7 @@ export default function TeacherManageRemedialContent() {
         <button
           type="button"
           onClick={() =>
-            router.push("/teacher/dashboard/manage-remedial/create")
+            router.push(`${basePath}/manage-remedial/create`)
           }
           className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
         >
@@ -181,7 +200,7 @@ export default function TeacherManageRemedialContent() {
                   type="button"
                   onClick={() =>
                     router.push(
-                      `/teacher/dashboard/manage-remedial/${remedial.id}`,
+                      `${basePath}/manage-remedial/${remedial.id}`,
                     )
                   }
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
@@ -193,7 +212,7 @@ export default function TeacherManageRemedialContent() {
                   type="button"
                   onClick={() =>
                     router.push(
-                      `/teacher/dashboard/manage-remedial/${remedial.id}/edit`,
+                      `${basePath}/manage-remedial/${remedial.id}/edit`,
                     )
                   }
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
@@ -214,6 +233,19 @@ export default function TeacherManageRemedialContent() {
           </li>
         ))}
       </ul>
+
+      {remedialTestsData?.pagination && remedialTestsData.pagination.totalPages > 1 && (
+        <TablePagination
+          currentPage={remedialTestsData.pagination.currentPage}
+          totalPages={remedialTestsData.pagination.totalPages}
+          onPageChange={setPage}
+          itemsPerPage={limit}
+          onItemsPerPageChange={(newLimit) => {
+            setLimit(newLimit);
+            setPage(1);
+          }}
+        />
+      )}
     </section>
   );
 }

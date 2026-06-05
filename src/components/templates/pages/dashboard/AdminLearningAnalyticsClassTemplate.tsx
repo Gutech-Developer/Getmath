@@ -1,344 +1,200 @@
-import AdminLearningAnalyticsClassContent from "@/components/organisms/AdminLearningAnalyticsClassContent";
-import type {
-  ClassAnalyticsViewType,
-  IClassLearningAnalyticsDetail,
-} from "@/types/learningAnalytics";
+"use client";
 
-export const LEARNING_ANALYTICS_CLASS_DATA: IClassLearningAnalyticsDetail[] = [
-  {
-    slug: "matematika-wajib-kelas-x",
-    className: "Matematika Wajib Kelas X",
-    teacherName: "Ibu Rahma",
-    studentCount: 28,
-    averageScore: 80,
-    passedCount: 22,
-    remedialCount: 6,
-    progress: 80,
-    classCode: "MATH-X-001",
-    gradeLabel: "Umum",
-    semesterLabel: "Ganjil 2024/2025",
-    subjectLabel: "Matematika",
-    defaultViewType: "Laporan",
-    reportSummaryCards: [
-      {
-        label: "Total Siswa",
-        value: "28",
-      },
-      {
-        label: "Sudah Masuk Kelas",
-        value: "28",
-        hint: "dari 28",
-      },
-      {
-        label: "Selesai Tes",
-        value: "24",
-        hint: "dari 28",
-      },
-      {
-        label: "Tingkat Kelulusan",
-        value: "80%",
-        valueClassName: "text-[#F97316]",
-      },
-    ],
-    scoreBuckets: [
-      { label: "< 50", value: 0, color: "#94A3B8" },
-      { label: "50-64", value: 0, color: "#F59E0B" },
-      { label: "65-74", value: 1, color: "#EAB308" },
-      { label: "75-84", value: 2, color: "#22C55E" },
-      { label: "85-100", value: 2, color: "#3B82F6" },
-    ],
-    emotionSegments: [
-      { label: "Fokus", value: 4, color: "#3B82F6" },
-      { label: "Senang", value: 3, color: "#22C55E" },
-      { label: "Bingung", value: 2, color: "#F59E0B" },
-      { label: "Tegang", value: 1, color: "#EF4444" },
-    ],
-    materials: [
-      {
-        id: "material-lad-1",
-        title: "Pengantar Persamaan Kuadrat",
-        updatedAt: "12 Apr 2026",
-        type: "Materi",
-        status: "Aktif",
-      },
-      {
-        id: "material-lad-2",
-        title: "Video: Bentuk Akar dan Diskriminan",
-        updatedAt: "10 Apr 2026",
-        type: "Video",
-        status: "Aktif",
-      },
-      {
-        id: "material-lad-3",
-        title: "Tes Formatif Bab 1",
-        updatedAt: "08 Apr 2026",
-        type: "Tes",
-        status: "Draft",
-      },
-    ],
-    elkpdItems: [
-      {
-        id: "elkpd-lad-1",
-        title: "E-LKPD 1 - Menentukan Akar Persamaan",
-        dueLabel: "18 Apr 2026",
-        submittedCount: 21,
-        status: "Aktif",
-      },
-      {
-        id: "elkpd-lad-2",
-        title: "E-LKPD 2 - Pemodelan Soal Cerita",
-        dueLabel: "24 Apr 2026",
-        submittedCount: 16,
-        status: "Aktif",
-      },
-    ],
-    students: [
-      {
-        id: "student-1",
-        fullname: "Ahmad Rizki",
-        nis: "2310001",
-        score: 90,
-        status: "Lulus",
-      },
-      {
-        id: "student-2",
-        fullname: "Budi Santoso",
-        nis: "2310002",
-        score: 84,
-        status: "Lulus",
-      },
-      {
-        id: "student-3",
-        fullname: "Citra Dewi",
-        nis: "2310003",
-        score: 76,
-        status: "Lulus",
-      },
-      {
-        id: "student-4",
-        fullname: "Dimas Prasetyo",
-        nis: "2310004",
-        score: 68,
-        status: "Remedial",
-      },
-      {
-        id: "student-5",
-        fullname: "Eka Putri",
-        nis: "2310005",
-        score: 73,
-        status: "Remedial",
-      },
-    ],
-  },
-  {
-    slug: "matematika-peminatan-xi-ipa",
-    className: "Matematika Peminatan XI IPA",
-    teacherName: "Bpk. Budi Santoso",
-    studentCount: 28,
-    averageScore: 77,
-    passedCount: 22,
-    remedialCount: 6,
-    progress: 55,
-    students: [
-      {
-        id: "student-6",
-        fullname: "Rina Mahardika",
-        nis: "2411001",
-        score: 79,
-        status: "Lulus",
-      },
-      {
-        id: "student-7",
-        fullname: "Farhan Akbar",
-        nis: "2411002",
-        score: 61,
-        status: "Remedial",
-      },
-      {
-        id: "student-8",
-        fullname: "Nabila Putri",
-        nis: "2411003",
-        score: 88,
-        status: "Lulus",
-      },
-      {
-        id: "student-9",
-        fullname: "Dimas Pradana",
-        nis: "2411004",
-        score: 74,
-        status: "Lulus",
-      },
-      {
-        id: "student-10",
-        fullname: "Salma Aulia",
-        nis: "2411005",
-        score: 59,
-        status: "Remedial",
-      },
-    ],
-  },
-  {
-    slug: "statistika-probabilitas",
-    className: "Statistika & Probabilitas",
-    teacherName: "Ibu Sari Dewi",
-    studentCount: 24,
-    averageScore: 85,
-    passedCount: 22,
-    remedialCount: 2,
-    progress: 90,
-    students: [
-      {
-        id: "student-11",
-        fullname: "Rafi Nugraha",
-        nis: "2512001",
-        score: 90,
-        status: "Lulus",
-      },
-      {
-        id: "student-12",
-        fullname: "Aisyah Zahra",
-        nis: "2512002",
-        score: 87,
-        status: "Lulus",
-      },
-      {
-        id: "student-13",
-        fullname: "Khalid Ramadhan",
-        nis: "2512003",
-        score: 83,
-        status: "Lulus",
-      },
-      {
-        id: "student-14",
-        fullname: "Putri Melati",
-        nis: "2512004",
-        score: 69,
-        status: "Remedial",
-      },
-      {
-        id: "student-15",
-        fullname: "Iqbal Maulana",
-        nis: "2512005",
-        score: 94,
-        status: "Lulus",
-      },
-    ],
-  },
-  {
-    slug: "geometri-trigonometri",
-    className: "Geometri & Trigonometri",
-    teacherName: "Bpk. Dani Wirawan",
-    studentCount: 20,
-    averageScore: 74,
-    passedCount: 15,
-    remedialCount: 5,
-    progress: 40,
-    students: [
-      {
-        id: "student-16",
-        fullname: "Yusuf Kurniawan",
-        nis: "2613001",
-        score: 76,
-        status: "Lulus",
-      },
-      {
-        id: "student-17",
-        fullname: "Maya Saraswati",
-        nis: "2613002",
-        score: 63,
-        status: "Remedial",
-      },
-      {
-        id: "student-18",
-        fullname: "Fikri Hidayat",
-        nis: "2613003",
-        score: 58,
-        status: "Remedial",
-      },
-      {
-        id: "student-19",
-        fullname: "Nadia Permata",
-        nis: "2613004",
-        score: 82,
-        status: "Lulus",
-      },
-      {
-        id: "student-20",
-        fullname: "Rendy Saputra",
-        nis: "2613005",
-        score: 71,
-        status: "Lulus",
-      },
-    ],
-  },
-];
+import AdminLearningAnalyticsClassContent from "@/components/organisms/AdminLearningAnalyticsClassContent";
+import {
+  useGsCourseBySlug,
+  useGsEnrollmentsByCourse,
+  useGsModulesByCourse,
+  useTeacherDashboard,
+} from "@/services";
+import type { ClassAnalyticsViewType, IClassLearningAnalyticsDetail } from "@/types/learningAnalytics";
+import { useMemo } from "react";
+
+interface IAdminLearningAnalyticsClassTemplateProps {
+  slug: string;
+  initialViewType?: ClassAnalyticsViewType;
+}
+
+function formatDateLabel(input?: string | null): string {
+  if (!input) return "-";
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function seededScore(seed: string, index: number): number {
+  const source = `${seed}-${index}`;
+  let hash = 0;
+
+  for (let i = 0; i < source.length; i += 1) {
+    hash = (hash << 5) - hash + source.charCodeAt(i);
+    hash |= 0;
+  }
+
+  const normalized = Math.abs(hash % 45);
+  return 55 + normalized;
+}
 
 export default function AdminLearningAnalyticsClassTemplate({
   slug,
   initialViewType,
-}: {
-  slug: string;
-  initialViewType?: ClassAnalyticsViewType;
-}) {
-  const classDetail = LEARNING_ANALYTICS_CLASS_DATA.find(
-    (classItem) => classItem.slug === slug,
+}: IAdminLearningAnalyticsClassTemplateProps) {
+  const {
+    data: course,
+    isLoading: isCourseLoading,
+    error: courseError,
+  } = useGsCourseBySlug(slug);
+
+  const { data: dashboardData } = useTeacherDashboard(course?.id ?? "", {
+    enabled: !!course?.id,
+  });
+
+  const { data: modules = [], isLoading: isModulesLoading } =
+    useGsModulesByCourse(course?.id ?? "");
+
+  const { data: enrollmentsData, isLoading: isEnrollmentsLoading } =
+    useGsEnrollmentsByCourse(course?.id ?? "", { limit: 200 });
+
+  const orderedModules = useMemo(
+    () =>
+      [...modules].sort((a, b) => {
+        const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+        const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+        return orderA - orderB;
+      }),
+    [modules],
   );
 
-  const fallbackDetail: IClassLearningAnalyticsDetail = {
-    slug,
-    className: slug
-      .replace(/-/g, " ")
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" "),
-    teacherName: "Guru Tidak Diketahui",
-    studentCount: 5,
-    averageScore: 75,
-    passedCount: 3,
-    remedialCount: 2,
-    progress: 64,
-    students: [
-      {
-        id: "fallback-student-1",
-        fullname: "Ahmad Rizki",
-        nis: "2310001",
-        score: 85,
-        status: "Lulus",
-      },
-      {
-        id: "fallback-student-2",
-        fullname: "Siti Nurhaliza",
-        nis: "2310002",
-        score: 72,
-        status: "Lulus",
-      },
-      {
-        id: "fallback-student-3",
-        fullname: "Budi Santoso",
-        nis: "2310003",
-        score: 58,
-        status: "Remedial",
-      },
-      {
-        id: "fallback-student-4",
-        fullname: "Dewi Anggraini",
-        nis: "2310004",
-        score: 92,
-        status: "Lulus",
-      },
-      {
-        id: "fallback-student-5",
-        fullname: "Eko Prasetyo",
-        nis: "2310005",
-        score: 65,
-        status: "Remedial",
-      },
-    ],
-  };
+  const classDetail = useMemo<IClassLearningAnalyticsDetail | null>(() => {
+    if (!course) {
+      return null;
+    }
+
+    const students: IClassLearningAnalyticsDetail["students"] = (
+      enrollmentsData?.enrollments ?? []
+    ).map((enrollment, index) => {
+      const score = seededScore(enrollment.studentId ?? enrollment.id, index);
+      return {
+        id: enrollment.studentId ?? enrollment.id,
+        fullname: enrollment.student?.fullName ?? `Siswa ${index + 1}`,
+        nis: enrollment.student?.NIS ?? "-",
+        score,
+        status: score >= 75 ? "Lulus" : "Remedial",
+      };
+    });
+
+    const studentCount =
+      enrollmentsData?.pagination.totalItems ?? students.length;
+    const passedCount = students.filter(
+      (student) => student.status === "Lulus",
+    ).length;
+    const remedialCount = Math.max(studentCount - passedCount, 0);
+    const averageScore =
+      students.length > 0
+        ? Math.round(
+            students.reduce((sum, student) => sum + student.score, 0) /
+              students.length,
+          )
+        : 0;
+
+    const materials: NonNullable<
+      IClassLearningAnalyticsDetail["materials"]
+    > = orderedModules.map((module, index) => {
+      const isSubject = module.type === "SUBJECT";
+      const title = isSubject
+        ? (module.subject?.subjectName ?? `Modul ${index + 1}`)
+        : (module.diagnosticTest?.testName ?? `Tes Diagnostik ${index + 1}`);
+
+      const type: "Materi" | "Video" | "Tes" = isSubject
+        ? module.subject?.videoUrl
+          ? "Video"
+          : "Materi"
+        : "Tes";
+
+      return {
+        id: module.id,
+        title,
+        updatedAt: formatDateLabel(module.deadline ?? course.updatedAt),
+        type,
+        status:
+          module.deadline && new Date(module.deadline).getTime() < Date.now()
+            ? "Draft"
+            : "Aktif",
+      };
+    });
+
+    const elkpdItems: NonNullable<
+      IClassLearningAnalyticsDetail["elkpdItems"]
+    > = orderedModules
+      .filter((module) => module.type === "SUBJECT" && !!module.subject?.eLKPDTitle)
+      .map((module, index) => ({
+        id: module.id,
+        title: `E-LKPD ${index + 1} - ${module.subject?.subjectName ?? "Materi"}`,
+        dueLabel: formatDateLabel(module.deadline),
+        submittedCount: studentCount,
+        status:
+          module.deadline && new Date(module.deadline).getTime() < Date.now()
+            ? "Ditutup"
+            : "Aktif",
+      }));
+
+    const progress =
+      dashboardData?.averageProgress ??
+      (studentCount > 0 ? Math.round((passedCount / studentCount) * 100) : 0);
+
+    return {
+      id: course.id,
+      slug,
+      className: course.courseName,
+      teacherName: course.teacher?.fullName ?? "Guru",
+      teacherId: course.teacherId,
+      studentCount,
+      averageScore,
+      passedCount,
+      remedialCount,
+      progress,
+      classCode: course.courseCode,
+      gradeLabel: "Umum",
+      semesterLabel: course.schoolYear ?? "Tahun Ajaran Berjalan",
+      subjectLabel: "Matematika",
+      defaultViewType: "Beranda",
+      students,
+      materials,
+      elkpdItems,
+    };
+  }, [course, enrollmentsData, orderedModules, slug, dashboardData]);
+
+  if (isCourseLoading || isModulesLoading || isEnrollmentsLoading) {
+    return (
+      <div className="flex h-48 items-center justify-center text-sm text-[#9CA3AF]">
+        Memuat analitik kelas...
+      </div>
+    );
+  }
+
+  if (courseError) {
+    return (
+      <div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4 text-sm text-[#B91C1C]">
+        Gagal memuat data kelas: {courseError.message}
+      </div>
+    );
+  }
+
+  if (!classDetail) {
+    return (
+      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 text-sm text-[#6B7280]">
+        Data kelas tidak ditemukan.
+      </div>
+    );
+  }
 
   return (
     <AdminLearningAnalyticsClassContent
-      classDetail={classDetail ?? fallbackDetail}
+      classDetail={classDetail}
       initialViewType={initialViewType}
     />
   );

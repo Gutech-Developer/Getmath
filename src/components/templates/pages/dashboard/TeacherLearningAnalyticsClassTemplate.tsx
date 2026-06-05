@@ -148,6 +148,7 @@ export default function TeacherLearningAnalyticsClassTemplate({
         slug,
         className: course.courseName,
         teacherName: course.teacher?.fullName ?? "Guru",
+        teacherId: course.teacherId,
         studentCount,
         averageScore,
         passedCount,

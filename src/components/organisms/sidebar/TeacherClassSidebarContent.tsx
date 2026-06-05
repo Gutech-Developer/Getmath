@@ -30,7 +30,7 @@ const TEACHER_CLASS_SIDEBAR_ITEMS: ITeacherClassSidebarItem[] = [
   { type: "Beranda", label: "Beranda", icon: DashboardIcon },
   { type: "Siswa", label: "Siswa", icon: ThreeUserGroupIcon },
   { type: "Materi", label: "Materi", icon: NotebookIcon },
-  { type: "Kelola E-LKPD", label: "Kelola E-LKPD", icon: ClipboardIcon },
+  { type: "Nilai E-LKPD", label: "Nilai E-LKPD", icon: ClipboardIcon },
   { type: "Laporan", label: "Laporan", icon: TrendUpIcon },
   { type: "Remedial", label: "Remedial", icon: NotebookIcon },
 ];

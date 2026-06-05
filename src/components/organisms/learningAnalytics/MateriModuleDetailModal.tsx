@@ -111,7 +111,7 @@ export const MateriModuleDetailModal: React.FC<
       ref={modalRef}
     >
       {/* Modal Container - Responsive */}
-      <div className="h-[90vh] w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl sm:h-auto sm:max-h-[90vh]">
+      <div className="h-[90vh] w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl sm:h-auto sm:max-h-[95vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
           <h2 className="text-lg font-bold text-[#1F2937]">Detail Modul</h2>
@@ -430,23 +430,25 @@ export const MateriModuleDetailModal: React.FC<
         </div>
 
         {/* Footer - Sticky */}
-        <div className="flex gap-2 border-t border-[#E5E7EB] bg-[#F9FAFB] px-5 py-4 sm:justify-end">
-          {onDelete && (
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={isDeleting}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#DC2626] bg-white px-4 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-[#FEF2F2] disabled:cursor-not-allowed disabled:opacity-50"
-              title="Hapus modul ini"
-            >
-              <TrashIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {isDeleting ? "Menghapus..." : "Hapus"}
-              </span>
-            </button>
-          )}
+        <div className="flex items-center justify-between border-t border-[#E5E7EB] bg-[#F9FAFB] px-5 py-4">
+          <div>
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#DC2626] bg-white px-4 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-[#FEF2F2] disabled:cursor-not-allowed disabled:opacity-50"
+                title="Hapus modul ini"
+              >
+                <TrashIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {isDeleting ? "Menghapus..." : "Hapus"}
+                </span>
+              </button>
+            )}
+          </div>
 
-          <div className="ml-auto flex gap-2 sm:ml-0">
+          <div className="flex gap-2 p-1">
             <button
               type="button"
               onClick={onClose}

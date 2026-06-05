@@ -24,6 +24,7 @@ interface IMaterialStep {
   typeLabel: string;
   title: string;
   status: MaterialStatus;
+  diagnosticTestId?: string;
 }
 
 interface IMaterialModule {
@@ -86,6 +87,7 @@ function mapModuleToMaterial(
         typeLabel: "Tes Remedial",
         title: `Tes Remedial: ${title}`,
         status: flat.remedialCompleted ? "completed" : "in-progress",
+        diagnosticTestId,
       });
     }
 
@@ -267,6 +269,8 @@ export default function ClassMaterialListPageTemplate({
           m.description.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : modules;
+
+  console.log("Module: ", modules);
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -545,7 +549,9 @@ export default function ClassMaterialListPageTemplate({
                                 step.typeLabel === "Tes"
                                   ? `/${step.id}`
                                   : step.typeLabel === "Tes Remedial"
-                                    ? `/remedia/${step.id}`
+                                    ? stepIsCompleted
+                                      ? `/${step.diagnosticTestId}`
+                                      : `/remedia/${step.id}`
                                     : ""
                               }`}
                               className={cn(

@@ -8,8 +8,11 @@ const explicitTopbarTitleMap: Record<string, string> = {
   "/admin/dashboard": "Dashboard Admin",
   "/admin/dashboard/learning-analytics": "Learning Analytics",
   "/admin/dashboard/class-list": "Daftar Kelas",
-  "/admin/dashboard/material-management": "Manajemen Materi",
-  "/admin/dashboard/test-management": "Manajemen Tes",
+  "/admin/dashboard/manage-material": "Kelola Materi",
+  "/admin/dashboard/manage-diagnostics": "Kelola Tes Diagnostik",
+  "/admin/dashboard/manage-diagnostics/create": "Buat Tes Diagnostik",
+  "/admin/dashboard/manage-remedial": "Kelola Tes Remedial",
+  "/admin/dashboard/manage-remedial/create": "Buat Tes Remedial",
   "/admin/dashboard/notifikasi": "Notifikasi",
   "/admin/dashboard/profil": "Profil Admin",
   "/parent/dashboard": "Dashboard Orang Tua",
@@ -107,17 +110,27 @@ export function resolveTopbarTitle({
   }
 
   // Dynamic Remedial/Diagnostic paths
-  if (/\/teacher\/dashboard\/manage-remedial\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalizedPathname)) {
+  if (/\/(?:teacher|admin)\/dashboard\/manage-remedial\/[^/]+$/i.test(normalizedPathname)) {
     return "Detail Tes Remedial";
   }
-  if (/\/teacher\/dashboard\/manage-remedial\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/edit$/i.test(normalizedPathname)) {
+  if (/\/(?:teacher|admin)\/dashboard\/manage-remedial\/[^/]+\/edit$/i.test(normalizedPathname)) {
     return "Edit Tes Remedial";
   }
-  if (/\/teacher\/dashboard\/manage-diagnostics\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalizedPathname)) {
+  if (/\/(?:teacher|admin)\/dashboard\/manage-diagnostics\/[^/]+$/i.test(normalizedPathname)) {
     return "Detail Tes Diagnostik";
   }
-  if (/\/teacher\/dashboard\/manage-diagnostics\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/edit$/i.test(normalizedPathname)) {
+  if (/\/(?:teacher|admin)\/dashboard\/manage-diagnostics\/[^/]+\/edit$/i.test(normalizedPathname)) {
     return "Edit Tes Diagnostik";
+  }
+
+  // ELKPD Score pages
+  if (/\/elkpd\/[^/]+$/i.test(normalizedPathname)) {
+    const slug = pickSlug(slugParam);
+    if (slug) {
+      const classTitle = stripTrailingClassCode(humanizeSegment(slug));
+      return `${classTitle} - Penilaian E-LKPD`;
+    }
+    return "Penilaian E-LKPD";
   }
 
   const resolvedSidebar = resolveSidebarVariant(normalizedPathname);

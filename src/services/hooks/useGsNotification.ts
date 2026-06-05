@@ -20,16 +20,7 @@ import type {
   GsPaginatedNotifications,
   GsUnreadNotificationsResponse,
 } from "@/types/gs-notification";
-
-function buildQuery(params?: GsNotificationListParams): string {
-  if (!params) return "";
-  const q = new URLSearchParams();
-  if (params.page) q.set("page", String(params.page));
-  if (params.limit) q.set("limit", String(params.limit));
-  if (params.isRead !== undefined) q.set("isRead", String(params.isRead));
-  const qs = q.toString();
-  return qs ? `?${qs}` : "";
-}
+import { buildQuery } from "./helper";
 
 interface GsNotificationQueryOptions {
   enabled?: boolean;

@@ -6,15 +6,19 @@ import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import { cn } from "@/libs/utils";
 import { showToast } from "@/libs/toast";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   useGsCreateDiagnosticTest,
   useGsUpdateDiagnosticTest,
   useGsDiagnosticTestById,
+  useGsUploadFile,
+  useGsDeleteFile,
 } from "@/services";
+import SearchableInput from "@/components/atoms/SearchableInput";
 import type { GsDiagnosticTest } from "@/types/gs-diagnostic-test";
 import MathText from "../atoms/MathText";
+import { useSearchUser } from "@/services/hooks/useUser";
 
 const MathEditor = dynamic(() => import("@/components/atoms/MathEditor"), {
   ssr: false,
@@ -38,6 +42,7 @@ interface IQuestionDraft {
   correctAnswer: ChoiceKey;
   pembahasan: string;
 }
+
 function createEmptyQuestion(index: number): IQuestionDraft {
   return {
     id: `q-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
@@ -56,8 +61,7 @@ function createEmptyQuestion(index: number): IQuestionDraft {
 
 function latexTextToTiptapHtml(text: string): string {
   if (!text) return "";
-
-  // Convert each line into a Tiptap <p> block so newlines are preserved in the editor
+  if (text.includes("<p>") || text.includes("<span data-type=")) return text;
   return text
     .split("\n")
     .map((line) => {
@@ -68,7 +72,6 @@ function latexTextToTiptapHtml(text: string): string {
             const latex = part.slice(1, -1).replace(/"/g, "&quot;");
             return `<span data-type="inline-math" data-latex="${latex}"></span>`;
           }
-          // Escape HTML special chars in plain text
           return part
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -80,7 +83,7 @@ function latexTextToTiptapHtml(text: string): string {
     .join("");
 }
 
-function tiptapHtmlToLatexText(html: string): string {
+function tiptapHtmlToLatexHtml(html: string): string {
   if (!html) return "";
   if (typeof window === "undefined") return html.replace(/<[^>]*>/g, "").trim();
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -99,17 +102,17 @@ function tiptapHtmlToLatexText(html: string): string {
       }
       const tag = el.tagName.toLowerCase();
       const inner = Array.from(el.childNodes).map(processNode).join("");
-      // Tiptap wraps each paragraph in <p> — treat as a line break
-      if (tag === "p") return inner + "\n";
-      if (tag === "br") return "\n";
-      return inner;
+      const attributes = Array.from(el.attributes)
+        .map((attr) => `${attr.name}="${attr.value}"`)
+        .join(" ");
+      return `<${tag}${attributes ? " " + attributes : ""}>${inner}</${tag}>`;
     }
     return "";
   }
   return Array.from(doc.body.childNodes)
     .map(processNode)
     .join("")
-    .replace(/\n+$/, ""); // trim trailing newlines only
+    .replace(/\n+$/, "");
 }
 
 function prefillQuestions(dt: GsDiagnosticTest): IQuestionDraft[] {
@@ -148,15 +151,23 @@ function prefillQuestions(dt: GsDiagnosticTest): IQuestionDraft[] {
 
 interface IProps {
   editId?: string;
+  role?: "admin" | "teacher";
 }
 
-export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
+export default function TeacherCreateDiagnosticContent({
+  editId,
+  role = "teacher",
+}: IProps) {
+  const basePath = role === "admin" ? "/admin/dashboard" : "/teacher/dashboard";
   const router = useRouter();
   const isEditing = Boolean(editId);
+
   const { data: existingTest, isLoading: loadingExisting } =
     useGsDiagnosticTestById(editId ?? "");
   const createMutation = useGsCreateDiagnosticTest();
   const updateMutation = useGsUpdateDiagnosticTest();
+  const uploadMutation = useGsUploadFile();
+  const deleteMutation = useGsDeleteFile();
 
   const [testTitle, setTestTitle] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("60");
@@ -168,16 +179,77 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
   const [openQuestionIds, setOpenQuestionIds] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
+  const [teacherId, setTeacherId] = useState<string>("");
+  const [teacherName, setTeacherName] = useState<string>("");
+  const [debounceQuery, setDebounceQuery] = useState<string>("");
+
+  // ── HIT ENDPOINT API SEARCH USER ──
+  const { data: teachers, isPending } = useSearchUser({
+    role: "teacher",
+    limit: 5, // Diperbesar agar cakupan pencarian awal lebih aman
+    search: debounceQuery,
+  });
+
+  const teacherOptions = useMemo(() => {
+    if (!teachers?.users) return [];
+    return teachers.users.map((user) => ({
+      value: user.profileId,
+      label: `${user.fullName} (${user.schoolName ?? "Tanpa Sekolah"})`,
+    }));
+  }, [teachers]);
+
+  // ── SINKRONISASI DATA UTAMA SAAT PROSES EDIT (HYDRATION) ──
   if (isEditing && existingTest && !hydrated) {
     setTestTitle(existingTest.testName);
     setDurationMinutes(String(existingTest.durationMinutes));
     setKkm(existingTest.passingScore);
     setDescription(existingTest.description ?? "");
+
     const initialQuestions = prefillQuestions(existingTest);
     setQuestions(initialQuestions);
     setOpenQuestionIds(initialQuestions.map((q) => q.id));
+    setTeacherId(existingTest.teacherId);
+
+    // PERBAIKAN: Jika ada data nama guru dari response detail, langsung pasang ke input & query bypass
+    if ((existingTest as any).teacherName) {
+      setTeacherName((existingTest as any).teacherName);
+      setDebounceQuery((existingTest as any).teacherName);
+    }
+
     setHydrated(true);
   }
+
+  // PERBAIKAN CADANGAN: Jika backend tidak melempar properti teacherName di tingkat atas,
+  // kita cari manual namanya dari list options begitu data API 'teachers' berhasil termuat.
+  useEffect(() => {
+    if (isEditing && teacherId && teachers?.users && !teacherName) {
+      const currentTeacher = teachers.users.find(
+        (u) => u.profileId === teacherId,
+      );
+      if (currentTeacher) {
+        setTeacherName(currentTeacher.fullName);
+        setDebounceQuery(currentTeacher.fullName);
+      }
+    }
+  }, [isEditing, teacherId, teachers, teacherName]);
+
+  // Debounce input pencarian nama guru
+  useEffect(() => {
+    // Jika kolom diisi akibat proses hidrasi awal, potong alur debounce agar instant
+    if (
+      isEditing &&
+      existingTest &&
+      teacherName === (existingTest as any).teacherName
+    ) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDebounceQuery(teacherName);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [teacherName, isEditing, existingTest]);
 
   /* ── question helpers ── */
   const addQuestion = () => {
@@ -187,6 +259,28 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
   };
 
   const removeQuestion = (qId: string) => {
+    const targetQ = questions.find((q) => q.id === qId);
+    if (targetQ) {
+      const urlsToDelete: string[] = [];
+      const imageRegex = /https?:\/\/[^\s"'>]+\/uploads\/images\/[^\s"'>]+/g;
+      const extractUrls = (html: string) => {
+        const matches = html.match(imageRegex);
+        if (matches) urlsToDelete.push(...matches);
+      };
+
+      extractUrls(targetQ.prompt);
+      extractUrls(targetQ.pembahasan);
+      CHOICE_KEYS.forEach((key) => {
+        extractUrls(targetQ.options[key].text);
+      });
+
+      urlsToDelete.forEach(async (url) => {
+        try {
+          await deleteMutation.mutateAsync(url);
+        } catch (e) {}
+      });
+    }
+
     setQuestions((prev) => {
       const next = prev.filter((q) => q.id !== qId);
       setOpenQuestionIds((o) => o.filter((x) => x !== qId));
@@ -211,22 +305,30 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
 
   /* ── build payload ── */
   const buildPayload = (isUpsert: boolean) =>
-    questions.map((q, qi) => ({
-      ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
-      questionNumber: qi + 1,
-      textQuestion: tiptapHtmlToLatexText(q.prompt) || `Soal ${qi + 1}`,
-      pembahasan:
-        tiptapHtmlToLatexText(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
-      discussion: {
-        textDiscussion:
-          tiptapHtmlToLatexText(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
-      },
-      options: CHOICE_KEYS.map((key) => ({
-        option: key,
-        textAnswer: tiptapHtmlToLatexText(q.options[key].text),
-        isCorrect: q.correctAnswer === key,
-      })),
-    }));
+    questions.map((q, qi) => {
+      return {
+        ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
+        questionNumber: qi + 1,
+        textQuestion: tiptapHtmlToLatexHtml(q.prompt) || `Soal ${qi + 1}`,
+        pembahasan:
+          tiptapHtmlToLatexHtml(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
+        discussion: {
+          textDiscussion:
+            tiptapHtmlToLatexHtml(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
+        },
+        options: CHOICE_KEYS.map((key) => {
+          return {
+            ...(isUpsert && (q.options[key] as any).id
+              ? { id: (q.options[key] as any).id }
+              : {}),
+            option: key,
+            textAnswer:
+              tiptapHtmlToLatexHtml(q.options[key].text) || `Jawaban ${key}`,
+            isCorrect: q.correctAnswer === key,
+          };
+        }),
+      };
+    });
 
   /* ── submit ── */
   const handleSave = () => {
@@ -234,10 +336,14 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
       showToast.error("Judul tes tidak boleh kosong");
       return;
     }
+    if (role === "admin" && !teacherId) {
+      showToast.error("Silakan pilih guru pengampu terlebih dahulu");
+      return;
+    }
     for (let qi = 0; qi < questions.length; qi++) {
       const q = questions[qi];
       const label = `Soal ${qi + 1}`;
-      if (!tiptapHtmlToLatexText(q.prompt).trim()) {
+      if (!tiptapHtmlToLatexHtml(q.prompt).trim()) {
         showToast.error(`${label}: Pertanyaan tidak boleh kosong`);
         setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
         return;
@@ -250,16 +356,17 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
           id: editId,
           data: {
             testName: testTitle,
-            description: description || undefined,
+            description: description || null,
             durationMinutes: Number(durationMinutes) || 60,
             passingScore: kkm,
+            teacherId: teacherId || undefined,
             questions: buildPayload(true),
           },
         },
         {
           onSuccess: () => {
             showToast.success("Tes diagnostik berhasil diperbarui");
-            router.push("/teacher/dashboard/manage-diagnostics");
+            router.push(`${basePath}/manage-diagnostics`);
           },
           onError: () => showToast.error("Gagal memperbarui tes diagnostik"),
         },
@@ -268,9 +375,10 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
       createMutation.mutate(
         {
           testName: testTitle,
-          description: description || undefined,
+          description: description || null,
           durationMinutes: Number(durationMinutes) || 60,
           passingScore: kkm,
+          teacherId: teacherId || undefined,
           questions: buildPayload(false),
         },
         {
@@ -279,8 +387,8 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
             const id = (data as GsDiagnosticTest).id;
             router.push(
               id
-                ? `/teacher/dashboard/manage-diagnostics/${id}`
-                : "/teacher/dashboard/manage-diagnostics",
+                ? `${basePath}/manage-diagnostics/${id}`
+                : `${basePath}/manage-diagnostics`,
             );
           },
           onError: () => showToast.error("Gagal membuat tes diagnostik"),
@@ -290,7 +398,6 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
   };
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
-  const totalQuestions = questions.length;
 
   if (isEditing && loadingExisting)
     return (
@@ -305,7 +412,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push("/teacher/dashboard/manage-diagnostics")}
+          onClick={() => router.push(`${basePath}/manage-diagnostics`)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:bg-[#F3F4F6]"
           aria-label="Kembali"
         >
@@ -377,6 +484,28 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
             className="w-full resize-none rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
           />
         </div>
+
+        {/* Input Guru (Hanya Admin) */}
+        {role === "admin" && (
+          <div className="space-y-1.5">
+            <SearchableInput
+              label="Guru (Pembuat Tes)"
+              placeholder="Cari guru..."
+              value={teacherName}
+              onChange={(label, option) => {
+                setTeacherName(label);
+                if (option?.value) {
+                  setTeacherId(option.value);
+                } else {
+                  setTeacherId("");
+                }
+              }}
+              options={teacherOptions}
+              isLoading={isPending}
+              required
+            />
+          </div>
+        )}
       </section>
 
       {/* Soal Tes */}
@@ -391,13 +520,12 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
         <div className="space-y-3 p-4">
           {questions.map((question, qi) => {
             const isOpen = openQuestionIds.includes(question.id);
-            const preview = tiptapHtmlToLatexText(question.prompt);
+            const preview = tiptapHtmlToLatexHtml(question.prompt);
             return (
               <div
                 key={question.id}
                 className="overflow-hidden rounded-2xl border border-[#E5E7EB]"
               >
-                {/* Accordion header */}
                 <button
                   type="button"
                   onClick={() => toggleQuestion(question.id)}
@@ -407,9 +535,9 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                     <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-sm font-semibold text-white">
                       {qi + 1}
                     </span>
-                    <p className="max-w-md">
-                      <MathText text={preview ?? `Soal ${qi + 1}`} />
-                    </p>
+                    <div className="max-w-md truncate text-sm">
+                      <MathText text={preview || `Soal ${qi + 1}`} />
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="shrink-0 rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
@@ -424,10 +552,8 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                   </div>
                 </button>
 
-                {/* Accordion body */}
                 {isOpen && (
                   <div className="space-y-5 border-t border-[#E5E7EB] p-4">
-                    {/* Pertanyaan */}
                     <div className="space-y-1.5">
                       <label className="block text-sm font-semibold text-[#4B5563]">
                         Pertanyaan <span className="text-[#EF4444]">*</span>
@@ -441,10 +567,23 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                           }))
                         }
                         placeholder="Masukkan teks soal…"
+                        isUploadingImage={uploadMutation.isPending}
+                        onImageUpload={async (file) => {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          const res =
+                            await uploadMutation.mutateAsync(formData);
+                          showToast.success("Gambar berhasil diunggah");
+                          return res.url;
+                        }}
+                        onImageDelete={async (url) => {
+                          try {
+                            await deleteMutation.mutateAsync(url);
+                          } catch {}
+                        }}
                       />
                     </div>
 
-                    {/* Pilihan Jawaban */}
                     <div className="space-y-2">
                       <p className="text-sm font-semibold text-[#4B5563]">
                         Pilihan Jawaban (A – D)
@@ -456,78 +595,75 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
                             <div
                               key={key}
                               className={cn(
-                                "rounded-2xl border p-3",
+                                "flex items-start gap-3 rounded-2xl border p-3 transition-colors",
                                 isCorrect
-                                  ? "border-[#93C5FD] bg-[#EFF6FF]"
+                                  ? "border-[#3B82F6] bg-[#EFF6FF]"
                                   : "border-[#E5E7EB] bg-white",
                               )}
                             >
-                              <div className="mb-2 flex items-center gap-2">
-                                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F3F4F6] text-sm font-semibold text-[#374151]">
-                                  {key}
-                                </span>
-                                <label className="flex items-center gap-1.5 text-xs font-medium text-[#4B5563]">
-                                  <input
-                                    type="radio"
-                                    name={`correct-${question.id}`}
-                                    checked={isCorrect}
-                                    onChange={() =>
-                                      updateQuestion(question.id, (q) => ({
-                                        ...q,
-                                        correctAnswer: key,
-                                      }))
-                                    }
-                                    className="h-4 w-4 accent-[#2563EB]"
-                                  />
-                                  Jawaban benar
-                                </label>
-                              </div>
-                              <MathEditor
-                                value={question.options[key].text}
-                                onChange={(v) =>
+                              <button
+                                type="button"
+                                onClick={() =>
                                   updateQuestion(question.id, (q) => ({
                                     ...q,
-                                    options: {
-                                      ...q.options,
-                                      [key]: { text: v },
-                                    },
+                                    correctAnswer: key,
                                   }))
                                 }
-                                placeholder={`Pilihan ${key}`}
-                                className="min-h-14"
-                              />
+                                className={cn(
+                                  "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition",
+                                  isCorrect
+                                    ? "border-[#3B82F6] bg-[#3B82F6] text-white"
+                                    : "border-[#D1D5DB] text-[#9CA3AF] hover:border-[#9CA3AF]",
+                                )}
+                              >
+                                {key}
+                              </button>
+                              <div className="min-w-0 flex-1">
+                                <MathEditor
+                                  value={question.options[key].text}
+                                  onChange={(v) =>
+                                    updateQuestion(question.id, (q) => ({
+                                      ...q,
+                                      options: {
+                                        ...q.options,
+                                        [key]: { ...q.options[key], text: v },
+                                      },
+                                    }))
+                                  }
+                                  placeholder={`Jawaban ${key}…`}
+                                  isUploadingImage={uploadMutation.isPending}
+                                  onImageUpload={async (file) => {
+                                    const formData = new FormData();
+                                    formData.append("file", file);
+                                    const res =
+                                      await uploadMutation.mutateAsync(
+                                        formData,
+                                      );
+                                    showToast.success(
+                                      "Gambar berhasil diunggah",
+                                    );
+                                    return res.url;
+                                  }}
+                                  onImageDelete={async (url) => {
+                                    try {
+                                      await deleteMutation.mutateAsync(url);
+                                    } catch {}
+                                  }}
+                                />
+                              </div>
                             </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Pembahasan */}
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-[#4B5563]">
-                        Pembahasan <span className="text-[#EF4444]">*</span>
-                      </label>
-                      <MathEditor
-                        value={question.pembahasan}
-                        onChange={(v) =>
-                          updateQuestion(question.id, (q) => ({
-                            ...q,
-                            pembahasan: v,
-                          }))
-                        }
-                        placeholder="Tuliskan pembahasan…"
-                      />
-                    </div>
-
-                    {/* Hapus soal */}
                     <div className="flex justify-end">
                       <button
                         type="button"
                         onClick={() => removeQuestion(question.id)}
                         className="inline-flex items-center gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-[#FEE2E2]"
                       >
-                        <TrashIcon className="h-4 w-4" />
-                        Hapus Soal
+                        <TrashIcon className="h-4 w-4" /> Hapus Soal
                       </button>
                     </div>
                   </div>
@@ -541,8 +677,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
             onClick={() => addQuestion()}
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#93C5FD] bg-[#F0F9FF] py-3 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
           >
-            <PlusIcon className="h-4 w-4" />
-            Tambah Soal
+            <PlusIcon className="h-4 w-4" /> Tambah Soal
           </button>
         </div>
       </section>
@@ -551,7 +686,7 @@ export default function TeacherCreateDiagnosticContent({ editId }: IProps) {
       <div className="flex flex-wrap items-center justify-end gap-3 rounded-3xl border border-[#E5E7EB] bg-white px-6 py-4">
         <button
           type="button"
-          onClick={() => router.push("/teacher/dashboard/manage-diagnostics")}
+          onClick={() => router.push(`${basePath}/manage-diagnostics`)}
           className="rounded-2xl border border-[#D1D5DB] bg-[#F9FAFB] px-8 py-2.5 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F3F4F6]"
         >
           Batal
