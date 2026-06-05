@@ -7,7 +7,7 @@ import type {
   IClassFormPayload,
   ITeacherOption,
 } from "@/types/adminClassList";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   useGsAllCourses,
@@ -17,6 +17,7 @@ import {
   useGsUnarchiveCourse,
   useGsUpdateCourse,
 } from "@/services";
+import { useSearchUser } from "@/services/hooks/useUser";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("id-ID", {
@@ -38,27 +39,28 @@ export default function AdminClassListTemplate() {
   const pathname = usePathname();
   const router = useRouter();
   const isTeacherDashboard = pathname?.includes("/teacher/dashboard") ?? false;
-
-  const { data: coursesData, isLoading } = useGsAllCourses({ limit: 50 });
+  const [teacherName, setTeacherName] = useState<string>("");
+  const [debounceQuery, setDebounceQuery] = useState<string>("");
+  const { data: coursesData, isPending } = useGsAllCourses({ limit: 50 });
+  const { data: teachers, isLoading } = useSearchUser({
+    limit: 2,
+    role: "role",
+    search: debounceQuery,
+  });
   const createCourse = useGsCreateCourse();
   const updateCourse = useGsUpdateCourse();
   const archiveCourse = useGsArchiveCourse();
   const unarchiveCourse = useGsUnarchiveCourse();
   const deleteCourse = useGsDeleteCourse();
 
-  const teacherOptions: ITeacherOption[] = useMemo(() => {
-    const teachersMap = new Map<string, string>();
-    coursesData?.courses?.forEach((course) => {
-      if (course.teacher?.id && course.teacher?.fullName) {
-        teachersMap.set(course.teacher.id, course.teacher.fullName);
-      }
-    });
+  const teacherOptions = useMemo(() => {
+    if (!teachers?.users) return [];
 
-    return Array.from(teachersMap.entries()).map(([id, label]) => ({
-      id,
-      label,
+    return teachers.users.map((user) => ({
+      value: user.profileId,
+      label: `${user.fullName} (${user.schoolName ?? "Tanpa Sekolah"})`,
     }));
-  }, [coursesData]);
+  }, [teachers]);
 
   const classes: IAdminClassListItem[] = useMemo(
     () =>
@@ -180,7 +182,7 @@ export default function AdminClassListTemplate() {
   return (
     <AdminClassListContent
       classes={classes}
-      teacherOptions={teacherOptions}
+      // teacherOptions={teacherOptions}
       showTeacherSelection={!isTeacherDashboard}
       onCreateClass={handleCreateClass}
       onUpdateClass={handleUpdateClass}

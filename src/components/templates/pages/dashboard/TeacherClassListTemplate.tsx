@@ -148,7 +148,6 @@ export default function TeacherClassListTemplate() {
   return (
     <AdminClassListContent
       classes={classes}
-      teacherOptions={EMPTY_TEACHER_OPTIONS}
       onCreateClass={handleCreateClass}
       onUpdateClass={handleUpdateClass}
       onDeleteClass={handleDeleteClass}
