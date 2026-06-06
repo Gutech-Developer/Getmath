@@ -204,6 +204,12 @@ export default function AdminLearningAnalyticsClassContent({
     classDetail.emotionSegments ??
     buildDefaultEmotionSegments(classDetail.students);
 
+  const testCount = useMemo(() => {
+    return materials.filter(
+      (m) => m.type.includes("Tes") || m.type.includes("Test")
+    ).length;
+  }, [materials]);
+
   const headerData: ILearningAnalyticsHeaderCardData = {
     className: classDetail.className,
     classCode: classDetail.classCode ?? "MATH-X-001",
@@ -289,8 +295,7 @@ export default function AdminLearningAnalyticsClassContent({
               Siswa: classDetail.studentCount,
               Materi: materials.length,
               "Nilai E-LKPD": elkpdItems.length,
-              "Nilai Test": 0,
-            
+              "Nilai Test": testCount,
             }}
           />
         </div>

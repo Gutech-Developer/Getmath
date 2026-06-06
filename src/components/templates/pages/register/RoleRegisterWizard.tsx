@@ -7,10 +7,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useGsRegister, useSchoolSearch } from "@/services";
 import SearchableInput from "@/components/atoms/SearchableInput";
-import {
-  formatSchoolDisplay,
-  getSchoolLocationData,
-} from "@/utils/schoolSearch";
+// (No longer using external school search utilities)
 import type { GsRegisterInput } from "@/types/gs-auth";
 
 type RegisterRole = "student" | "teacher";
@@ -233,8 +230,6 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
   const validateStepTwo = () => {
     if (
       !form.schoolName ||
-      !form.schoolProvince ||
-      !form.schoolCity ||
       !form.password ||
       !form.confirmPassword
     ) {
@@ -542,13 +537,13 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                       }
                     }}
                     options={schools.map((school) => ({
-                      value: school.sekolah,
-                      label: formatSchoolDisplay(school),
+                      value: school.name,
+                      label: school.name,
                       metadata: {
-                        schoolName: school.sekolah,
-                        schoolId: school.npsn,
-                        province: school.propinsi,
-                        city: school.kabupaten_kota,
+                        schoolName: school.name,
+                        schoolId: school.id,
+                        province: "",
+                        city: "",
                       },
                     }))}
                     isLoading={loadingSchools}
