@@ -16,7 +16,7 @@ export * from "./hooks/useGsSubject";
 export * from "./hooks/useGsHealth";
 export * from "./hooks/useGsNotification";
 export * from "./hooks/useLegacyStubs";
-export * from "./hooks/useSchoolSearch";
+export * from "./hooks/useSchool";
 export * from "./hooks/useGsParent";
 export * from "./hooks/useGsRemedialTest";
 export * from "./hooks/useGsUpload";

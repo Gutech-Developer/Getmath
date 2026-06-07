@@ -3,14 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useGsRegister, useSchoolSearch } from "@/services";
+import { useGsRegister } from "@/services";
+import { useSchoolSearch } from "@/services"; // Sesuaikan path custom hook search Anda
 import SearchableInput from "@/components/atoms/SearchableInput";
-import {
-  formatSchoolDisplay,
-  getSchoolLocationData,
-} from "@/utils/schoolSearch";
 import type { GsRegisterInput } from "@/types/gs-auth";
 
 type RegisterRole = "student" | "teacher";
@@ -28,51 +25,11 @@ interface IRoleRegisterForm {
   schoolName: string;
   schoolProvince: string;
   schoolCity: string;
-  schoolId: string; // NPSN
+  schoolId: string;
   password: string;
   confirmPassword: string;
 }
 
-const provinceOptions = [
-  "Aceh",
-  "Sumatera Utara",
-  "Sumatera Barat",
-  "Riau",
-  "Kepulauan Riau",
-  "Jambi",
-  "Sumatera Selatan",
-  "Kepulauan Bangka Belitung",
-  "Bengkulu",
-  "Lampung",
-  "DKI Jakarta",
-  "Jawa Barat",
-  "Banten",
-  "Jawa Tengah",
-  "DI Yogyakarta",
-  "Jawa Timur",
-  "Bali",
-  "Nusa Tenggara Barat",
-  "Nusa Tenggara Timur",
-  "Kalimantan Barat",
-  "Kalimantan Tengah",
-  "Kalimantan Selatan",
-  "Kalimantan Timur",
-  "Kalimantan Utara",
-  "Sulawesi Utara",
-  "Sulawesi Tengah",
-  "Sulawesi Selatan",
-  "Sulawesi Tenggara",
-  "Gorontalo",
-  "Sulawesi Barat",
-  "Maluku",
-  "Maluku Utara",
-  "Papua",
-  "Papua Barat",
-  "Papua Tengah",
-  "Papua Pegunungan",
-  "Papua Selatan",
-  "Papua Barat Daya",
-];
 function PasswordField({
   label,
   value,
@@ -159,27 +116,21 @@ function RegisterStepIndicator({
       {renderNode(1)}
       <div
         className="mx-2 h-[2px] flex-1"
-        style={{
-          backgroundColor: step > 1 ? accent : "rgba(26,35,126,0.09)",
-        }}
+        style={{ backgroundColor: step > 1 ? accent : "rgba(26,35,126,0.09)" }}
       />
       {renderNode(2)}
       <div
         className="mx-2 h-[2px] flex-1"
-        style={{
-          backgroundColor: step > 2 ? accent : "rgba(26,35,126,0.09)",
-        }}
+        style={{ backgroundColor: step > 2 ? accent : "rgba(26,35,126,0.09)" }}
       />
       {renderNode(3)}
     </div>
   );
 }
 
-export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
-  const router = useRouter();
-  const [step, setStep] = useState<Step>(1);
-  const [schoolSearch, setSchoolSearch] = useState("");
-  const [form, setForm] = useState<IRoleRegisterForm>({
+// ─── Fungsi Inisialisasi Form Bawaan (Tambahkan Ini) ───────────────────
+function createEmptyForm(): IRoleRegisterForm {
+  return {
     fullname: "",
     email: "",
     phone: "",
@@ -190,20 +141,31 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
     schoolId: "",
     password: "",
     confirmPassword: "",
-  });
+  };
+}
+
+export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>(1);
+  const [schoolSearch, setSchoolSearch] = useState("");
+  const [form, setForm] = useState<IRoleRegisterForm>(createEmptyForm);
 
   const register = useGsRegister();
 
-  const { schools, isLoading: loadingSchools } = useSchoolSearch({
+  // Custom hook search sekolah terpanggil di top-level dengan aman
+  const {
+    schools,
+    isLoading: loadingSchools,
+    error: searchError,
+  } = useSchoolSearch({
     searchTerm: schoolSearch,
-    debounceMs: 800,
+    debounceMs: 600, // Kecepatan debounce optimal untuk ketikan user
   });
 
   const isSubmitting = register.isPending;
 
   const config = useMemo(() => {
     const isTeacher = role === "teacher";
-
     return {
       title: isTeacher ? "Daftar sebagai Guru" : "Daftar sebagai Siswa",
       identityLabel: isTeacher
@@ -223,7 +185,12 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
   };
 
   const validateStepOne = () => {
-    if (!form.fullname || !form.email || !form.phone || !form.identityNumber) {
+    if (
+      !form.fullname.trim() ||
+      !form.email.trim() ||
+      !form.phone.trim() ||
+      !form.identityNumber.trim()
+    ) {
       toast.error("Lengkapi data langkah 1 terlebih dahulu.");
       return false;
     }
@@ -233,25 +200,21 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
   const validateStepTwo = () => {
     if (
       !form.schoolName ||
-      !form.schoolProvince ||
-      !form.schoolCity ||
+      !form.schoolId ||
       !form.password ||
       !form.confirmPassword
     ) {
-      toast.error("Lengkapi semua data langkah 2.");
+      toast.error("Lengkapi semua data sekolah dan keamanan.");
       return false;
     }
-
     if (form.password.length < 8) {
       toast.error("Password minimal 8 karakter.");
       return false;
     }
-
     if (form.password !== form.confirmPassword) {
       toast.error("Konfirmasi password tidak cocok.");
       return false;
     }
-
     return true;
   };
 
@@ -262,7 +225,6 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateStepTwo()) return;
 
     try {
@@ -275,13 +237,11 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
         ...(role === "student"
           ? { NIS: form.identityNumber }
           : { NIP: form.identityNumber }),
-        province: form.schoolProvince,
-        city: form.schoolCity,
         schoolId: form.schoolId,
         schoolName: form.schoolName,
       };
-      await register.mutateAsync(payload);
 
+      await register.mutateAsync(payload);
       toast.success("Registrasi berhasil. Silakan verifikasi email Anda.");
       setStep(3);
     } catch (error: any) {
@@ -336,7 +296,6 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                 <h1 className="text-[22px] font-extrabold leading-8 text-[#1a237e]">
                   Cek Email Kamu!
                 </h1>
-
                 <p className="mt-4 text-[13px] leading-5 text-[#6b7280]">
                   Magic link telah dikirimkan ke{" "}
                   <span className="font-semibold text-[#00acc1]">
@@ -350,18 +309,6 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                   Tidak menerima email? Cek folder Spam atau kirim ulang setelah
                   60 detik.
                 </div>
-
-                {/* <button
-                  type="button"
-                  onClick={() => router.push(config.dashboardPath)}
-                  className="mt-5 w-full rounded-[14px] px-4 py-3 text-[16px] font-bold text-white"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(173deg, rgb(26, 35, 126) 0%, rgb(0, 172, 193) 100%)",
-                  }}
-                >
-                  Lanjut ke Dashboard (Demo)
-                </button> */}
               </div>
             </div>
           ) : (
@@ -399,7 +346,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
               <RegisterStepIndicator step={step} accent={config.accent} />
 
               {step === 1 ? (
-                <div className="mt-6">
+                <div className="mt-6 space-y-4">
                   <button
                     type="button"
                     className="w-full rounded-[12px] border border-gray-300 bg-white py-2.5 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-3 shadow-sm"
@@ -516,18 +463,10 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                     value={schoolSearch}
                     onChange={(searchValue, selected) => {
                       if (selected) {
-                        // Set input to selected school name to prevent redundant API calls
-                        setSchoolSearch(
-                          selected.metadata?.schoolName || selected.value,
-                        );
-                        updateField(
-                          "schoolName",
-                          selected.metadata?.schoolName || selected.value,
-                        );
-                        updateField(
-                          "schoolId",
-                          selected.metadata?.schoolId || "",
-                        );
+                        // Pasang data sekolah dari metadata yang dikembalikan API
+                        setSchoolSearch(selected.label);
+                        updateField("schoolName", selected.label);
+                        updateField("schoolId", selected.value);
                         updateField(
                           "schoolProvince",
                           selected.metadata?.province || "",
@@ -537,27 +476,23 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                           selected.metadata?.city || "",
                         );
                       } else {
-                        // Only update search value if no selection was made
                         setSchoolSearch(searchValue);
                       }
                     }}
+                    // PERBAIKAN LOGIKA: Map options agar label berisi nama sekolah (teks), value berisi id/npsn
                     options={schools.map((school) => ({
-                      value: school.sekolah,
-                      label: formatSchoolDisplay(school),
-                      metadata: {
-                        schoolName: school.sekolah,
-                        schoolId: school.npsn,
-                        province: school.propinsi,
-                        city: school.kabupaten_kota,
-                      },
+                      value: school.id, // ID Sekolah untuk payload backend
+                      label: school.name, // Nama Sekolah untuk tampilan dropdown teks
                     }))}
                     isLoading={loadingSchools}
-                    required
                     emptyMessage={
-                      schoolSearch.length >= 2
-                        ? "Tidak ada sekolah yang ditemukan"
-                        : "Ketik minimal 2 karakter untuk mencari"
+                      searchError
+                        ? "Gagal memuat data"
+                        : schoolSearch.length >= 2
+                          ? "Tidak ada sekolah yang ditemukan"
+                          : "Ketik minimal 2 karakter untuk mencari"
                     }
+                    required
                   />
 
                   <PasswordField
@@ -566,7 +501,6 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                     onChange={(value) => updateField("password", value)}
                     placeholder="Minimal 8 karakter"
                   />
-
                   <PasswordField
                     label="Konfirmasi Password"
                     value={form.confirmPassword}

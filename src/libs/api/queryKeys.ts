@@ -358,6 +358,15 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.userMangement.details(), id] as const,
   },
 
+  school: {
+    all: ["gs", "school"] as const,
+    lists: () => [...queryKeys.school.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.school.lists(), filters] as const,
+    details: () => [...queryKeys.school.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.school.details(), id] as const,
+  },
+
   // Remediation / Diagnostic Tests Results
   gsRemediations: {
     all: ["gs", "remediations"] as const,
