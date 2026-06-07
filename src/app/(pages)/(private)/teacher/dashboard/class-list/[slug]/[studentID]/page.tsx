@@ -1,15 +1,19 @@
 import AdminLearningAnalyticsStudentTemplate from "@/components/templates/pages/dashboard/AdminLearningAnalyticsStudentTemplate";
 
 interface TeacherDashboardLearningAnalyticsClassStudentPageProps {
-  params: Promise<{ slug: string; studentId: string }>;
+  params: Promise<{ slug: string; studentID: string }>;
 }
 
 export default async function TeacherDashboardLearningAnalyticsClassStudent({
   params,
 }: TeacherDashboardLearningAnalyticsClassStudentPageProps) {
-  const { slug, studentId } = await params;
+  const { slug, studentID } = await params;
 
   return (
-    <AdminLearningAnalyticsStudentTemplate slug={slug} studentId={studentId} />
+    <AdminLearningAnalyticsStudentTemplate
+      slug={slug}
+      studentId={studentID}
+      backHref={`/teacher/dashboard/class-list/${slug}`}
+    />
   );
 }

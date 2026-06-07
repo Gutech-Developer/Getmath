@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import ClockIcon from "@/components/atoms/icons/ClockIcon";
 import StarIcon from "@/components/atoms/icons/StarIcon";
@@ -19,9 +20,12 @@ import { useStudentDashboard } from "@/services/hooks/useGsDashboard";
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
+import { useCourseSummary, useEmotionDistribution, useStudyTimeByModule, useActivityLogs } from "@/services/hooks/useLAD";
+import { useGsCourseBySlug } from "@/services";
+import type { IActivityLog } from "@/types/LAD";
 
 /* ------------------------------------------------------------------ */
-/*  Static data (akan diganti API)                                     */
+/* Static data (akan diganti API)                                     */
 /* ------------------------------------------------------------------ */
 const SCORE_TREND_DATA = [
   { date: "21 Jan", nilai: 63 },
@@ -47,17 +51,217 @@ const EMOTION_TES_DATA = [
   { label: "Bingung", value: 15, color: "#F59E0B" },
 ];
 
-const STUDY_TIME_DATA = [
-  { subject: "Mat X", hours: 5, color: "#F59E0B" },
-  { subject: "Mat XI", hours: 4, color: "#F59E0B" },
-  { subject: "Statistika", hours: 3, color: "#F59E0B" },
-];
+const mapDistributionToSegments = (
+  dist: {
+    neutral: number;
+    happy: number;
+    sad: number;
+    angry: number;
+    fearful: number;
+    disgusted: number;
+    surprised: number;
+  } | undefined
+) => {
+  const fallback = [
+    { label: "Netral", value: 0, color: "#94A3B8" },
+    { label: "Senang", value: 0, color: "#10B981" },
+    { label: "Sedih", value: 0, color: "#3B82F6" },
+    { label: "Marah", value: 0, color: "#F43F5E" },
+    { label: "Tegang", value: 0, color: "#F97316" },
+    { label: "Jijik", value: 0, color: "#8B5CF6" },
+    { label: "Terkejut", value: 0, color: "#06B6D4" },
+  ];
 
-const STUDY_TIME_LEGEND = [
-  { label: "Mat X", time: "5j 25m" },
-  { label: "Mat XI", time: "4j 40m" },
-  { label: "Statistika", time: "3j 18m" },
-];
+  if (!dist) {
+    return fallback;
+  }
+
+  return [
+    { label: "Netral", value: dist.neutral || 0, color: "#94A3B8" },
+    { label: "Senang", value: dist.happy || 0, color: "#10B981" },
+    { label: "Sedih", value: dist.sad || 0, color: "#3B82F6" },
+    { label: "Marah", value: dist.angry || 0, color: "#F43F5E" },
+    { label: "Tegang", value: dist.fearful || 0, color: "#F97316" },
+    { label: "Jijik", value: dist.disgusted || 0, color: "#8B5CF6" },
+    { label: "Terkejut", value: dist.surprised || 0, color: "#06B6D4" },
+  ];
+};
+
+const formatMsToHoursAndMinutes = (ms: number) => {
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}j ${minutes}m`;
+};
+
+const formatLogDate = (dateStr: string) => {
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+const renderLogMessage = (log: IActivityLog) => {
+  switch (log.action) {
+    case "LOGIN": {
+      const method = log.metadata?.method === "google" ? "Google" : "Password";
+      return (
+        <span>
+          Melakukan login menggunakan <span className="font-semibold text-[#0F172A]">{method}</span>
+        </span>
+      );
+    }
+    case "COURSE_OPENED":
+      return (
+        <span>
+          Membuka kelas <span className="font-semibold text-[#2563EB]">{log.courseName || "Kelas"}</span>
+        </span>
+      );
+    case "SUBJECT_MODULE_OPENED":
+      return (
+        <span>
+          Membuka modul <span className="font-semibold text-[#0F172A]">{log.moduleName || "Materi"}</span>
+        </span>
+      );
+    case "MATERIAL_READ":
+    case "MATERIAL_OPENED": {
+      const materialName = log.metadata?.materialName || log.metadata?.subjectName || "Materi";
+      return (
+        <span>
+          Membaca materi <span className="font-semibold text-[#0F172A]">{materialName}</span>
+        </span>
+      );
+    }
+    case "VIDEO_PLAYED":
+    case "VIDEO_WATCHED": {
+      const videoTitle = log.metadata?.videoTitle || "Video";
+      return (
+        <span>
+          Menonton video <span className="font-semibold text-[#0F172A]">{videoTitle}</span>
+        </span>
+      );
+    }
+    case "DIAGNOSTIC_TEST_STARTED":
+      return <span>Memulai Tes Diagnostik</span>;
+    case "DIAGNOSTIC_TEST_FINISHED": {
+      const score = log.metadata?.score ?? 0;
+      return (
+        <span>
+          Menyelesaikan Tes Diagnostik dengan nilai <span className="font-bold text-[#10B981]">{score}</span>
+        </span>
+      );
+    }
+    case "REMEDIAL_TEST_STARTED":
+      return <span>Memulai Tes Remedial</span>;
+    case "REMEDIAL_TEST_FINISHED": {
+      const score = log.metadata?.score ?? 0;
+      return (
+        <span>
+          Menyelesaikan Tes Remedial dengan nilai <span className="font-bold text-[#10B981]">{score}</span>
+        </span>
+      );
+    }
+    case "FORUM_POST_CREATED": {
+      const title = log.metadata?.title || "Diskusi";
+      return (
+        <span>
+          Membuat diskusi baru di forum: <span className="italic text-[#475569]">"{title}"</span>
+        </span>
+      );
+    }
+    case "FORUM_COMMENT_CREATED":
+      return <span>Mengomentari diskusi di forum</span>;
+    default:
+      const words = log.action
+        .split("_")
+        .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+        .join(" ");
+      return <span>{words}</span>;
+  }
+};
+
+const getLogIcon = (action: string) => {
+  switch (action) {
+    case "LOGIN":
+      return (
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF2F6] text-[#64748B]">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+          </svg>
+        </span>
+      );
+    case "COURSE_OPENED":
+      return (
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E0F2FE] text-[#0284C7]">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </span>
+      );
+    case "SUBJECT_MODULE_OPENED":
+    case "MATERIAL_READ":
+    case "MATERIAL_OPENED":
+      return (
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F0FDF4] text-[#16A34A]">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </span>
+      );
+    case "VIDEO_PLAYED":
+    case "VIDEO_WATCHED":
+      return (
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFF1F2] text-[#E11D48]">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </span>
+      );
+    case "DIAGNOSTIC_TEST_STARTED":
+    case "REMEDIAL_TEST_STARTED":
+      return (
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FEF3C7] text-[#D97706]">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+        </span>
+      );
+    case "DIAGNOSTIC_TEST_FINISHED":
+    case "REMEDIAL_TEST_FINISHED":
+      return (
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ECFDF5] text-[#059669]">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </span>
+      );
+    case "FORUM_POST_CREATED":
+    case "FORUM_COMMENT_CREATED":
+      return (
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F5F3FF] text-[#7C3AED]">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </span>
+      );
+    default:
+      return (
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F8FAFC] text-[#64748B]">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </span>
+      );
+  }
+};
 
 const RADAR_DATA = [
   { subject: "Aljabar", value: 80 },
@@ -78,7 +282,7 @@ const AI_SUMMARY =
   "Kamu menunjukkan perkembangan yang sangat baik! Nilai terus meningkat dari 65 menjadi 88. Fokuslah lebih pada materi Matriks karena masih belum dibaca. Pertahankan semangat belajarmu! 🎉";
 
 /* ------------------------------------------------------------------ */
-/*  Props                                                              */
+/* Props                                                              */
 /* ------------------------------------------------------------------ */
 interface IClassLADPageTemplateProps {
   slug: string;
@@ -90,7 +294,7 @@ interface IClassLADPageTemplateProps {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Sub-components (atoms level usage)                                 */
+/* Sub-components (atoms level usage)                                 */
 /* ------------------------------------------------------------------ */
 function SectionCard({
   title,
@@ -131,7 +335,7 @@ function SectionCard({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Component                                                          */
+/* Component                                                          */
 /* ------------------------------------------------------------------ */
 export default function ClassLADPageTemplate({
   slug,
@@ -142,18 +346,55 @@ export default function ClassLADPageTemplate({
   backLabel,
 }: IClassLADPageTemplateProps) {
   // Parent Mode
+  const { data: course, isLoading: isCourseSlugLoading } = useGsCourseBySlug(slug);
+  const resolvedCourseId = course?.id || courseId || "";
+
   const { data: childCourseDetail, isLoading: isChildLoading } = useGsChildCourseDetail(
     studentId || "",
-    courseId || ""
+    resolvedCourseId
   );
 
   // Student Mode (Self)
   const { data: studentDashboard, isLoading: isStudentLoading } = useStudentDashboard(
-    courseId || "",
-    { enabled: !studentId && !!courseId }
+    resolvedCourseId,
+    { enabled: !studentId && !!resolvedCourseId }
   );
 
-  const isLoading = isChildLoading || isStudentLoading;
+
+  // Perbaikan: Menambahkan parameter opsi { enabled: !!resolvedCourseId } agar menunggu ID didapatkan dari slug
+
+  const { data: courseSummary, isPending: courseSummaryPending, error: courseSummaryError } = useCourseSummary(
+    resolvedCourseId,
+    studentId,
+  );
+  const { data: emotionDistribution, isPending: emotionDistributionPending, error: emotionDistributionError } = useEmotionDistribution(
+    resolvedCourseId,
+    studentId,
+  );
+  const { data: studyTimeByModule, isPending: studyTimeByModulePending, error: studyTimeByModuleError } = useStudyTimeByModule(
+    resolvedCourseId,
+    studentId,
+  );
+
+  const [activityPage, setActivityPage] = useState(1);
+  const ACTIVITY_LIMIT = 5;
+
+  const { data: activityLogsData, isPending: activityLogsPending } = useActivityLogs(
+    resolvedCourseId,
+    studentId,
+    activityPage,
+    ACTIVITY_LIMIT,
+  );
+
+  const isLoading = 
+    isCourseSlugLoading || 
+    isChildLoading || 
+    isStudentLoading || 
+    courseSummaryPending || 
+    emotionDistributionPending || 
+    studyTimeByModulePending ||
+    activityLogsPending;
+
   const classTitle = childCourseDetail?.course.courseName || studentDashboard?.courseName || formatClassTitleFromSlug(slug);
   const studentName = studentId ? studentNameProp : studentNameProp; // If parent mode, studentName is usually passed from dashboard
   const ladTitle = studentName ? `LAD – ${studentName}` : `LAD – ${classTitle}`;
@@ -165,13 +406,32 @@ export default function ClassLADPageTemplate({
     : studentDashboard?.progressPercent;
     
   const scoreTrendData = studentId 
-    ? childCourseDetail?.diagnosticResults.map(d => ({
+    ? (childCourseDetail?.diagnosticResults || []).map(d => ({
         date: new Date(d.completedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
         nilai: d.score
-      })).reverse() || []
+      })).reverse()
     : SCORE_TREND_DATA;
 
+  const totalMs = courseSummary?.totalStudyTimeMs || 0;
+  const totalMinutes = Math.floor(totalMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const stringTotalWaktu = hours > 0 ? `${hours}j ${minutes}m` : `${minutes}m`;
 
+  const rawStudyTimeList = studyTimeByModule
+    ? (Array.isArray(studyTimeByModule) ? studyTimeByModule : studyTimeByModule.data)
+    : [];
+
+  const barChartData = rawStudyTimeList.map((item) => ({
+    subject: item.subjectName,
+    hours: parseFloat((item.studyTimeMs / 3600000).toFixed(2)),
+    color: "#F59E0B",
+  }));
+
+  const barChartLegend = rawStudyTimeList.map((item) => ({
+    label: item.subjectName,
+    time: formatMsToHoursAndMinutes(item.studyTimeMs),
+  }));
 
   return (
     <ClassPageShellTemplate slug={slug} activeKey="lad" classTitle={classTitle}>
@@ -205,32 +465,51 @@ export default function ClassLADPageTemplate({
 
       {/* ---- Metric Cards ---- */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {/* Card 1: Progres Belajar (Dinamis untuk Student & Parent dari courseSummary) */}
         <LADMetricCard
-          value={studentId ? `${progressPercent}%` : (studentDashboard?.progressPercent ? `${studentDashboard.progressPercent}%` : "0%")}
+          value={`${courseSummary?.progressPercent || 0}%`}
           label="Progres Belajar"
           sub="Dari materi dibaca"
           icon={TrendUpIcon}
           iconBg="bg-[#FEE2E2]"
           iconFg="text-[#EF4444]"
         />
+
+        {/* Card 2: Materi Selesai vs Total Waktu Belajar */}
         <LADMetricCard
-          value={studentId ? `${childCourseDetail?.completedSubjectModules}/${childCourseDetail?.totalSubjectModules}` : "14j 35m"}
+          value={
+            studentId 
+              ? `${courseSummary?.completedMaterials || 0}/${courseSummary?.totalMaterials || 0}` 
+              : stringTotalWaktu
+          }
           label={studentId ? "Materi Selesai" : "Total Waktu Belajar"}
-          sub={studentId ? "Modul dipelajari" : "6 sesi ini"}
+          sub={studentId ? "Modul dipelajari" : "Semua sesi belajar"}
           icon={ClockIcon}
           iconBg="bg-[#FEF3C7]"
           iconFg="text-[#D97706]"
         />
+
+        {/* Card 3: Skor Terakhir vs Materi Selesai */}
         <LADMetricCard
-          value={studentId ? String(childCourseDetail?.diagnosticResults[0]?.score || 0) : (studentDashboard?.subjectModuleRead ? `${studentDashboard.subjectModuleRead}/${studentDashboard.subjectModuleTotal}` : "0/0")}
+          value={
+            studentId 
+              ? String(childCourseDetail?.diagnosticResults?.[0]?.score || 0) 
+              : `${courseSummary?.completedMaterials || 0}/${courseSummary?.totalMaterials || 0}`
+          }
           label={studentId ? "Skor Terakhir" : "Materi Selesai"}
           sub={studentId ? "Tes diagnostik" : "Modul dibaca"}
           icon={TrophyIcon}
           iconBg="bg-[#D1FAE5]"
           iconFg="text-[#059669]"
         />
+
+        {/* Card 4: Total Percobaan Tes vs Peringkat Kelas */}
         <LADMetricCard
-          value={studentId ? String(childCourseDetail?.diagnosticResults.length || 0) : (studentDashboard?.enrolledCount ? `#${studentDashboard.enrolledCount}` : "-")}
+          value={
+            studentId 
+              ? String(childCourseDetail?.diagnosticResults?.length || 0) 
+              : (studentDashboard?.enrolledCount ? `#${studentDashboard.enrolledCount}` : "-")
+          }
           label={studentId ? "Total Percobaan" : "Peringkat"}
           sub={studentId ? "Kali tes" : "Status kelas"}
           icon={StarIcon}
@@ -267,7 +546,11 @@ export default function ClassLADPageTemplate({
             </svg>
           }
         >
-          <LADDonutChart segments={EMOTION_MATERI_DATA} />
+          <LADDonutChart
+            segments={mapDistributionToSegments(
+              emotionDistribution?.moduleLearning?.distribution
+            )}
+          />
         </SectionCard>
 
         <SectionCard
@@ -287,7 +570,11 @@ export default function ClassLADPageTemplate({
             </svg>
           }
         >
-          <LADDonutChart segments={EMOTION_TES_DATA} />
+          <LADDonutChart
+            segments={mapDistributionToSegments(
+              emotionDistribution?.remedial?.distribution
+            )}
+          />
         </SectionCard>
       </div>
 
@@ -296,77 +583,95 @@ export default function ClassLADPageTemplate({
         title="Waktu Belajar per Kelas"
         icon={<ClockIcon className="h-4 w-4" />}
       >
-        <LADBarChart data={STUDY_TIME_DATA} />
-        <div className="mt-3 space-y-1">
-          {STUDY_TIME_LEGEND.map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center justify-between text-sm"
-            >
-              <span className="text-[#475569]">{item.label}</span>
-              <span className="font-semibold text-[#D97706]">{item.time}</span>
-            </div>
-          ))}
-        </div>
+        <LADBarChart data={barChartData} />
+        {barChartLegend.length === 0 ? (
+          <div className="mt-3 text-center text-sm text-[#94A3B8] italic">
+            Belum ada data waktu belajar
+          </div>
+        ) : (
+          <div className="mt-3 space-y-1">
+            {barChartLegend.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-[#475569]">{item.label}</span>
+                <span className="font-semibold text-[#D97706]">{item.time}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </SectionCard>
 
-      {/* ---- Radar + AI Summary ---- */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Radar chart */}
-        <SectionCard
-          title="Radar Penguasaan Materi"
-          subtitle="Berdasarkan nilai rata-rata per topik"
-        >
-          <LADRadarChart data={RADAR_DATA} />
-        </SectionCard>
 
-        {/* AI Summary */}
-        <SectionCard
-          title="Kesimpulan & Saran AI"
-          icon={
-            <svg
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="h-4 w-4"
-              aria-hidden="true"
-            >
-              <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.295.02-.595.02-.9V10a4 4 0 10-8 0v3.1c0 .305.005.605.02.9H12z" />
-            </svg>
-          }
-        >
-          <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#334155]">
-            {AI_SUMMARY}
+      {/* ---- Activity Logs Section ---- */}
+      <SectionCard
+        title="Log Aktivitas"
+        subtitle="Riwayat aktivitas belajar siswa di platform"
+        icon={
+          <svg
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zM4 4h3a3 3 0 006 0h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm2.5 7a1 1 0 100-2 1 1 0 000 2zm3.5-1a1 1 0 100 2h3a1 1 0 100-2H10zm-3.5 4a1 1 0 100-2 1 1 0 000 2zm3.5-1a1 1 0 100 2h3a1 1 0 100-2H10z"
+              clipRule="evenodd"
+            />
+          </svg>
+        }
+        className="mt-4"
+      >
+        {activityLogsPending ? (
+          <div className="flex h-32 items-center justify-center text-sm text-[#64748B]">
+            Memuat log aktivitas...
           </div>
-
-          <div className="mt-4">
-            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[#64748B]">
-              <svg
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="h-3.5 w-3.5"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Materi yang Perlu Diperdalam:
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {NEEDS_IMPROVEMENT.map((topic) => (
-                <span
-                  key={topic}
-                  className="rounded-full border border-[#FDE68A] bg-[#FEF3C7] px-3 py-1 text-xs font-medium text-[#92400E]"
-                >
-                  📚 {topic}
-                </span>
+        ) : !activityLogsData?.logs || activityLogsData.logs.length === 0 ? (
+          <div className="flex h-20 items-center justify-center text-sm text-[#94A3B8] italic">
+            Belum ada aktivitas yang tercatat
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="divide-y divide-[#F1F5F9]">
+              {activityLogsData.logs.map((log) => (
+                <div key={log.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                  {getLogIcon(log.action)}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-[#334155]">{renderLogMessage(log)}</div>
+                    <p className="mt-0.5 text-xs text-[#94A3B8]">
+                      {formatLogDate(log.createdAt)}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
+
+            {activityLogsData.pagination && activityLogsData.pagination.totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between border-t border-[#F1F5F9] pt-4">
+                <button
+                  onClick={() => setActivityPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={!activityLogsData.pagination.hasPrevPage}
+                  className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] transition hover:bg-[#F8FAFC] disabled:opacity-50 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Sebelumnya
+                </button>
+                <span className="text-xs text-[#64748B]">
+                  Halaman {activityLogsData.pagination.currentPage} dari {activityLogsData.pagination.totalPages}
+                </span>
+                <button
+                  onClick={() => setActivityPage((prev) => Math.min(prev + 1, activityLogsData.pagination.totalPages))}
+                  disabled={!activityLogsData.pagination.hasNextPage}
+                  className="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] transition hover:bg-[#F8FAFC] disabled:opacity-50 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Selanjutnya
+                </button>
+              </div>
+            )}
           </div>
-        </SectionCard>
-      </div>
+        )}
+      </SectionCard>
 
       {/* ---- Back link ---- */}
       <div className="flex justify-start">

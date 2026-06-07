@@ -10,6 +10,10 @@ export default async function AdminDashboardLearningAnalyticsClassStudent({
   const { slug, studentId } = await params;
 
   return (
-    <AdminLearningAnalyticsStudentTemplate slug={slug} studentId={studentId} />
+    <AdminLearningAnalyticsStudentTemplate
+      slug={slug}
+      studentId={studentId}
+      backHref={`/admin/dashboard/learning-analytics/${slug}`}
+    />
   );
 }
