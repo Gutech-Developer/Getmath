@@ -348,6 +348,19 @@ export const queryKeys = {
     remedialScores: (courseModuleId: string) =>
       [...queryKeys.gsProgress.all, "remedialScores", courseModuleId] as const,
   },
+  // Schools
+  gsSchools: {
+    all: ["gs", "schools"] as const,
+    lists: () => [...queryKeys.gsSchools.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsSchools.lists(), filters] as const,
+    publicLists: () => [...queryKeys.gsSchools.all, "publicList"] as const,
+    publicList: (filters?: Record<string, unknown>) =>
+      [...queryKeys.gsSchools.publicLists(), filters] as const,
+    details: () => [...queryKeys.gsSchools.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.gsSchools.details(), id] as const,
+  },
+
   // user managemnet
   userMangement: {
     all: ["gs", "user"] as const,
@@ -356,6 +369,7 @@ export const queryKeys = {
       [...queryKeys.userMangement.lists(), filters] as const,
     details: () => [...queryKeys.userMangement.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.userMangement.details(), id] as const,
+    stats: () => [...queryKeys.userMangement.all, "stats"] as const,
   },
 
   school: {

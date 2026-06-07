@@ -29,12 +29,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
             >
               Masuk
             </Link>
-            <Link
-              href="/register"
-              className="hidden rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] md:block"
-            >
-              Daftar Gratis
-            </Link>
+            
           </div>
         </div>
       </header>

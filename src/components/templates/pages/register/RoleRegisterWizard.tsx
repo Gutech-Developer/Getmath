@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useGsRegister } from "@/services";
 import { useSchoolSearch } from "@/services"; // Sesuaikan path custom hook search Anda
 import SearchableInput from "@/components/atoms/SearchableInput";
+// (No longer using external school search utilities)
 import type { GsRegisterInput } from "@/types/gs-auth";
 
 type RegisterRole = "student" | "teacher";
@@ -198,12 +199,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
   };
 
   const validateStepTwo = () => {
-    if (
-      !form.schoolName ||
-      !form.schoolId ||
-      !form.password ||
-      !form.confirmPassword
-    ) {
+    if (!form.schoolName || !form.password || !form.confirmPassword) {
       toast.error("Lengkapi semua data sekolah dan keamanan.");
       return false;
     }
@@ -481,8 +477,14 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                     }}
                     // PERBAIKAN LOGIKA: Map options agar label berisi nama sekolah (teks), value berisi id/npsn
                     options={schools.map((school) => ({
-                      value: school.id, // ID Sekolah untuk payload backend
-                      label: school.name, // Nama Sekolah untuk tampilan dropdown teks
+                      value: school.name,
+                      label: school.name,
+                      metadata: {
+                        schoolName: school.name,
+                        schoolId: school.id,
+                        province: "",
+                        city: "",
+                      },
                     }))}
                     isLoading={loadingSchools}
                     emptyMessage={
