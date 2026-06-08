@@ -10,6 +10,7 @@
     "fetch:emotion-models": "node scripts/fetch-emotion-models.mjs"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@react-oauth/google": "^0.13.5",
     "@rolldown/binding-linux-x64-gnu": "1.0.0-rc.17",
     "@tanstack/react-query": "^5.90.2",
@@ -20,6 +21,7 @@
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
     "@vladmandic/face-api": "^1.7.15",
+    "gsap": "^3.15.0",
     "js-cookie": "^3.0.5",
     "katex": "^0.16.45",
     "next": "16.1.1",

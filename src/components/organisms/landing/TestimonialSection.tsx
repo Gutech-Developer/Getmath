@@ -6,6 +6,8 @@ export default function TestimonialSection() {
         "\"GetSmart membantu saya belajar matematika jauh lebih mudah. Video remedialnya sangat membantu ketika saya tidak mengerti materi.\"",
       name: "Rina Aulia",
       role: "Siswa Kelas 9",
+      initial: "RA",
+      avatarBg: "bg-lottie-mint-wash text-lottie-teal",
     },
     {
       stars: 5,
@@ -13,6 +15,8 @@ export default function TestimonialSection() {
         "\"Dashboard analitik GetSmart memudahkan saya memantau perkembangan setiap siswa secara detail dan real-time.\"",
       name: "Bapak Hendra",
       role: "Guru Matematika",
+      initial: "BH",
+      avatarBg: "bg-lottie-cream text-[#ffbf00]",
     },
     {
       stars: 5,
@@ -20,17 +24,19 @@ export default function TestimonialSection() {
         "\"Saya bisa pantau aktivitas belajar anak saya kapan saja. Sangat memudahkan komunikasi dengan guru.\"",
       name: "Ibu Sari",
       role: "Orang Tua Siswa",
+      initial: "IS",
+      avatarBg: "bg-[#ffeff4] text-[#ff6b9d]",
     },
   ];
 
   return (
-    <section className="bg-white py-20 md:py-28">
+    <section id="testimoni" className="bg-white py-20 md:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-16 text-center">
-          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#2563EB]">
+          <span className="inline-flex items-center rounded-full bg-lottie-mint-wash px-3 py-1 text-xs font-semibold text-lottie-teal font-inter uppercase tracking-wide">
             Testimoni
-          </p>
-          <h2 className="text-3xl font-bold text-[#111827] sm:text-4xl">
+          </span>
+          <h2 className="mt-4 font-dm-sans text-4xl font-bold tracking-[-0.03em] text-lottie-midnight sm:text-[48px] leading-[1.12]">
             Kata Mereka tentang GetSmart
           </h2>
         </div>
@@ -39,14 +45,14 @@ export default function TestimonialSection() {
           {testimonials.map((testi, idx) => (
             <div
               key={idx}
-              className="flex flex-col justify-between rounded-3xl border border-[#E5E7EB] bg-[#FAFBFF] p-8 shadow-sm transition hover:shadow-md"
+              className="flex flex-col justify-between rounded-[24px] border border-white/60 bg-white/60 backdrop-blur-md p-8 transition-all hover:scale-[1.01] shadow-[rgba(31,35,117,0.02)_0px_8px_24px_0px]"
             >
               <div>
-                <div className="mb-4 flex gap-1">
+                <div className="mb-5 flex gap-1">
                   {[...Array(testi.stars)].map((_, i) => (
                     <svg
                       key={i}
-                      className="h-5 w-5 text-[#F59E0B]"
+                      className="h-4.5 w-4.5 text-[#ffbf00]"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -54,14 +60,20 @@ export default function TestimonialSection() {
                     </svg>
                   ))}
                 </div>
-                <p className="mb-8 text-sm leading-relaxed text-[#6B7280]">
+                <p className="mb-8 font-inter text-sm md:text-base leading-relaxed text-lottie-zinc-600 italic">
                   {testi.quote}
                 </p>
               </div>
               
-              <div>
-                <p className="font-bold text-[#111827]">{testi.name}</p>
-                <p className="text-xs text-[#9CA3AF]">{testi.role}</p>
+              <div className="flex items-center gap-3">
+                {/* Visual Avatar */}
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-dm-sans font-bold text-xs ${testi.avatarBg}`}>
+                  {testi.initial}
+                </div>
+                <div>
+                  <p className="font-dm-sans text-sm font-bold text-lottie-midnight">{testi.name}</p>
+                  <p className="font-inter text-xs text-lottie-zinc-500">{testi.role}</p>
+                </div>
               </div>
             </div>
           ))}

@@ -1,7 +1,26 @@
-@import url("https://fonts.googleapis.com/css2?family=Parkinsans:wght@300..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Parkinsans:wght@300..800&family=Instrument+Serif:ital@0;1&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
 @import "tailwindcss";
 @theme inline {
   --font-parkinsans: "Parkinsans", sans-serif;
+  --font-dm-sans: "Instrument Serif", serif;
+  --font-eb-garamond: "Instrument Serif", serif;
+  --font-instrument-serif: "Instrument Serif", serif;
+  --font-inter: "Inter", sans-serif;
+
+  /* LottieFiles Colors shifted to GetMath Indigo #1F2375 */
+  --color-lottie-teal: #1f2375;
+  --color-lottie-mint-glow: #818cf8;
+  --color-lottie-mint-wash: #e0e7ff;
+  --color-lottie-cream: #fff8e5;
+  --color-lottie-leaf: #4f46e5;
+  --color-lottie-midnight: #09090b;
+  --color-lottie-pearl: #f4f4f5;
+  --color-lottie-snow: #fafafa;
+  --color-lottie-mist: #e4e4e7;
+  --color-lottie-zinc-900: #18181b;
+  --color-lottie-zinc-600: #27272a;
+  --color-lottie-zinc-500: #71717b;
+  --color-lottie-fog: #9f9fa9;
 
   /* Base Colors - Updated Color Palette */
   --color-neutral-01: #ffffff;
@@ -47,6 +66,11 @@
 
   --animate-ripple: ripple var(--duration, 2s) ease calc(var(--i, 0) * 0.2s)
     infinite;
+  --animate-chart-grow-1: chart-grow-1 3s ease-in-out infinite alternate;
+  --animate-chart-grow-2: chart-grow-2 3.5s ease-in-out infinite alternate;
+  --animate-chart-grow-3: chart-grow-3 2.8s ease-in-out infinite alternate;
+  --animate-chart-grow-4: chart-grow-4 4s ease-in-out infinite alternate;
+  --animate-chart-grow-5: chart-grow-5 3.2s ease-in-out infinite alternate;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -112,3 +136,32 @@ button {
     transform: translate(-50%, -50%) scale(0.9);
   }
 }
+
+@keyframes chart-grow-1 {
+  0% { height: 15%; }
+  100% { height: 45%; }
+}
+@keyframes chart-grow-2 {
+  0% { height: 25%; }
+  100% { height: 75%; }
+}
+@keyframes chart-grow-3 {
+  0% { height: 20%; }
+  100% { height: 60%; }
+}
+@keyframes chart-grow-4 {
+  0% { height: 45%; }
+  100% { height: 90%; }
+}
+@keyframes chart-grow-5 {
+  0% { height: 35%; }
+  100% { height: 75%; }
+}
+
+.math-grid-bg {
+  background-image: 
+    linear-gradient(rgba(31, 35, 117, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 35, 117, 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
