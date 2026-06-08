@@ -258,10 +258,10 @@ export default function AdminLearningAnalyticsContent({
         ))}
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      {/* <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ScoreDistributionCard scoreBuckets={scoreBuckets} />
         <EmotionDistributionCard emotionSegments={emotionSegments} />
-      </section>
+      </section> */}
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-[#111827]">

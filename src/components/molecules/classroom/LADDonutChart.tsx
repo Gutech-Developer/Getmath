@@ -19,37 +19,43 @@ export default function LADDonutChart({
   className,
 }: ILADDonutChartProps) {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
+  const chartData =
+    total > 0
+      ? segments
+      : [{ label: "Tidak ada data", value: 1, color: "#E2E8F0" }];
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
       <ResponsiveContainer width="100%" height={160}>
         <PieChart>
           <Pie
-            data={segments}
+            data={chartData}
             dataKey="value"
             nameKey="label"
             cx="50%"
             cy="50%"
             innerRadius={48}
             outerRadius={72}
-            paddingAngle={2}
+            paddingAngle={total > 0 ? 2 : 0}
             strokeWidth={0}
           >
-            {segments.map((seg, i) => (
+            {chartData.map((seg, i) => (
               <Cell key={i} fill={seg.color} />
             ))}
           </Pie>
-          <Tooltip
-            formatter={(value) => {
-              const num = typeof value === "number" ? value : 0;
-              return [`${total > 0 ? Math.round((num / total) * 100) : 0}%`];
-            }}
-            contentStyle={{
-              borderRadius: 8,
-              border: "1px solid #E2E8F0",
-              fontSize: 12,
-            }}
-          />
+          {total > 0 && (
+            <Tooltip
+              formatter={(value) => {
+                const num = typeof value === "number" ? value : 0;
+                return [`${total > 0 ? Math.round((num / total) * 100) : 0}%`];
+              }}
+              contentStyle={{
+                borderRadius: 8,
+                border: "1px solid #E2E8F0",
+                fontSize: 12,
+              }}
+            />
+          )}
         </PieChart>
       </ResponsiveContainer>
 
@@ -77,3 +83,4 @@ export default function LADDonutChart({
     </div>
   );
 }
+

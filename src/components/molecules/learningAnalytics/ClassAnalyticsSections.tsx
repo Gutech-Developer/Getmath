@@ -74,6 +74,13 @@ import type {
   ITeacherClassLearningAnalyticsDetail,
 } from "@/types/learningAnalytics";
 import { LADDonutChart } from "../classroom";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
+import { 
+  useEmotionDistributionOverall,
+  useDiagnosticTestDistribution,
+  useRemedialTestDistribution
+} from "@/services/hooks/useLAD";
+import { mapDistributionToSegments } from "@/components/templates/pages/classroom/ClassLADPageTemplate";
 
 interface ITeacherOverviewSectionProps {
   classDetail: ITeacherClassLearningAnalyticsDetail;
@@ -105,7 +112,7 @@ interface IBaseBerandaSectionProps {
 
 interface IBaseSiswaSectionProps {
   students: ILearningAnalyticsStudentListItem[];
-  buildStudentDetailHref?: (studentId: string) => string;
+  buildStudentDetailHref?: (studentId: string, studentName: string) => string;
   onKickStudent?: (student: ILearningAnalyticsStudentListItem) => void;
   isKickingStudent?: boolean;
 }
@@ -135,7 +142,8 @@ interface IBaseLaporanSectionProps {
   scoreBuckets: ILearningAnalyticsScoreBucket[];
   emotionSegments: ILearningAnalyticsEmotionSegment[];
   students: ILearningAnalyticsStudentListItem[];
-  buildStudentDetailHref?: (studentId: string) => string;
+  classId: string;
+  buildStudentDetailHref?: (studentId: string, studentName: string) => string;
 }
 
 interface IBaseInitSectionProps {
@@ -2720,53 +2728,129 @@ function SectionCard({
 }
 
 function ReportScoreChart({
-  scoreBuckets,
+  classId,
 }: {
-  scoreBuckets: ILearningAnalyticsScoreBucket[];
+  classId: string;
 }) {
-  const maxScore = useMemo(
+  const [distributionType, setDistributionType] = useState<"diagnostic" | "remedial">("diagnostic");
+
+  const { data: diagnosticDist, isPending: isDiagPending } = useDiagnosticTestDistribution(classId);
+  const { data: remedialDist, isPending: isRemPending } = useRemedialTestDistribution(classId);
+
+  const rawDist = distributionType === "diagnostic" ? diagnosticDist : remedialDist;
+  const activeDist = rawDist
+    ? ("buckets" in rawDist ? rawDist : rawDist.data)
+    : undefined;
+  const isPending = distributionType === "diagnostic" ? isDiagPending : isRemPending;
+
+  const scoreBuckets = useMemo(() => {
+    if (!activeDist?.buckets) {
+      return [
+        { label: "0-20", value: 0, color: "#EF4444" },
+        { label: "21-40", value: 0, color: "#F97316" },
+        { label: "41-60", value: 0, color: "#F59E0B" },
+        { label: "61-80", value: 0, color: "#3B82F6" },
+        { label: "81-100", value: 0, color: "#10B981" },
+      ];
+    }
+    const colorMap: Record<string, string> = {
+      "0-20": "#EF4444",
+      "21-40": "#F97316",
+      "41-60": "#F59E0B",
+      "61-80": "#3B82F6",
+      "81-100": "#10B981",
+    };
+    return activeDist.buckets.map((b) => ({
+      label: b.range,
+      value: b.count,
+      color: colorMap[b.range] || "#64748B",
+    }));
+  }, [activeDist]);
+
+  const maxCount = useMemo(
     () => Math.max(...scoreBuckets.map((bucket) => bucket.value), 1),
     [scoreBuckets],
   );
 
+  const averageScore = activeDist?.averageScore ?? 0;
+  const totalSamples = activeDist?.totalSamples ?? 0;
+
   return (
-    <article className="rounded-2xl border border-[#E5E7EB] bg-white p-4 md:p-5">
-      <h3 className="text-sm font-semibold text-[#111827]">Distribusi Nilai</h3>
-
-      <div className="mt-4 rounded-xl border border-[#F0F2F5] bg-[#FCFCFD] px-3 pb-2 pt-3">
-        <div className="relative h-40">
-          <div className="absolute inset-x-0 bottom-7 top-0">
-            {[0, 0.5, 1].map((tick) => (
-              <div
-                key={tick}
-                className="absolute left-0 right-0 border-t border-dashed border-[#E5E7EB]"
-                style={{ bottom: `${tick * 100}%` }}
-              />
-            ))}
-          </div>
-
-          <div className="absolute inset-x-0 bottom-7 top-0 flex items-end gap-2">
-            {scoreBuckets.map((bucket) => (
-              <div key={bucket.label} className="flex h-full flex-1 items-end">
-                <div
-                  className="w-full rounded-t-md"
-                  style={{
-                    height: `${(bucket.value / maxScore) * 100}%`,
-                    backgroundColor: bucket.color,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="absolute bottom-0 left-0 right-0 flex items-center gap-2 text-[10px] text-[#9CA3AF]">
-            {scoreBuckets.map((bucket) => (
-              <span key={bucket.label} className="flex-1 text-center">
-                {bucket.label}
-              </span>
-            ))}
-          </div>
+    <article className="rounded-2xl border border-[#E5E7EB] bg-white p-4 md:p-5 shadow-[0px_4px_16px_rgba(148,163,184,0.04)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F1F5F9] pb-4">
+        <div>
+          <h3 className="text-sm font-bold text-[#0F172A]">Distribusi Nilai Siswa</h3>
+          <p className="mt-1 text-xs text-[#64748B]">
+            {!isPending && (
+              <>
+                Rata-rata: <span className="font-semibold text-[#2563EB]">{averageScore.toFixed(1)}</span>
+                <span className="mx-2 text-[#CBD5E1]">|</span>
+                Sampel: <span className="font-semibold text-[#0F172A]">{totalSamples} Sesi</span>
+              </>
+            )}
+            {isPending && "Memuat data..."}
+          </p>
         </div>
+
+        <select
+          value={distributionType}
+          onChange={(e) => setDistributionType(e.target.value as "diagnostic" | "remedial")}
+          className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] shadow-sm outline-none transition focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] cursor-pointer"
+        >
+          <option value="diagnostic">Tes Diagnostik</option>
+          <option value="remedial">Tes Remedial</option>
+        </select>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-[#F1F5F9] bg-[#F8FAFC] p-4 md:p-5">
+        {isPending ? (
+          <div className="flex h-44 items-center justify-center text-sm text-[#64748B] font-medium">
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#2563EB]" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            Memuat grafik distribusi...
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={176}>
+            <BarChart
+              data={scoreBuckets}
+              margin={{ top: 20, right: 10, left: -25, bottom: 0 }}
+              barSize={44}
+            >
+              <CartesianGrid
+                strokeDasharray="4 4"
+                stroke="#E2E8F0"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: "#64748B", fontWeight: 600 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: "#94A3B8" }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip
+                formatter={(value) => [`${value} Siswa`, "Jumlah"]}
+                contentStyle={{
+                  borderRadius: 10,
+                  border: "1px solid #E2E8F0",
+                  fontSize: 12,
+                }}
+              />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                {scoreBuckets.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} className="transition-all duration-300 hover:opacity-90" />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </article>
   );
@@ -2800,7 +2884,7 @@ function ReportStudentRows({
   buildStudentDetailHref,
 }: {
   students: ILearningAnalyticsStudentListItem[];
-  buildStudentDetailHref?: (studentId: string) => string;
+  buildStudentDetailHref?: (studentId: string, studentName: string) => string;
 }) {
   return (
     <section className="rounded-2xl border border-[#E5E7EB] bg-white">
@@ -2829,7 +2913,7 @@ function ReportStudentRows({
 
               {buildStudentDetailHref ? (
                 <Link
-                  href={buildStudentDetailHref(student.id)}
+                  href={buildStudentDetailHref(student.id, student.fullname)}
                   className="inline-flex h-8 items-center justify-center rounded-xl border border-[#E5E7EB] px-2.5 text-xs font-semibold text-[#64748B] transition hover:bg-[#F8FAFC]"
                 >
                   Detail
@@ -3062,11 +3146,14 @@ export function BaseLaporanSection({
   scoreBuckets,
   emotionSegments,
   students,
+  classId,
   buildStudentDetailHref,
 }: IBaseLaporanSectionProps) {
   const [reportMode, setReportMode] = useState<ReportMode>(
     "Analisis Nilai & Emosi",
   );
+
+  const {data: emotionOverall, isPending} = useEmotionDistributionOverall(classId)
 
   return (
     <section className="space-y-4">
@@ -3142,30 +3229,56 @@ export function BaseLaporanSection({
       {reportMode === "Analisis Nilai & Emosi" ? (
         <>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-1">
-            <ReportScoreChart scoreBuckets={scoreBuckets} />
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <ReportEmotionChart emotionSegments={emotionSegments} />
-
-              <SectionCard
-                title="Emosi saat Membaca Materi"
-                icon={
-                  <svg
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-4 w-4"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                }
-              >
-                <LADDonutChart segments={emotionSegments} />
-              </SectionCard>
-            </div>
+            <ReportScoreChart classId={classId} />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <SectionCard
+                      title="Emosi saat Membaca Materi"
+                      icon={
+                        <svg
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          className="h-4 w-4"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      }
+                    >
+                      <LADDonutChart
+                        segments={mapDistributionToSegments(
+                          emotionOverall?.moduleLearning.distribution
+                        )}
+                      />
+                    </SectionCard>
+            
+                    <SectionCard
+                      title="Emosi saat Tes Diagnostik"
+                      icon={
+                        <svg
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          className="h-4 w-4"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      }
+                    >
+                      <LADDonutChart
+                        segments={mapDistributionToSegments(
+                          emotionOverall?.remedial.distribution
+                        )}
+                      />
+                    </SectionCard>
+                  </div>
           </div>
 
           <ReportStudentRows

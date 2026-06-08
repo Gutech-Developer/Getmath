@@ -33,7 +33,7 @@ export type { IClassLearningAnalyticsDetail, IStudentAnalyticsItem };
 interface AdminLearningAnalyticsClassContentProps {
   classDetail: IClassLearningAnalyticsDetail;
   initialViewType?: ClassAnalyticsViewType;
-  buildStudentDetailHref?: (studentId: string) => string;
+  buildStudentDetailHref?: (studentId: string, studentName: string) => string;
 }
 
 function buildDefaultScoreBuckets(
@@ -223,8 +223,8 @@ export default function AdminLearningAnalyticsClassContent({
 
   const studentDetailHrefBuilder =
     buildStudentDetailHref ??
-    ((studentId: string) =>
-      `/admin/dashboard/learning-analytics/${classDetail.slug}/${studentId}`);
+    ((studentId: string, studentName: string) =>
+      `/admin/dashboard/learning-analytics/${classDetail.slug}/${studentId}?studentName=${encodeURIComponent(studentName)}`);
   const elkpdScoreHrefBuilder = (elkpdId: string) =>
     `/admin/dashboard/learning-analytics/${classDetail.slug}/elkpd/${elkpdId}`;
   const handleKickStudent = (studentId: string) => {
@@ -267,6 +267,7 @@ export default function AdminLearningAnalyticsClassContent({
         scoreBuckets={scoreBuckets}
         emotionSegments={emotionSegments}
         students={classDetail.students}
+        classId={classDetail.id ?? ""}
         buildStudentDetailHref={studentDetailHrefBuilder}
       />
     ),

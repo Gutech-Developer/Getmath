@@ -372,6 +372,26 @@ export const queryKeys = {
     stats: () => [...queryKeys.userMangement.all, "stats"] as const,
   },
 
+  school: {
+    all: ["gs", "school"] as const,
+    lists: () => [...queryKeys.school.all, "list"] as const,
+    list: (filters?: Record<string, unknown>) =>
+      [...queryKeys.school.lists(), filters] as const,
+    details: () => [...queryKeys.school.all, "detail"] as const,
+    detail: (id: string) => [...queryKeys.school.details(), id] as const,
+  },
+
+  lad: {
+    all: ["gs", "lad"] as const,
+    courseSummary: (courseId: string, studentId: string) => [...queryKeys.lad.all, "courseSummary", courseId, studentId] as const,
+    emotionDistribution: (courseId: string, studentId: string) => [...queryKeys.lad.all, "emotionDistribution", courseId, studentId] as const,
+    emotionDistributionOverall: (courseId: string) => [...queryKeys.lad.all, "emotionDistributionOverall", courseId] as const,
+    diagnosticTestDistribution: (courseId: string) => [...queryKeys.lad.all, "diagnosticTestDistribution", courseId] as const,
+    remedialTestDistribution: (courseId: string) => [...queryKeys.lad.all, "remedialTestDistribution", courseId] as const,
+    studyTimeByModule: (courseModuleId: string, studentId: string) => [...queryKeys.lad.all, "studyTimeByModule", courseModuleId, studentId] as const,
+    activityLogs: (courseId: string, studentId: string, page: number, limit: number) => [...queryKeys.lad.all, "activityLogs", courseId, studentId, page, limit] as const,
+  },
+
   // Remediation / Diagnostic Tests Results
   gsRemediations: {
     all: ["gs", "remediations"] as const,
