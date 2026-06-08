@@ -207,6 +207,22 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
       toast.error("Password minimal 8 karakter.");
       return false;
     }
+    if (!/[A-Z]/.test(form.password)) {
+      toast.error("Password harus mengandung minimal 1 huruf besar.");
+      return false;
+    }
+    if (!/[a-z]/.test(form.password)) {
+      toast.error("Password harus mengandung minimal 1 huruf kecil.");
+      return false;
+    }
+    if (!/[0-9]/.test(form.password)) {
+      toast.error("Password harus mengandung minimal 1 angka.");
+      return false;
+    }
+    if (!/[^A-Za-z0-9]/.test(form.password)) {
+      toast.error("Password harus mengandung minimal 1 karakter spesial.");
+      return false;
+    }
     if (form.password !== form.confirmPassword) {
       toast.error("Konfirmasi password tidak cocok.");
       return false;
@@ -477,7 +493,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                     }}
                     // PERBAIKAN LOGIKA: Map options agar label berisi nama sekolah (teks), value berisi id/npsn
                     options={schools.map((school) => ({
-                      value: school.name,
+                      value: school.id,
                       label: school.name,
                       metadata: {
                         schoolName: school.name,
@@ -503,6 +519,9 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                     onChange={(value) => updateField("password", value)}
                     placeholder="Minimal 8 karakter"
                   />
+                  <p className="text-[11px] text-[#6b7280] leading-normal mt-1">
+                    Password minimal 8 karakter, serta harus mengandung huruf besar, huruf kecil, angka, dan karakter spesial.
+                  </p>
                   <PasswordField
                     label="Konfirmasi Password"
                     value={form.confirmPassword}

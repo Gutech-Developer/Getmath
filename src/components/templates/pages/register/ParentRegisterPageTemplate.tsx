@@ -44,6 +44,26 @@ export default function ParentRegisterPageTemplate() {
       return;
     }
 
+    if (!/[A-Z]/.test(form.password)) {
+      toast.error("Password harus mengandung minimal 1 huruf besar.");
+      return;
+    }
+
+    if (!/[a-z]/.test(form.password)) {
+      toast.error("Password harus mengandung minimal 1 huruf kecil.");
+      return;
+    }
+
+    if (!/[0-9]/.test(form.password)) {
+      toast.error("Password harus mengandung minimal 1 angka.");
+      return;
+    }
+
+    if (!/[^A-Za-z0-9]/.test(form.password)) {
+      toast.error("Password harus mengandung minimal 1 karakter spesial.");
+      return;
+    }
+
     if (form.password !== confirmPassword) {
       toast.error("Konfirmasi password tidak cocok.");
       return;
@@ -157,6 +177,9 @@ export default function ParentRegisterPageTemplate() {
                 placeholder="Minimal 8 karakter"
                 className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
               />
+              <p className="text-[11px] text-[#6b7280] leading-normal mt-1">
+                Password minimal 8 karakter, serta harus mengandung huruf besar, huruf kecil, angka, dan karakter spesial.
+              </p>
             </div>
 
             <div className="space-y-1.5">
