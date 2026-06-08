@@ -206,6 +206,14 @@ export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
     [classes, selectedClassId],
   );
 
+  const selectedChildName = useMemo(() => {
+    return (
+      childrenList?.find((c) => c.id === selectedChildIdProp)?.fullName ||
+      childName ||
+      ""
+    );
+  }, [childrenList, selectedChildIdProp, childName]);
+
   const selectedClassModules = useMemo(
     () => buildModuleProgress(selectedClass?.progress ?? 0),
     [selectedClass?.id, selectedClass?.progress],
@@ -359,6 +367,7 @@ export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
                       slug={selectedClass.slug}
                       courseId={selectedClass.id}
                       studentId={selectedChildIdProp || ""}
+                      studentName={selectedChildName}
                       backHref="/parent/dashboard"
                       backLabel="← Kembali ke Dashboard Orang Tua"
                     />
@@ -375,14 +384,12 @@ export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
       </section>
 
       {/* Tren Nilai + Emosi side by side on large screens */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Trend Chart (takes 2/3 width) */}
+      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white border border-grey-stroke rounded-2xl p-5 md:p-6 flex flex-col gap-4">
           <SectionHeader title={trendChartTitle ?? `Tren Nilai ${childName}`} />
           <ScoreTrendChart labels={trendChartLabels} lines={trendChartLines} />
         </div>
 
-        {/* Emotion Chart (takes 1/3 width) */}
         <div className="bg-white border border-grey-stroke rounded-2xl p-5 md:p-6 flex flex-col gap-4">
           <SectionHeader title="Emosi Saat Belajar" />
           <DonutChart
@@ -391,7 +398,7 @@ export const ParentDashboardContent: React.FC<ParentDashboardContentProps> = ({
             className="flex-1 justify-center"
           />
         </div>
-      </div>
+      </div> */}
 
       {/* Hasil Tes Terbaru */}
       {testResults.length > 0 && (

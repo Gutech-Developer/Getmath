@@ -7,7 +7,10 @@ import type {
     IEmotionDistributionResponse,
     IStudyTimeByModuleResponse,
     ICourseSummaryResponse,
-    IActivityLogResponse
+    IActivityLogResponse,
+    IEmotionDistributionClassOverallResponse,
+    IDistributionDiagnosticTestResponse,
+    IDistributionRemedialResponse
 } from "@/types/LAD";
 import { buildQuery } from "./helper";
 
@@ -33,6 +36,15 @@ export function useEmotionDistribution(courseId: string, studentId?: string) {
     });
 }
 
+export function useEmotionDistributionOverall(courseId: string) {
+    return useQuery<IEmotionDistributionClassOverallResponse, Error>({
+        queryKey: queryKeys.lad.emotionDistributionOverall(courseId),
+        queryFn: () => gsGet<IEmotionDistributionClassOverallResponse>(`/learning-analytics/courses/${courseId}/class-overall-emotion`),
+        enabled: !!courseId,
+        staleTime: 2 * 60 * 1000,
+    });
+}
+
 export function useStudyTimeByModule(courseId: string, studentId?: string) {
     return useQuery<IStudyTimeByModuleResponse, Error>({
         queryKey: queryKeys.lad.studyTimeByModule(courseId, studentId || ""),
@@ -49,6 +61,24 @@ export function useActivityLogs(courseId: string, studentId?: string, page = 1, 
     return useQuery<IActivityLogResponse, Error>({
         queryKey: queryKeys.lad.activityLogs(courseId, studentId || "", page, limit),
         queryFn: () => gsGet<IActivityLogResponse>(path),
+        enabled: !!courseId,
+        staleTime: 2 * 60 * 1000,
+    });
+}
+
+export function useDiagnosticTestDistribution(courseId: string) {
+    return useQuery<IDistributionDiagnosticTestResponse, Error>({
+        queryKey: queryKeys.lad.diagnosticTestDistribution(courseId),
+        queryFn: () => gsGet<IDistributionDiagnosticTestResponse>(`/learning-analytics/courses/${courseId}/class-diagnostic-distribution`),
+        enabled: !!courseId,
+        staleTime: 2 * 60 * 1000,
+    });
+}
+
+export function useRemedialTestDistribution(courseId: string) {
+    return useQuery<IDistributionRemedialResponse, Error>({
+        queryKey: queryKeys.lad.remedialTestDistribution(courseId),
+        queryFn: () => gsGet<IDistributionRemedialResponse>(`/learning-analytics/courses/${courseId}/class-remedial-distribution`),
         enabled: !!courseId,
         staleTime: 2 * 60 * 1000,
     });

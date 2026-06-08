@@ -21,7 +21,7 @@ import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
 import { useCourseSummary, useEmotionDistribution, useStudyTimeByModule, useActivityLogs } from "@/services/hooks/useLAD";
-import { useGsCourseBySlug } from "@/services";
+import { useGsCourseBySlug, useUserById } from "@/services";
 import type { IActivityLog } from "@/types/LAD";
 
 /* ------------------------------------------------------------------ */
@@ -51,7 +51,7 @@ const EMOTION_TES_DATA = [
   { label: "Bingung", value: 15, color: "#F59E0B" },
 ];
 
-const mapDistributionToSegments = (
+export const mapDistributionToSegments = (
   dist: {
     neutral: number;
     happy: number;
@@ -63,12 +63,12 @@ const mapDistributionToSegments = (
   } | undefined
 ) => {
   const fallback = [
-    { label: "Netral", value: 0, color: "#94A3B8" },
-    { label: "Senang", value: 0, color: "#10B981" },
+    { label: "Netral", value: 0, color: "#10B981" },
+    { label: "Senang", value: 0, color: "#8B5CF6" },
     { label: "Sedih", value: 0, color: "#3B82F6" },
     { label: "Marah", value: 0, color: "#F43F5E" },
     { label: "Tegang", value: 0, color: "#F97316" },
-    { label: "Jijik", value: 0, color: "#8B5CF6" },
+    { label: "Jijik", value: 0, color: "#94A3B8" },
     { label: "Terkejut", value: 0, color: "#06B6D4" },
   ];
 
@@ -77,12 +77,12 @@ const mapDistributionToSegments = (
   }
 
   return [
-    { label: "Netral", value: dist.neutral || 0, color: "#94A3B8" },
-    { label: "Senang", value: dist.happy || 0, color: "#10B981" },
+    { label: "Netral", value: dist.neutral || 0, color: "#10B981" },
+    { label: "Senang", value: dist.happy || 0, color: "#8B5CF6" },
     { label: "Sedih", value: dist.sad || 0, color: "#3B82F6" },
     { label: "Marah", value: dist.angry || 0, color: "#F43F5E" },
     { label: "Tegang", value: dist.fearful || 0, color: "#F97316" },
-    { label: "Jijik", value: dist.disgusted || 0, color: "#8B5CF6" },
+    { label: "Jijik", value: dist.disgusted || 0, color: "#94A3B8" },
     { label: "Terkejut", value: dist.surprised || 0, color: "#06B6D4" },
   ];
 };
@@ -396,8 +396,10 @@ export default function ClassLADPageTemplate({
     activityLogsPending;
 
   const classTitle = childCourseDetail?.course.courseName || studentDashboard?.courseName || formatClassTitleFromSlug(slug);
-  const studentName = studentId ? studentNameProp : studentNameProp; // If parent mode, studentName is usually passed from dashboard
-  const ladTitle = studentName ? `LAD – ${studentName}` : `LAD – ${classTitle}`;
+  
+  
+  const studentName = studentNameProp;
+  const ladTitle = studentId ? `LAD – ${studentName}` : `LAD – ${classTitle}`;
   const resolvedBackHref = backHref ?? buildClassRoute(slug);
   const resolvedBackLabel = backLabel ?? "← Kembali ke Beranda Kelas";
 
@@ -440,24 +442,24 @@ export default function ClassLADPageTemplate({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-white/70">
-              Laporan Analitik Diagnostik
+              Laporan Analitik
             </p>
             <h1 className="mt-1 text-2xl font-bold leading-tight">
               {ladTitle}
             </h1>
             <p className="mt-1 text-sm text-white/75">
               {studentName
-                ? "Lihat semua data: nilai, emosi, waktu belajar, dan rekomendasi AI untuk siswa ini."
-                : "Lihat semua data: nilai, emosi, waktu belajar, dan rekomendasi AI untukmu."}
+                ? "Lihat semua data: nilai, emosi, dan waktu belajar untuk siswa ini."
+                : "Lihat semua data: nilai, emosi, dan waktu belajar untukmu."}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1 text-right">
+          {/* <div className="flex flex-col items-end gap-1 text-right">
             <p className="text-[11px] font-medium uppercase tracking-widest text-white/60">
               Peringkat Kelas
             </p>
             <p className="text-4xl font-black leading-none">#2</p>
             <p className="text-[11px] text-white/60">dari 28 siswa</p>
-          </div>
+          </div> */}
         </div>
         {/* decorative circle */}
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5" />
@@ -477,13 +479,9 @@ export default function ClassLADPageTemplate({
 
         {/* Card 2: Materi Selesai vs Total Waktu Belajar */}
         <LADMetricCard
-          value={
-            studentId 
-              ? `${courseSummary?.completedMaterials || 0}/${courseSummary?.totalMaterials || 0}` 
-              : stringTotalWaktu
-          }
-          label={studentId ? "Materi Selesai" : "Total Waktu Belajar"}
-          sub={studentId ? "Modul dipelajari" : "Semua sesi belajar"}
+          value={stringTotalWaktu}
+          label={"Total Waktu Belajar"}
+          sub={"Semua sesi belajar"}
           icon={ClockIcon}
           iconBg="bg-[#FEF3C7]"
           iconFg="text-[#D97706]"
@@ -492,12 +490,10 @@ export default function ClassLADPageTemplate({
         {/* Card 3: Skor Terakhir vs Materi Selesai */}
         <LADMetricCard
           value={
-            studentId 
-              ? String(childCourseDetail?.diagnosticResults?.[0]?.score || 0) 
-              : `${courseSummary?.completedMaterials || 0}/${courseSummary?.totalMaterials || 0}`
+            `${courseSummary?.completedMaterials || 0}/${courseSummary?.totalMaterials || 0}`
           }
-          label={studentId ? "Skor Terakhir" : "Materi Selesai"}
-          sub={studentId ? "Tes diagnostik" : "Modul dibaca"}
+          label={"Materi Selesai"}
+          sub={"Modul dibaca"}
           icon={TrophyIcon}
           iconBg="bg-[#D1FAE5]"
           iconFg="text-[#059669]"
@@ -506,26 +502,16 @@ export default function ClassLADPageTemplate({
         {/* Card 4: Total Percobaan Tes vs Peringkat Kelas */}
         <LADMetricCard
           value={
-            studentId 
-              ? String(childCourseDetail?.diagnosticResults?.length || 0) 
-              : (studentDashboard?.enrolledCount ? `#${studentDashboard.enrolledCount}` : "-")
+            (studentDashboard?.enrolledCount ? `#${studentDashboard.enrolledCount}` : "-")
           }
-          label={studentId ? "Total Percobaan" : "Peringkat"}
-          sub={studentId ? "Kali tes" : "Status kelas"}
+          label={"Peringkat"}
+          sub={"Status kelas"}
           icon={StarIcon}
           iconBg="bg-[#FEF3C7]"
           iconFg="text-[#D97706]"
         />
       </div>
 
-      {/* ---- Score Trend ---- */}
-      <SectionCard
-        title="Grafik Perkembangan Nilai"
-        subtitle="Riwayat nilai dari semua tes diagnostik"
-        icon={<TrendUpIcon className="h-4 w-4" />}
-      >
-        <LADScoreTrendChart data={scoreTrendData} />
-      </SectionCard>
 
       {/* ---- Emotion Charts ---- */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

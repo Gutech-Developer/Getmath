@@ -149,10 +149,12 @@ const STUDENT_ANALYTICS_DATA: IClassStudentAnalyticsCollection[] = [
 export default function AdminLearningAnalyticsStudentTemplate({
   slug,
   studentId,
+  studentName,
   backHref,
 }: {
   slug: string;
   studentId: string;
+  studentName?: string;
   backHref?: string;
 }) {
   const classCollection = STUDENT_ANALYTICS_DATA.find(
@@ -167,7 +169,7 @@ export default function AdminLearningAnalyticsStudentTemplate({
     <ClassLADPageTemplate
       slug={slug}
       studentId={studentId}
-      studentName={student?.fullname ?? `Siswa ${studentId}`}
+      studentName={studentName ?? student?.fullname ?? `Siswa ${studentId}`}
       backHref={backHref ?? `/admin/dashboard/learning-analytics/${slug}`}
       backLabel="← Kembali ke Daftar Siswa"
     />

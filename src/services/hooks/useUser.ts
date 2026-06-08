@@ -26,12 +26,12 @@ export function useAllUsers(params?: GsPaginationParams & { search?: string; rol
   });
 }
 
-export function useUserById(id: string) {
+export function useUserById(id: string, options?: { enabled?: boolean }) {
   return useQuery<GsUserData, Error>({
     queryKey: queryKeys.userMangement.detail(id),
     queryFn: () => gsGet<GsUserData>(`/users/${id}`),
     staleTime: 2 * 60 * 1000,
-    enabled: !!id,
+    enabled: options?.enabled !== false && !!id,
   });
 }
 

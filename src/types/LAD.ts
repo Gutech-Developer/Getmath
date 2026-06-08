@@ -39,6 +39,36 @@ export interface IEmotionDistributionResponse{
     }
 }
 
+export interface IEmotionDistributionClassOverallResponse{
+    courseId: string;
+    moduleLearning: {
+      totalSamples: number;
+      dominant: string;
+      distribution: {
+        neutral: number;
+        happy: number;
+        sad: number;
+        angry: number;
+        fearful: number;
+        disgusted: number;
+        surprised: number;
+      }
+    },
+    remedial: {
+      totalSamples: number;
+      dominant: string;
+      distribution: {
+        neutral: number;
+        happy: number;
+        sad: number;
+        angry: number;
+        fearful: number;
+        disgusted: number;
+        surprised: number;
+      }
+    }
+}
+
 export interface IStudyTimeByModule {
     courseModuleId: string;
     order: number;
@@ -76,3 +106,21 @@ export interface IActivityLogResponse {
     logs: IActivityLog[];
     pagination: GsPaginationMeta;
 }
+
+export interface IDistributionTest{
+  courseId: string;
+  totalSamples: number;
+  averageScore: number;
+  buckets: {
+      range: "0-20" | "21-40" | "41-60" | "61-80" | "81-100";
+      count: number;
+      }[];
+}
+
+export type IDistributionDiagnosticTestResponse = IDistributionTest | {
+    data: IDistributionTest;
+};
+
+export type IDistributionRemedialResponse = IDistributionTest | {
+    data: IDistributionTest;
+};
