@@ -1,7 +1,7 @@
 "use client";
 
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
 import AlertIcon from "@/components/atoms/icons/AlertIcon";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
@@ -48,6 +48,89 @@ import { pickFeedback } from "@/libs/emotion/feedback";
 import { isEmotionSupported } from "@/libs/emotion";
 import CameraRequiredScreen from "@/components/molecules/classroom/CameraRequiredScreen";
 import EmotionNotification from "@/components/molecules/classroom/EmotionNotification";
+
+interface YoutubePlayerProps {
+  iframeId: string;
+  url: string;
+  title: string;
+  onEnded: () => void;
+  className?: string;
+  frameBorder?: string;
+}
+
+const YoutubePlayer = React.memo(
+  ({ iframeId, url, title, onEnded, className, frameBorder }: YoutubePlayerProps) => {
+    const onEndedRef = useRef(onEnded);
+
+    useEffect(() => {
+      onEndedRef.current = onEnded;
+    }, [onEnded]);
+
+    useEffect(() => {
+      const tagId = "yt-iframe-api";
+      if (!document.getElementById(tagId)) {
+        const tag = document.createElement("script");
+        tag.id = tagId;
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName("script")[0];
+        if (firstScriptTag && firstScriptTag.parentNode) {
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+      }
+
+      let player: any;
+
+      const initPlayer = () => {
+        if (!document.getElementById(iframeId)) return;
+        player = new (window as any).YT.Player(iframeId, {
+          events: {
+            onStateChange: (event: any) => {
+              if (event.data === (window as any).YT.PlayerState.ENDED) {
+                onEndedRef.current();
+              }
+            },
+          },
+        });
+      };
+
+      if ((window as any).YT && (window as any).YT.Player) {
+        initPlayer();
+      } else {
+        const prevCallback = (window as any).onYouTubeIframeAPIReady;
+        (window as any).onYouTubeIframeAPIReady = () => {
+          if (prevCallback) {
+            try {
+              prevCallback();
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          initPlayer();
+        };
+      }
+
+      return () => {
+        if (player && player.destroy) {
+          player.destroy();
+        }
+      };
+    }, [iframeId, url]);
+
+    return (
+      <iframe
+        id={iframeId}
+        src={url}
+        title={title}
+        className={className}
+        frameBorder={frameBorder}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+      />
+    );
+  },
+);
+
+YoutubePlayer.displayName = "YoutubePlayer";
 
 export default function ClassDiagnosisContentPageTemplate({
   slug,
@@ -378,51 +461,12 @@ export default function ClassDiagnosisContentPageTemplate({
     }
   }, [isRemedial, remedialReviewData, diagnosticReviewData, flowStep]);
 
-  useEffect(() => {
-    if (!discussionShow || !discussionData?.videoUrl) return;
-
-    const tagId = "yt-iframe-api";
-    if (!document.getElementById(tagId)) {
-      const tag = document.createElement("script");
-      tag.id = tagId;
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      if (firstScriptTag && firstScriptTag.parentNode) {
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      }
-    }
-
-    let player: any;
-    const iframeId = `youtube-remedial-player`;
-
-    const initPlayer = () => {
-      if (!document.getElementById(iframeId)) return;
-      player = new (window as any).YT.Player(iframeId, {
-        events: {
-          onStateChange: (event: any) => {
-            if (event.data === (window as any).YT.PlayerState.ENDED) {
-              setDiscussionVideoWatched(true);
-              showToast.success(
-                "Video selesai ditonton! Anda dapat melanjutkan.",
-              );
-            }
-          },
-        },
-      });
-    };
-
-    if (!(window as any).YT) {
-      (window as any).onYouTubeIframeAPIReady = initPlayer;
-    } else if ((window as any).YT.Player) {
-      setTimeout(initPlayer, 500);
-    }
-
-    return () => {
-      if (player && player.destroy) {
-        player.destroy();
-      }
-    };
-  }, [discussionShow, discussionData?.videoUrl]);
+  const handleVideoEnded = useCallback(() => {
+    setDiscussionVideoWatched(true);
+    showToast.success(
+      "Video selesai ditonton! Anda dapat melanjutkan.",
+    );
+  }, []);
   // ─── Auto-advance to completed when student already has a past attempt ────
   // If apiModule loads and reveals an existing attempt, skip the camera/rules
   // screen entirely and go straight to the result view. This prevents the
@@ -1907,14 +1951,14 @@ export default function ClassDiagnosisContentPageTemplate({
                         Video Pembahasan Pendukung
                       </p>
                       <div className="rounded-2xl overflow-hidden border border-red-200/50 bg-black shadow-md">
-                        <iframe
-                          id="youtube-remedial-player"
-                          src={`https://www.youtube.com/embed/${getYouTubeId(discussionData.videoUrl)}?enablejsapi=1&controls=1&rel=0`}
+                        <YoutubePlayer
+                          key={discussionData.videoUrl}
+                          iframeId="youtube-remedial-player"
+                          url={`https://www.youtube.com/embed/${getYouTubeId(discussionData.videoUrl)}?enablejsapi=1&controls=1&rel=0`}
                           title="Video Pembahasan"
                           frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
                           className="w-full aspect-video"
+                          onEnded={handleVideoEnded}
                         />
                       </div>
                       {!discussionVideoWatched && (
