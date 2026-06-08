@@ -1,7 +1,7 @@
 "use client";
 
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
@@ -49,6 +49,86 @@ interface IFlatStep {
   state: ModuleStepState;
   status: "completed" | "in-progress" | "locked";
 }
+
+interface YoutubePlayerProps {
+  iframeId: string;
+  url: string;
+  title: string;
+  onEnded: () => void;
+}
+
+const YoutubePlayer = React.memo(
+  ({ iframeId, url, title, onEnded }: YoutubePlayerProps) => {
+    const onEndedRef = useRef(onEnded);
+    
+    useEffect(() => {
+      onEndedRef.current = onEnded;
+    }, [onEnded]);
+
+    useEffect(() => {
+      const tagId = "yt-iframe-api";
+      if (!document.getElementById(tagId)) {
+        const tag = document.createElement("script");
+        tag.id = tagId;
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName("script")[0];
+        if (firstScriptTag && firstScriptTag.parentNode) {
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+      }
+
+      let player: any;
+
+      const initPlayer = () => {
+        if (!document.getElementById(iframeId)) return;
+        player = new (window as any).YT.Player(iframeId, {
+          events: {
+            onStateChange: (event: any) => {
+              if (event.data === (window as any).YT.PlayerState.ENDED) {
+                onEndedRef.current();
+              }
+            },
+          },
+        });
+      };
+
+      if ((window as any).YT && (window as any).YT.Player) {
+        initPlayer();
+      } else {
+        const prevCallback = (window as any).onYouTubeIframeAPIReady;
+        (window as any).onYouTubeIframeAPIReady = () => {
+          if (prevCallback) {
+            try {
+              prevCallback();
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          initPlayer();
+        };
+      }
+
+      return () => {
+        if (player && player.destroy) {
+          player.destroy();
+        }
+      };
+    }, [iframeId, url]);
+
+    return (
+      <iframe
+        id={iframeId}
+        src={url}
+        title={title}
+        className="h-full w-full border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+      />
+    );
+  },
+);
+
+YoutubePlayer.displayName = "YoutubePlayer";
 
 interface IModuleView {
   id: string;
@@ -608,6 +688,13 @@ export default function ClassMaterialContentPageTemplate({
     [contentId, slug, router, markFileRead, activeStep],
   );
 
+  const handleVideoEnded = useCallback(() => {
+    if (activeStep?.id) {
+      setVideoFinished((prev) => ({ ...prev, [activeStep.id]: true }));
+      markVideoWatched.mutate();
+    }
+  }, [activeStep?.id, markVideoWatched]);
+
   useEffect(() => {
     if (activeStep?.kind !== "VIDEO") return;
     if (!activeStep.url) return;
@@ -616,44 +703,7 @@ export default function ClassMaterialContentPageTemplate({
     if (!activeStep.url.includes("youtube.com/embed")) {
       setVideoFinished((prev) => ({ ...prev, [activeStep.id]: true }));
       markVideoWatched.mutate();
-      return;
     }
-
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName("script")[0];
-    if (firstScriptTag && firstScriptTag.parentNode) {
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    }
-
-    let player: any;
-    const iframeId = `Youtubeer-${activeStep.id}`;
-
-    const initPlayer = () => {
-      if (!document.getElementById(iframeId)) return;
-      player = new (window as any).YT.Player(iframeId, {
-        events: {
-          onStateChange: (event: any) => {
-            if (event.data === (window as any).YT.PlayerState.ENDED) {
-              setVideoFinished((prev) => ({ ...prev, [activeStep.id]: true }));
-              markVideoWatched.mutate();
-            }
-          },
-        },
-      });
-    };
-
-    if (!(window as any).YT) {
-      (window as any).onYouTubeIframeAPIReady = initPlayer;
-    } else if ((window as any).YT.Player) {
-      setTimeout(initPlayer, 500);
-    }
-
-    return () => {
-      if (player && player.destroy) {
-        player.destroy();
-      }
-    };
   }, [
     activeStep?.id,
     activeStep?.kind,
@@ -778,15 +828,25 @@ export default function ClassMaterialContentPageTemplate({
               <>
                 <ContentBadge icon={VideoIcon} label="Video Pembelajaran" />
                 <div className="aspect-video overflow-hidden rounded-2xl border border-[#E2E8F0] bg-black">
-                  <iframe
-                    id={`Youtubeer-${activeStep.id}`}
-                    key={activeStep.id}
-                    src={activeStep.url}
-                    title={activeStep.title}
-                    className="h-full w-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                    allowFullScreen
-                  />
+                  {activeStep.url.includes("youtube.com/embed") ? (
+                    <YoutubePlayer
+                      key={activeStep.id}
+                      iframeId={`Youtubeer-${activeStep.id}`}
+                      url={activeStep.url}
+                      title={activeStep.title}
+                      onEnded={handleVideoEnded}
+                    />
+                  ) : (
+                    <iframe
+                      id={`Youtubeer-${activeStep.id}`}
+                      key={activeStep.id}
+                      src={activeStep.url}
+                      title={activeStep.title}
+                      className="h-full w-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                      allowFullScreen
+                    />
+                  )}
                 </div>
               </>
             )}

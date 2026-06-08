@@ -114,10 +114,18 @@ const renderLogMessage = (log: IActivityLog) => {
       const method = log.metadata?.method === "google" ? "Google" : "Password";
       return (
         <span>
-          Melakukan login menggunakan <span className="font-semibold text-[#0F172A]">{method}</span>
+          Masuk ke aplikasi menggunakan <span className="font-semibold text-[#0F172A]">{method}</span>
         </span>
       );
     }
+    case "LOGOUT":
+      return <span>Keluar dari aplikasi</span>;
+    case "COURSE_ENROLLED":
+      return (
+        <span>
+          Mendaftar ke kelas <span className="font-semibold text-[#2563EB]">{log.courseName || "Kelas"}</span>
+        </span>
+      );
     case "COURSE_OPENED":
       return (
         <span>
@@ -130,54 +138,78 @@ const renderLogMessage = (log: IActivityLog) => {
           Membuka modul <span className="font-semibold text-[#0F172A]">{log.moduleName || "Materi"}</span>
         </span>
       );
-    case "MATERIAL_READ":
-    case "MATERIAL_OPENED": {
-      const materialName = log.metadata?.materialName || log.metadata?.subjectName || "Materi";
+    case "FILE_READ":
       return (
         <span>
-          Membaca materi <span className="font-semibold text-[#0F172A]">{materialName}</span>
+          Membaca materi <span className="font-semibold text-[#0F172A]">{log.moduleName || "Dokumen"}</span>
+        </span>
+      );
+    case "VIDEO_WATCHED":
+      return (
+        <span>
+          Menonton video <span className="font-semibold text-[#0F172A]">{log.moduleName || "Video"}</span>
+        </span>
+      );
+    case "ELKPD_SUBMITTED":
+      return (
+        <span>
+          Mengirimkan E-LKPD <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tugas"}</span>
+        </span>
+      );
+    case "DIAGNOSTIC_MODULE_OPENED":
+      return (
+        <span>
+          Membuka halaman tes diagnostik <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+        </span>
+      );
+    case "DIAGNOSTIC_STARTED":
+      return (
+        <span>
+          Memulai tes diagnostik <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+        </span>
+      );
+    case "DIAGNOSTIC_SUBMITTED": {
+      const score = log.metadata?.score;
+      return (
+        <span>
+          Menyelesaikan tes diagnostik <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+          {score !== undefined && (
+            <> dengan nilai <span className="font-bold text-[#10B981]">{score}</span></>
+          )}
         </span>
       );
     }
-    case "VIDEO_PLAYED":
-    case "VIDEO_WATCHED": {
-      const videoTitle = log.metadata?.videoTitle || "Video";
+    case "REMEDIAL_STARTED":
       return (
         <span>
-          Menonton video <span className="font-semibold text-[#0F172A]">{videoTitle}</span>
+          Memulai tes remedial <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+        </span>
+      );
+    case "REMEDIAL_COMPLETED": {
+      const score = log.metadata?.score;
+      return (
+        <span>
+          Menyelesaikan tes remedial <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+          {score !== undefined && (
+            <> dengan nilai <span className="font-bold text-[#10B981]">{score}</span></>
+          )}
         </span>
       );
     }
-    case "DIAGNOSTIC_TEST_STARTED":
-      return <span>Memulai Tes Diagnostik</span>;
-    case "DIAGNOSTIC_TEST_FINISHED": {
-      const score = log.metadata?.score ?? 0;
+    case "DISCUSSION_STARTED": {
+      const title = log.metadata?.title || "diskusi baru";
       return (
         <span>
-          Menyelesaikan Tes Diagnostik dengan nilai <span className="font-bold text-[#10B981]">{score}</span>
+          Membuat diskusi baru: <span className="italic text-[#475569]">"{title}"</span>
         </span>
       );
     }
-    case "REMEDIAL_TEST_STARTED":
-      return <span>Memulai Tes Remedial</span>;
-    case "REMEDIAL_TEST_FINISHED": {
-      const score = log.metadata?.score ?? 0;
-      return (
-        <span>
-          Menyelesaikan Tes Remedial dengan nilai <span className="font-bold text-[#10B981]">{score}</span>
-        </span>
-      );
-    }
-    case "FORUM_POST_CREATED": {
-      const title = log.metadata?.title || "Diskusi";
-      return (
-        <span>
-          Membuat diskusi baru di forum: <span className="italic text-[#475569]">"{title}"</span>
-        </span>
-      );
-    }
-    case "FORUM_COMMENT_CREATED":
+    case "DISCUSSION_COMMENTED":
       return <span>Mengomentari diskusi di forum</span>;
+    case "DISCUSSION_LIKED":
+      return <span>Menyukai diskusi di forum</span>;
+    case "COMMENT_LIKED":
+      return <span>Menyukai komentar di forum</span>;
     default:
       const words = log.action
         .split("_")
@@ -190,6 +222,7 @@ const renderLogMessage = (log: IActivityLog) => {
 const getLogIcon = (action: string) => {
   switch (action) {
     case "LOGIN":
+    case "LOGOUT":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF2F6] text-[#64748B]">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -197,6 +230,7 @@ const getLogIcon = (action: string) => {
           </svg>
         </span>
       );
+    case "COURSE_ENROLLED":
     case "COURSE_OPENED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E0F2FE] text-[#0284C7]">
@@ -206,8 +240,8 @@ const getLogIcon = (action: string) => {
         </span>
       );
     case "SUBJECT_MODULE_OPENED":
-    case "MATERIAL_READ":
-    case "MATERIAL_OPENED":
+    case "FILE_READ":
+    case "DIAGNOSTIC_MODULE_OPENED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F0FDF4] text-[#16A34A]">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -215,7 +249,6 @@ const getLogIcon = (action: string) => {
           </svg>
         </span>
       );
-    case "VIDEO_PLAYED":
     case "VIDEO_WATCHED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FFF1F2] text-[#E11D48]">
@@ -225,8 +258,8 @@ const getLogIcon = (action: string) => {
           </svg>
         </span>
       );
-    case "DIAGNOSTIC_TEST_STARTED":
-    case "REMEDIAL_TEST_STARTED":
+    case "DIAGNOSTIC_STARTED":
+    case "REMEDIAL_STARTED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FEF3C7] text-[#D97706]">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -234,8 +267,9 @@ const getLogIcon = (action: string) => {
           </svg>
         </span>
       );
-    case "DIAGNOSTIC_TEST_FINISHED":
-    case "REMEDIAL_TEST_FINISHED":
+    case "DIAGNOSTIC_SUBMITTED":
+    case "REMEDIAL_COMPLETED":
+    case "ELKPD_SUBMITTED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ECFDF5] text-[#059669]">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,8 +277,10 @@ const getLogIcon = (action: string) => {
           </svg>
         </span>
       );
-    case "FORUM_POST_CREATED":
-    case "FORUM_COMMENT_CREATED":
+    case "DISCUSSION_STARTED":
+    case "DISCUSSION_COMMENTED":
+    case "DISCUSSION_LIKED":
+    case "COMMENT_LIKED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F5F3FF] text-[#7C3AED]">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
