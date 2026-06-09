@@ -81,19 +81,19 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             >
               <defs>
                 {chartLines.map((line) => (
-                  <linearGradient key={line.label} id={`color${line.label.replace(/\\s/g, "")}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={line.color} stopOpacity={0.8} />
+                  <linearGradient key={line.label} id={`color${line.label.replace(/\s/g, "")}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={line.color} stopOpacity={0.2} />
                     <stop offset="95%" stopColor={line.color} stopOpacity={0} />
                   </linearGradient>
                 ))}
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#6B7280", fontSize: 12 }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6B7280", fontSize: 12 }} dx={-10} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 12 }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 12 }} dx={-10} />
               <Tooltip
-                contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", backgroundColor: "#ffffff" }}
-                itemStyle={{ color: "#475569" }}
-                labelStyle={{ color: "#0F172A", fontWeight: "bold" }}
+                contentStyle={{ borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05)", backgroundColor: "#ffffff", padding: "12px" }}
+                itemStyle={{ color: "#334155", fontSize: "13px" }}
+                labelStyle={{ color: "#1E293B", fontWeight: "bold", fontSize: "14px", marginBottom: "4px" }}
               />
               {chartLines.map((line) => (
                 <Area
@@ -101,8 +101,10 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                   type="monotone"
                   dataKey={line.label}
                   stroke={line.color}
+                  strokeWidth={2}
                   fillOpacity={1}
-                  fill={`url(#color${line.label.replace(/\\s/g, "")})`}
+                  fill={`url(#color${line.label.replace(/\s/g, "")})`}
+                  activeDot={{ r: 5, strokeWidth: 0 }}
                 />
               ))}
             </AreaChart>
@@ -123,7 +125,7 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               <span className="text-xs text-[#64748B]">Tambah siswa/guru baru</span>
             </div>
           </Link>
-          <Link href="/admin/dashboard/courses" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#10b981] hover:bg-emerald-50 transition-colors">
+          <Link href="/admin/dashboard/class-list" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#10b981] hover:bg-emerald-50 transition-colors">
             <div className="bg-emerald-100 text-[#10b981] p-2 rounded-lg">
               <BookIcon className="w-5 h-5" />
             </div>
@@ -141,7 +143,7 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               <span className="text-xs text-[#64748B]">Pantau progres siswa</span>
             </div>
           </Link>
-          <Link href="/admin/dashboard/diagnostic-tests" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#8b5cf6] hover:bg-purple-50 transition-colors">
+          <Link href="/admin/dashboard/manage-diagnostics" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#8b5cf6] hover:bg-purple-50 transition-colors">
             <div className="bg-purple-100 text-[#8b5cf6] p-2 rounded-lg">
               <TrendUpIcon className="w-5 h-5" />
             </div>
@@ -150,7 +152,7 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               <span className="text-xs text-[#64748B]">Kelola tes diagnostik</span>
             </div>
           </Link>
-          <Link href="/admin/dashboard/announcements" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#ec4899] hover:bg-pink-50 transition-colors">
+          {/* <Link href="/admin/dashboard/announcements" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#ec4899] hover:bg-pink-50 transition-colors">
             <div className="bg-pink-100 text-[#ec4899] p-2 rounded-lg">
               <ActivityIcon className="w-5 h-5" />
             </div>
@@ -167,7 +169,7 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               <span className="font-semibold text-[#0F172A]">Pengaturan</span>
               <span className="text-xs text-[#64748B]">Konfigurasi sistem</span>
             </div>
-          </Link>
+          </Link> */}
         </div>
       </div>
     </div>
