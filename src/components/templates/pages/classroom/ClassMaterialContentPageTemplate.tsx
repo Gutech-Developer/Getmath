@@ -18,6 +18,7 @@ import {
   useMarkVideoWatched,
   useMyTestAttempts,
   useStartTestAttempt,
+  useRemedialAnswersReview,
 } from "@/services";
 import { useEmotionDetectorBucketed } from "@/services/hooks/useEmotionDetectorBucketed";
 import { isEmotionSupported } from "@/libs/emotion";
@@ -285,6 +286,12 @@ function moduleFromDiagnostic(
     flat.remedialTestId ??
     "";
 
+  const hasPassedDiagnostic =
+    module.attemptHistory?.some((attempt) => attempt.isPassed) ?? false;
+
+  const hasAttemptedDiagnostic =
+    module.attemptHistory?.some((attempt) => !!attempt.completedAt) ?? false;
+
   const steps: IFlatStep[] = [
     {
       id: `${moduleId}-diagnostic`,
@@ -297,7 +304,7 @@ function moduleFromDiagnostic(
       url: null,
       rawUrl: null,
       state: index === 0 ? "active" : "upcoming",
-      status: flat.completed ? "completed" : "in-progress",
+      status: flat.completed || hasAttemptedDiagnostic ? "completed" : "in-progress",
     },
   ];
 
@@ -313,7 +320,10 @@ function moduleFromDiagnostic(
       url: null,
       rawUrl: null,
       state: "upcoming",
-      status: flat.remedialCompleted ? "completed" : "in-progress",
+      status:
+        hasPassedDiagnostic || flat.remedialCompleted
+          ? "completed"
+          : "in-progress",
     });
   }
 
@@ -407,7 +417,21 @@ export default function ClassMaterialContentPageTemplate({
   const bottomRef = useRef<HTMLDivElement>(null);
   const [maxUnlockedIndex, setMaxUnlockedIndex] = useState<number>(-1);
 
-  const { data: detailModule } = useGsModuleById(openModuleId ?? "");
+  const isOpenModuleDiagnostic = useMemo(() => {
+    const openMod = (courseModules ?? []).find((m) => {
+      const mId = m.id ?? (m as any).courseModuleId;
+      return mId === openModuleId;
+    });
+    return openMod?.type === "DIAGNOSTIC_TEST";
+  }, [courseModules, openModuleId]);
+
+  const { data: testAttempts } = useMyTestAttempts(openModuleId ?? "", {
+    enabled: !!openModuleId && isOpenModuleDiagnostic,
+  });
+
+  const { data: remedialReviewData } = useRemedialAnswersReview(openModuleId ?? "", {
+    enabled: !!openModuleId && isOpenModuleDiagnostic,
+  });
 
   // ── REFACTOR: Mengintegrasikan State Lokal Langsung ke Pemetaan Objek Modules ──
   const modules = useMemo<IModuleView[]>(() => {
@@ -417,42 +441,15 @@ export default function ClassMaterialContentPageTemplate({
           m.type === "SUBJECT" || m.type === "DIAGNOSTIC_TEST",
       )
       .map((m: GsCourseModule, i: number) => {
-        const mId = m.id ?? (m as any).courseModuleId;
-        const dId = detailModule?.id ?? (detailModule as any)?.courseModuleId;
+        // Build the view purely from the list module `m` to ensure steps and progress calculations remain 100% stable
+        const moduleToUse = {
+          ...m,
+          hasPDF: (m as any).hasPDF ?? !!m.subject?.subjectFileUrl,
+          hasVideo: (m as any).hasVideo,
+          hasELKPD: (m as any).hasELKPD,
+        };
 
-        // REFACTOR: Pastikan bendera penanda tipe materi selalu diprioritaskan dari list 'm'
-        // agar struktur 'steps' langsung terbentuk sempurna sejak aplikasi pertama kali dimuat.
-        const moduleToUse: any =
-          dId && mId === dId
-            ? ({
-                ...detailModule,
-                accessible: (m as any).accessible,
-                fileRead: (m as any).fileRead,
-                videoWatched: (m as any).videoWatched,
-                eLKPDGraded: (m as any).eLKPDGraded,
-                eLKPDSubmitted: (m as any).eLKPDSubmitted,
-                completed:
-                  (detailModule as any).completed ?? (m as any).completed,
-                remedialCompleted:
-                  (detailModule as any).remedialCompleted ??
-                  (m as any).remedialCompleted,
-                // Kunci konsistensi: kunci keberadaan konten harus konsisten antara list & detail
-                hasPDF:
-                  (m as any).hasPDF ?? !!detailModule?.subject?.subjectFileUrl,
-                hasVideo:
-                  (m as any).hasVideo ?? !!(detailModule as any).hasVideo,
-                hasELKPD:
-                  (m as any).hasELKPD ?? !!(detailModule as any).hasELKPD,
-              } as GsCourseModule)
-            : {
-                ...m,
-                // Pastikan data list m juga mengenali benderanya sendiri
-                hasPDF: (m as any).hasPDF ?? !!m.subject?.subjectFileUrl,
-                hasVideo: (m as any).hasVideo,
-                hasELKPD: (m as any).hasELKPD,
-              };
-
-        const view = buildModuleView(moduleToUse, i);
+        const view = buildModuleView(moduleToUse as GsCourseModule, i);
         if (!view) return null;
 
         // Sinkronisasi state lokal
@@ -469,7 +466,7 @@ export default function ClassMaterialContentPageTemplate({
         return view;
       })
       .filter((m: IModuleView | null): m is IModuleView => m !== null);
-  }, [courseModules, detailModule, videoFinished, elkpdFinished]);
+  }, [courseModules, videoFinished, elkpdFinished]);
 
   // ── REFACTOR: flatSteps murni memetakan data modules yang sudah ter-update ──
   const flatSteps = useMemo<IFlatStep[]>(() => {
@@ -624,9 +621,6 @@ export default function ClassMaterialContentPageTemplate({
       ? flatSteps[activeIndex + 1]
       : null;
 
-  const { data: testAttempts } = useMyTestAttempts(activeStep?.moduleId ?? "", {
-    enabled: activeStep?.kind === "DIAGNOSTIC" && !!activeStep?.moduleId,
-  });
 
   const latestAttempt = useMemo(() => {
     if (!testAttempts?.attempts?.length) return null;

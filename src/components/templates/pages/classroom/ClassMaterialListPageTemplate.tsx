@@ -70,7 +70,14 @@ function mapModuleToMaterial(
       `Tes Diagnostik ${module.order ?? index + 1}`;
 
     const diagnosticTestId = module.diagnosticTestId ?? test?.id ?? "";
-    const remedialTestId = module.remedialTestId ?? flat.remedialTestId ?? "";
+    const remedialTestId =
+      module.remedialTestId ??
+      module.remedialTest?.id ??
+      flat.remedialTestId ??
+      "";
+
+    const hasPassedDiagnostic =
+      module.attemptHistory?.some((attempt) => attempt.isPassed) ?? false;
 
     const steps: IMaterialStep[] = [
       {
@@ -86,13 +93,17 @@ function mapModuleToMaterial(
         id: remedialTestId,
         typeLabel: "Tes Remedial",
         title: `Tes Remedial: ${title}`,
-        status: flat.remedialCompleted ? "completed" : "in-progress",
+        status:
+          hasPassedDiagnostic || flat.remedialCompleted
+            ? "completed"
+            : "in-progress",
         diagnosticTestId,
       });
     }
 
     const completedSteps =
-      (flat.completed ? 1 : 0) + (flat.remedialCompleted ? 1 : 0);
+      (flat.completed ? 1 : 0) +
+      (remedialTestId && (hasPassedDiagnostic || flat.remedialCompleted) ? 1 : 0);
 
     return {
       id: moduleId,
@@ -105,7 +116,8 @@ function mapModuleToMaterial(
           ? Math.round((completedSteps / steps.length) * 100)
           : 0,
       status:
-        flat.completed && (!remedialTestId || flat.remedialCompleted)
+        flat.completed &&
+        (!remedialTestId || hasPassedDiagnostic || flat.remedialCompleted)
           ? "completed"
           : "in-progress",
       steps,

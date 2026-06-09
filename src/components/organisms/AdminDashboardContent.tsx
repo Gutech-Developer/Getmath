@@ -66,12 +66,6 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
         ))}
       </div>
 
-      {/* Platform Growth Chart */}
-      <div className="bg-white border border-grey-stroke rounded-2xl p-5 md:p-6 flex flex-col gap-4">
-        <SectionHeader title={chartTitle} />
-        <ScoreTrendChart labels={chartLabels} lines={chartLines} />
-      </div>
-
       {/* Teacher Activity */}
       {teacherActivities.length > 0 && (
         <div className="bg-white border border-grey-stroke rounded-2xl p-5 md:p-6 flex flex-col gap-4">

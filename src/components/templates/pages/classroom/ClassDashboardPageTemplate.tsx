@@ -172,6 +172,7 @@ export default function ClassDashboardPageTemplate({
             totalDiagnosticTests > 0 ? `${totalDiagnosticTests} Tes` : null,
             `${totalStudents} Siswa Terdaftar`,
             courseCode,
+            course?.teacher?.fullName,
           ]
             .filter(Boolean)
             .map((tag) => (
@@ -212,7 +213,6 @@ export default function ClassDashboardPageTemplate({
         </div>
       </section>
 
-
       <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.14)]">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base font-bold text-[#0F172A]">
@@ -246,4 +246,3 @@ export default function ClassDashboardPageTemplate({
     </ClassPageShellTemplate>
   );
 }
-

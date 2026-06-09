@@ -177,7 +177,7 @@ export default function UserProfileContent({
           ) : null}
         </ProfileCard>
 
-        <ProfileCard>
+        {/* <ProfileCard>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-bold tracking-[-0.02em] text-[#1E293B]">
@@ -196,7 +196,7 @@ export default function UserProfileContent({
               {passwordLabel}
             </ProfileActionButton>
           </div>
-        </ProfileCard>
+        </ProfileCard> */}
 
         <button
           type="button"

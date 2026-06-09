@@ -99,9 +99,9 @@ const Topbar = () => {
           </p>
         </div>
         {/* Search Bar - Hidden on small mobile, visible on sm+ */}
-        <div className="hidden sm:flex flex-1 justify-end max-w-md">
+        {/* <div className="hidden sm:flex flex-1 justify-end max-w-md">
           <SearchBar />
-        </div>
+        </div> */}
 
         <Link
           href={notificationHref ?? pathname}
@@ -120,13 +120,13 @@ const Topbar = () => {
           ) : null}
         </Link>
 
-        <Image
+        {/* <Image
           src="/avatars/1.png"
           alt="User avatar"
           width={210}
           height={210}
           className="w-12 h-12 lg:w-[50px] lg:h-[50px] rounded-full object-cover"
-        />
+        /> */}
       </div>
     </div>
   );

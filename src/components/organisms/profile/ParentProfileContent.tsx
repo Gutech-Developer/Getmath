@@ -44,14 +44,10 @@ export default function ParentProfileContent({
       roleDescription="Orang Tua · GetMath Platform"
       fields={[
         { label: "Nama Lengkap", value: fullName },
-        { label: "NIS (Nomor Induk Siswa)", value: nis },
         { label: "Nomor HP/WhatsApp", value: phone },
         { label: "Email", value: email },
-        { label: "Provinsi", value: province },
-        { label: "Kota", value: city },
-        { label: "Nama Sekolah", value: school, fullWidth: true },
       ]}
-      infoHint="Data NIS, email, provinsi, kota, dan nama sekolah hanya bisa diperbarui dengan bantuan admin."
+      infoHint="Data email hanya bisa diperbarui dengan bantuan admin."
       onChangePhoto={onChangePhoto}
       onEditProfile={onEditProfile}
       onChangePassword={onChangePassword}
