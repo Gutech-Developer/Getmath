@@ -297,11 +297,11 @@ function moduleFromDiagnostic(
       url: null,
       rawUrl: null,
       state: index === 0 ? "active" : "upcoming",
-      status: flat.completed ? "completed" : "in-progress",
+      status: flat.diagnosticCompleted || flat.completed ? "completed" : "in-progress",
     },
   ];
 
-  if (remedialTestId) {
+  if (remedialTestId && flat.diagnosticCompleted && !flat.isPassed) {
     steps.push({
       id: `${moduleId}-remedial`,
       moduleId,
@@ -389,14 +389,12 @@ export default function ClassMaterialContentPageTemplate({
 
   const { data: courseModules, isPending } = useGsModulesByCourse(courseId);
 
-  const markFileRead = useMarkFileRead(contentId);
-  const markVideoWatched = useMarkVideoWatched(contentId);
+  const markFileRead = useMarkFileRead(contentId ?? "");
+  const markVideoWatched = useMarkVideoWatched(contentId ?? "");
 
   const [emotionSupported] = useState(() => isEmotionSupported());
 
-  const [openModuleId, setOpenModuleId] = useState<string | null>(
-    contentId ?? null,
-  );
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [videoFinished, setVideoFinished] = useState<Record<string, boolean>>(
     {},
@@ -407,7 +405,7 @@ export default function ClassMaterialContentPageTemplate({
   const bottomRef = useRef<HTMLDivElement>(null);
   const [maxUnlockedIndex, setMaxUnlockedIndex] = useState<number>(-1);
 
-  const { data: detailModule } = useGsModuleById(openModuleId ?? "");
+  const { data: detailModule } = useGsModuleById(contentId ?? "");
 
   // ── REFACTOR: Mengintegrasikan State Lokal Langsung ke Pemetaan Objek Modules ──
   const modules = useMemo<IModuleView[]>(() => {
@@ -433,9 +431,18 @@ export default function ClassMaterialContentPageTemplate({
                 eLKPDSubmitted: (m as any).eLKPDSubmitted,
                 completed:
                   (detailModule as any).completed ?? (m as any).completed,
+                diagnosticCompleted:
+                  (detailModule as any).diagnosticCompleted ??
+                  (m as any).diagnosticCompleted,
                 remedialCompleted:
                   (detailModule as any).remedialCompleted ??
                   (m as any).remedialCompleted,
+                remedialTestId:
+                  (detailModule as any).remedialTestId ??
+                  (m as any).remedialTestId,
+                isPassed:
+                  (detailModule as any).isPassed ??
+                  (m as any).isPassed,
                 // Kunci konsistensi: kunci keberadaan konten harus konsisten antara list & detail
                 hasPDF:
                   (m as any).hasPDF ?? !!detailModule?.subject?.subjectFileUrl,
@@ -480,7 +487,6 @@ export default function ClassMaterialContentPageTemplate({
   useEffect(() => {
     if (modules.length === 0 || selectedStepId !== null) return;
     const target = modules.find((m) => m.id === contentId) ?? modules[0];
-    setOpenModuleId(target.id);
 
     if (stepParam === "remedial") {
       const remedialStep = target.steps.find((s) => s.kind === "REMEDIAL");
@@ -494,7 +500,13 @@ export default function ClassMaterialContentPageTemplate({
   }, [modules, contentId, selectedStepId, stepParam]);
 
   const toggleModule = useCallback((moduleId: string) => {
-    setOpenModuleId((cur) => (cur === moduleId ? null : moduleId));
+    setOpenModules((prev) => {
+      const isCurrentOpen = prev[moduleId] !== false;
+      return {
+        ...prev,
+        [moduleId]: !isCurrentOpen,
+      };
+    });
   }, []);
 
   /* ---------- Derived Progress Data ---------- */
@@ -526,7 +538,7 @@ export default function ClassMaterialContentPageTemplate({
   const currentModuleTitle = useMemo(() => {
     return (
       modules.find((module) => module.id === contentId)?.title ??
-      formatContentTitle(contentId)
+      formatContentTitle(contentId ?? "")
     );
   }, [modules, contentId]);
 
@@ -554,12 +566,17 @@ export default function ClassMaterialContentPageTemplate({
 
   /* ---------- Active step ---------- */
   const activeStep = useMemo<IFlatStep | null>(() => {
-    return (
-      flatSteps.find((s) => s.id === selectedStepId) ??
-      flatSteps.find((s) => s.moduleId === contentId) ??
-      flatSteps[0] ??
-      null
-    );
+    if (selectedStepId) {
+      return flatSteps.find((s) => s.id === selectedStepId) ?? null;
+    }
+    if (contentId) {
+      return (
+        flatSteps.find((s) => s.moduleId === contentId) ??
+        flatSteps[0] ??
+        null
+      );
+    }
+    return null;
   }, [flatSteps, selectedStepId, contentId]);
 
   // ── Emotion detection for SUBJECT modules (PDF/VIDEO/ELKPD) ─────────
@@ -657,25 +674,16 @@ export default function ClassMaterialContentPageTemplate({
         return;
       }
       setSelectedStepId(step.id);
-      setOpenModuleId(step.moduleId);
+      setOpenModules((prev) => ({ ...prev, [step.moduleId]: true }));
 
       if (slug) {
-        if (step.kind === "DIAGNOSTIC") {
-          router.push(
-            `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}/${step.diagnosticTestId}`,
-          );
-          return;
-        } else if (step.kind === "REMEDIAL") {
-          router.push(
-            `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}/remedia/${step.remedialTestId}`,
-          );
-          return;
-        } else if (step.moduleId !== contentId) {
-          window.history.pushState(
-            null,
-            "",
-            `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}`,
-          );
+        let targetUrl = `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}`;
+        if (step.kind === "REMEDIAL") {
+          targetUrl += "?step=remedial";
+        }
+        const currentFullUrl = window.location.pathname + window.location.search;
+        if (currentFullUrl !== targetUrl) {
+          window.history.pushState(null, "", targetUrl);
         }
       }
 
@@ -824,7 +832,19 @@ export default function ClassMaterialContentPageTemplate({
           </div>
 
           <div className="rounded-b-2xl bg-[#F8FAFC] p-4 sm:p-6">
-            {isVideo && activeStep?.url && (
+            {!activeStep ? (
+              <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] mb-4 shadow-sm">
+                  <BookIcon className="h-8 w-8" />
+                </div>
+                <h3 className="text-lg font-bold text-[#0F172A] font-outfit">Mulai Pembelajaran</h3>
+                <p className="mt-2 max-w-sm text-sm text-[#64748B] leading-relaxed">
+                  Silakan pilih modul materi atau tes di menu sidebar kanan untuk memulai pembelajaran kelas ini.
+                </p>
+              </div>
+            ) : (
+              <>
+                {isVideo && activeStep?.url && (
               <>
                 <ContentBadge icon={VideoIcon} label="Video Pembelajaran" />
                 <div className="aspect-video overflow-hidden rounded-2xl border border-[#E2E8F0] bg-black">
@@ -899,7 +919,7 @@ export default function ClassMaterialContentPageTemplate({
                     </p>
                   )}
 
-                  {latestAttempt && (
+                  {latestAttempt && latestAttempt.completedAt && (
                     <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-[#0F172A]">
@@ -1060,7 +1080,7 @@ export default function ClassMaterialContentPageTemplate({
                     </p>
                   )}
 
-                  {activeModuleDataAny?.hasCompleted && (
+                  {activeModuleDataAny?.remedialCompleted && (
                     <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-[#0F172A]">
@@ -1069,12 +1089,12 @@ export default function ClassMaterialContentPageTemplate({
                         <span
                           className={cn(
                             "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                            activeModuleDataAny.isPassed
+                            activeModuleDataAny.remedialTest?.isPassed
                               ? "bg-[#DCFCE7] text-[#166534]"
                               : "bg-[#FEE2E2] text-[#B91C1C]",
                           )}
                         >
-                          {activeModuleDataAny.isPassed
+                          {activeModuleDataAny.remedialTest?.isPassed
                             ? "Tuntas"
                             : "Belum Tuntas"}
                         </span>
@@ -1085,7 +1105,7 @@ export default function ClassMaterialContentPageTemplate({
                             Skor
                           </p>
                           <p className="text-xl font-bold text-[#0F172A]">
-                            {activeModuleDataAny.score ?? 0}
+                            {activeModuleDataAny.remedialTest?.score ?? 0}
                           </p>
                         </div>
                         <div>
@@ -1093,7 +1113,7 @@ export default function ClassMaterialContentPageTemplate({
                             Status
                           </p>
                           <p className="text-xl font-bold text-[#0F172A]">
-                            {activeModuleDataAny.isPassed
+                            {activeModuleDataAny.remedialTest?.isPassed
                               ? "Lulus"
                               : "Belum Lulus"}
                           </p>
@@ -1146,7 +1166,7 @@ export default function ClassMaterialContentPageTemplate({
                             href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
                             className="inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
                           >
-                            Lihat Hasil & Pembahasan
+                            Ikuti Tes Remedial
                           </Link>
                         </div>
                       );
@@ -1171,36 +1191,40 @@ export default function ClassMaterialContentPageTemplate({
             )}
 
             <div ref={bottomRef} className="h-px w-full" />
+              </>
+            )}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => goTo(prevStep)}
-              disabled={!prevStep}
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#475569] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              ← {prevStep ? `Sebelumnya: ${prevStep.typeLabel}` : "Sebelumnya"}
-            </button>
-            {activeIndex >= 0 && (
-              <span className="text-sm font-semibold text-[#475569]">
-                {activeIndex + 1} / {flatSteps.length}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => goTo(nextStep)}
-              disabled={
-                isVideo && !nextStep && !videoFinished[activeStep?.id || ""]
-              }
-              className="inline-flex h-11 items-center justify-center rounded-full bg-[#2563EB] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)] transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {nextStep
-                ? `Selanjutnya: ${nextStep.typeLabel === "Test Diagnosis" ? "Tes Diagnostik" : nextStep.typeLabel}`
-                : "Selesai"}{" "}
-              →
-            </button>
-          </div>
+          {activeStep && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => goTo(prevStep)}
+                disabled={!prevStep}
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#475569] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                ← {prevStep ? `Sebelumnya: ${prevStep.typeLabel}` : "Sebelumnya"}
+              </button>
+              {activeIndex >= 0 && (
+                <span className="text-sm font-semibold text-[#475569]">
+                  {activeIndex + 1} / {flatSteps.length}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => goTo(nextStep)}
+                disabled={
+                  isVideo && !nextStep && !videoFinished[activeStep?.id || ""]
+                }
+                className="inline-flex h-11 items-center justify-center rounded-full bg-[#2563EB] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)] transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {nextStep
+                  ? `Selanjutnya: ${nextStep.typeLabel === "Test Diagnosis" ? "Tes Diagnostik" : nextStep.typeLabel}`
+                  : "Selesai"}{" "}
+                →
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ==================== RIGHT SIDEBAR ==================== */}
@@ -1250,7 +1274,7 @@ export default function ClassMaterialContentPageTemplate({
 
           <ul className="mt-4 space-y-2">
             {modules.map((module, moduleIndex) => {
-              const isOpen = openModuleId === module.id;
+              const isOpen = openModules[module.id] !== false;
               const containsActive = module.steps.some(
                 (s) => s.id === activeStep?.id,
               );
@@ -1259,10 +1283,7 @@ export default function ClassMaterialContentPageTemplate({
                 <li
                   key={module.id}
                   className={cn(
-                    "rounded-2xl border bg-white transition",
-                    isOpen || containsActive
-                      ? "border-[#BFDBFE] shadow-[0_8px_24px_rgba(59,130,246,0.08)]"
-                      : "border-[#E2E8F0]",
+                    "rounded-2xl bg-[#1F2375] transition"
                   )}
                 >
                   <button
@@ -1281,10 +1302,10 @@ export default function ClassMaterialContentPageTemplate({
                       {moduleIndex + 1}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-[#0F172A]">
+                      <p className="truncate text-sm font-semibold text-white">
                         {module.title}
                       </p>
-                      <p className="truncate text-xs text-[#64748B]">
+                      <p className="truncate text-xs text-white/60">
                         {module.steps.length} langkah
                       </p>
                     </div>
@@ -1296,90 +1317,97 @@ export default function ClassMaterialContentPageTemplate({
                     />
                   </button>
 
-                  {isOpen && (
-                    <ul className="space-y-1 border-t border-[#E2E8F0] bg-[#FAFBFD] p-2">
-                      {module.steps.map((step, stepIndex) => {
-                        const StepIcon = getStepIcon(step.kind);
-                        const tone = getStepTone(step.kind);
-                        const isActive = activeStep?.id === step.id;
-                        const isLocked = step.status === "locked";
-                        const stepIsCompleted = step.status === "completed";
-                        const stepIsInProgress = step.status === "in-progress";
+                  <div
+                    className={cn(
+                      "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out",
+                      isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                    )}
+                  >
+                    <div className="overflow-hidden min-h-0">
+                      <ul className="space-y-1 border rounded-b-2xl bg-[#FAFBFD] p-2 border-[#1F2375]/30">
+                        {module.steps.map((step, stepIndex) => {
+                          const StepIcon = getStepIcon(step.kind);
+                          const tone = getStepTone(step.kind);
+                          const isActive = activeStep?.id === step.id;
+                          const isLocked = step.status === "locked";
+                          const stepIsCompleted = step.status === "completed";
+                          const stepIsInProgress = step.status === "in-progress";
 
-                        return (
-                          <li key={step.id}>
-                            {isLocked ? (
-                              <div className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 opacity-50">
-                                <span
-                                  className={cn(
-                                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
-                                    tone.bg,
-                                  )}
-                                >
-                                  <StepIcon
-                                    className={cn("h-4 w-4", tone.fg)}
-                                  />
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-medium text-[#0F172A]">
-                                    {step.title}
-                                  </p>
-                                  <p className="text-xs text-[#CBD5E1]">
-                                    {step.typeLabel} · Terkunci
-                                  </p>
-                                </div>
-                                <span className="text-xs text-[#CBD5E1]">
-                                  🔒
-                                </span>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => goTo(step)}
-                                className={cn(
-                                  "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition",
-                                  isActive
-                                    ? "border-[#BFDBFE] bg-[#EFF6FF]"
-                                    : stepIsInProgress
-                                      ? "border-[#BFDBFE] bg-[#EFF6FF] shadow-sm"
-                                      : "border-transparent hover:border-[#E2E8F0] hover:bg-white",
-                                )}
-                              >
-                                <span
-                                  className={cn(
-                                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
-                                    tone.bg,
-                                  )}
-                                >
-                                  <StepIcon
-                                    className={cn("h-4 w-4", tone.fg)}
-                                  />
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                  <p
+                          return (
+                            <li key={step.id}>
+                              {isLocked ? (
+                                <div className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 opacity-50">
+                                  <span
                                     className={cn(
-                                      "truncate text-sm font-medium",
-                                      isActive || stepIsInProgress
-                                        ? "text-[#1D4ED8]"
-                                        : "text-[#0F172A]",
+                                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                                      tone.bg,
                                     )}
                                   >
-                                    {step.title}
-                                  </p>
-                                  <p className="text-xs text-[#64748B]">
-                                    {step.typeLabel} · Langkah {stepIndex + 1}
-                                  </p>
+                                    <StepIcon
+                                      className={cn("h-4 w-4", tone.fg)}
+                                    />
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-medium text-[#0F172A]">
+                                      {step.title}
+                                    </p>
+                                    <p className="text-xs text-[#CBD5E1]">
+                                      {step.typeLabel} · Terkunci
+                                    </p>
+                                  </div>
+                                  <span className="text-xs text-[#CBD5E1]">
+                                    🔒
+                                  </span>
                                 </div>
-                                {stepIsCompleted && (
-                                  <CheckCircleIcon className="h-5 w-5 shrink-0 text-[#22C55E]" />
-                                )}
-                              </button>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => goTo(step)}
+                                  className={cn(
+                                    "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition",
+                                    isActive
+                                      ? "border-[#BFDBFE] bg-[#EFF6FF]"
+                                      : stepIsInProgress
+                                        ? "border-[#BFDBFE] bg-[#EFF6FF] shadow-sm"
+                                        : "border-transparent hover:border-[#E2E8F0] hover:bg-white",
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+                                      tone.bg,
+                                    )}
+                                  >
+                                    <StepIcon
+                                      className={cn("h-4 w-4", tone.fg)}
+                                    />
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <p
+                                      className={cn(
+                                        "truncate text-sm font-medium",
+                                        isActive || stepIsInProgress
+                                          ? "text-[#1D4ED8]"
+                                          : "text-[#0F172A]",
+                                      )}
+                                    >
+                                      {step.title}
+                                    </p>
+                                    <p className="text-xs text-[#64748B]">
+                                      {step.typeLabel} · Langkah {stepIndex + 1}
+                                    </p>
+                                  </div>
+                                  {stepIsCompleted && (
+                                    <CheckCircleIcon className="h-5 w-5 shrink-0 text-[#22C55E]" />
+                                  )}
+                                </button>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
                 </li>
               );
             })}

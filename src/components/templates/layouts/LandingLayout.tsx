@@ -10,7 +10,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
   return (
     <div className="min-h-screen bg-lottie-pearl font-inter text-lottie-midnight antialiased selection:bg-lottie-mint-wash selection:text-lottie-midnight">
       {/* HEADER */}
-      <header className="sticky top-0 z-50 w-full border-b border-[#1f2375] bg-[#ededed] backdrop-blur-md shadow-[rgba(31,35,117,0.03)_0px_4px_16px_0px]">
+      <header className="sticky top-0 z-50 w-full border-b border-lottie-teal/20 bg-[#ededed] backdrop-blur-md shadow-[rgba(31,35,117,0.03)_0px_4px_16px_0px]">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
@@ -53,44 +53,11 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
 
           {/* Right Actions */}
           <div className="flex items-center gap-4">
-            {/* Search Field */}
-            <div className="relative hidden lg:block">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lottie-zinc-500">
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </span>
-              <input
-                type="text"
-                placeholder="Cari materi..."
-                className="h-9 w-48 rounded-lg border border-white/50 bg-white/40 pl-9 pr-12 text-[13px] text-lottie-midnight placeholder-lottie-fog outline-none transition focus:border-lottie-teal focus:bg-white/80 focus:ring-2 focus:ring-lottie-teal/20 backdrop-blur-sm"
-              />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-white/60 px-1.5 py-0.5 font-mono text-[10px] font-medium text-lottie-zinc-500 border border-white/40">
-                ⌘K
-              </span>
-            </div>
-
             <Link
               href="/login"
-              className="rounded-xl px-4 py-2 text-sm font-medium text-lottie-midnight hover:bg-lottie-pearl transition-colors"
-            >
-              Masuk
-            </Link>
-            <Link
-              href="/register"
               className="inline-flex h-9 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-medium text-white transition-all hover:bg-lottie-teal/95 active:scale-[0.98] shadow-[rgba(0,0,0,0.05)_0px_1px_2px_0px]"
             >
-              Daftar
+              Masuk/Daftar
             </Link>
           </div>
         </div>

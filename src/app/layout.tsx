@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`font-parkinsans antialiased bg-grey-lightest overflow-x-hidden overflow-y-auto thin-scrollbar`}
+        className={`font-inter antialiased bg-grey-lightest overflow-x-hidden overflow-y-auto thin-scrollbar`}
       >
         <NextTopLoader
           color="#1F2375"

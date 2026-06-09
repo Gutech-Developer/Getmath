@@ -77,11 +77,11 @@ function mapModuleToMaterial(
         id: diagnosticTestId || `${moduleId}-diagnostic`,
         typeLabel: "Test Diagnosis",
         title,
-        status: flat.completed ? "completed" : "in-progress",
+        status: flat.diagnosticCompleted || flat.completed ? "completed" : "in-progress",
       },
     ];
 
-    if (remedialTestId) {
+    if (remedialTestId && flat.diagnosticCompleted && !flat.isPassed) {
       steps.push({
         id: remedialTestId,
         typeLabel: "Tes Remedial",
@@ -92,7 +92,7 @@ function mapModuleToMaterial(
     }
 
     const completedSteps =
-      (flat.completed ? 1 : 0) + (flat.remedialCompleted ? 1 : 0);
+      (flat.diagnosticCompleted || flat.completed ? 1 : 0) + (flat.remedialCompleted ? 1 : 0);
 
     return {
       id: moduleId,
@@ -104,10 +104,7 @@ function mapModuleToMaterial(
         steps.length > 0
           ? Math.round((completedSteps / steps.length) * 100)
           : 0,
-      status:
-        flat.completed && (!remedialTestId || flat.remedialCompleted)
-          ? "completed"
-          : "in-progress",
+      status: flat.completed ? "completed" : "in-progress",
       steps,
     };
   }

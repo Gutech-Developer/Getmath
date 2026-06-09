@@ -85,42 +85,52 @@
   scrollbar-width: none;
 }
 
+.thinnest-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(107, 114, 128, 0.35) transparent;
+}
+
 .thinnest-scrollbar::-webkit-scrollbar {
   width: 2.6px;
   height: 2.6px;
 }
 
 .thinnest-scrollbar::-webkit-scrollbar-track {
-  background: rgba(160, 172, 103, 0.4);
+  background: transparent;
   border-radius: 10px;
-  width: 2.6px;
-  height: 2.6px;
 }
 
 .thinnest-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(160, 172, 103, 1);
-  width: 2.6px;
-  height: 2.6px;
+  background: rgba(107, 114, 128, 0.35);
   border-radius: 10px;
+}
+
+.thinnest-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.55);
+}
+
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(107, 114, 128, 0.35) transparent;
 }
 
 .thin-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 .thin-scrollbar::-webkit-scrollbar-track {
-  background: rgba(160, 172, 103, 0.4);
+  background: transparent;
   border-radius: 10px;
-  width: 4px;
-  height: 4px;
 }
 
 .thin-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(160, 172, 103, 1);
-  width: 4px;
-  height: 4px;
+  background: rgba(107, 114, 128, 0.35);
   border-radius: 10px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.55);
 }
 
 button {

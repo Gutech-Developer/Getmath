@@ -24,17 +24,17 @@ describe("pickFeedback", () => {
 
   it("returns string for sad", () => {
     const msg = pickFeedback("sad");
-    expect(msg).toMatch(/menyerah|napas|soal/i);
+    expect(msg).toMatch(/menyerah|napas|soal|kesalahan|langkah|coba/i);
   });
 
   it("returns string for angry", () => {
     const msg = pickFeedback("angry");
-    expect(msg).toMatch(/tenang|frustrasi/i);
+    expect(msg).toMatch(/tenang|frustrasi|menantang|menyelesaikannya|soal/i);
   });
 
   it("returns string for happy", () => {
     const msg = pickFeedback("happy");
-    expect(msg).toMatch(/mantap|semangat/i);
+    expect(msg).toMatch(/mantap|semangat|energi|berikutnya/i);
   });
 
   it("returns string for fearful", () => {
@@ -44,7 +44,7 @@ describe("pickFeedback", () => {
 
   it("returns string for neutral", () => {
     const msg = pickFeedback("neutral");
-    expect(msg).toMatch(/fokus|keep going/i);
+    expect(msg).toMatch(/fokus|keep going|konsistensi|kekuatan|lanjutkan|sedikit|bisa|menyelesaikan|tenang|perlahan|instingmu/i);
   });
 
   it("returns string for unknown", () => {

@@ -376,6 +376,9 @@ export default function ClassDiagnosisContentPageTemplate({
   const [emotionFeedbackMsg, setEmotionFeedbackMsg] = useState<string | null>(
     null,
   );
+  const [emotionFeedbackLabel, setEmotionFeedbackLabel] = useState<string | null>(
+    null,
+  );
   // Evaluasi sekali (lazy init) agar tidak dijalankan tiap render.
   const [emotionSupported] = useState(() => isEmotionSupported());
 
@@ -477,7 +480,9 @@ export default function ClassDiagnosisContentPageTemplate({
       !isRemedial &&
       flowStep === "camera" &&
       !isModuleLoading &&
-      latestDiagnosticAttempt !== null
+      latestDiagnosticAttempt !== null &&
+      latestDiagnosticAttempt.completedAt !== undefined &&
+      latestDiagnosticAttempt.completedAt !== null
     ) {
       // Hydrate submitResult so scores display correctly before the review
       // API query fires. DiagnosticAttemptItem has score + isPassed; other
@@ -901,7 +906,9 @@ export default function ClassDiagnosisContentPageTemplate({
 
           // Tampilkan feedback emosi saat jawaban salah
           if (!data.isCorrect) {
-            setEmotionFeedbackMsg(pickFeedback(emotionResult.mode));
+            const detectedMode = emotionResult.mode;
+            setEmotionFeedbackLabel(translateEmotion(detectedMode));
+            setEmotionFeedbackMsg(pickFeedback(detectedMode));
           }
 
           if (data.isCompleted) {
@@ -1203,8 +1210,8 @@ export default function ClassDiagnosisContentPageTemplate({
 
   if (flowStep === "briefing") {
     const totalQCount = isRemedial
-      ? (remedialTestData?.questions?.length ?? 0)
-      : apiModule?.nextPackage?.totalQuestions;
+      ? (apiModule?.remedialTest?.totalQuestions ?? remedialTestData?.questions?.length ?? 0)
+      : (apiModule?.totalQuestions ?? apiModule?.nextPackage?.totalQuestions ?? 0);
 
     return (
       <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
@@ -1336,7 +1343,9 @@ export default function ClassDiagnosisContentPageTemplate({
               disabled={!allRulesConfirmed || cameraState !== "granted"}
               className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Mulai Tes Sekarang
+              {latestDiagnosticAttempt && !latestDiagnosticAttempt.completedAt
+                ? "Lanjutkan Tes Sekarang"
+                : "Mulai Tes Sekarang"}
             </button>
 
             <div className="mt-4 rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] p-3">
@@ -1829,8 +1838,12 @@ export default function ClassDiagnosisContentPageTemplate({
         {emotionFeedbackMsg && (
           <EmotionNotification
             questionIndex={activeQuestionIndex}
+            emotionLabel={emotionFeedbackLabel ?? undefined}
             emotionDescription={emotionFeedbackMsg}
-            onDismiss={() => setEmotionFeedbackMsg(null)}
+            onDismiss={() => {
+              setEmotionFeedbackMsg(null);
+              setEmotionFeedbackLabel(null);
+            }}
           />
         )}
 
@@ -2280,4 +2293,25 @@ export default function ClassDiagnosisContentPageTemplate({
       </div>
     </section>
   );
+}
+
+function translateEmotion(emotion: string): string {
+  switch (emotion) {
+    case "happy":
+      return "Senang";
+    case "sad":
+      return "Sedih";
+    case "angry":
+      return "Marah / Frustrasi";
+    case "fearful":
+      return "Khawatir";
+    case "disgusted":
+      return "Jenuh / Bosan";
+    case "surprised":
+      return "Terkejut";
+    case "neutral":
+      return "Fokus";
+    default:
+      return "Fokus";
+  }
 }

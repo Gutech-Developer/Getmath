@@ -83,6 +83,7 @@ export default function TeacherLearningAnalyticsClassTemplate({
           nis: enrollment.student?.NIS ?? "-",
           score,
           status: score >= 75 ? "Lulus" : "Remedial",
+          progress: enrollment.progressPercent ?? 0,
         };
       });
 

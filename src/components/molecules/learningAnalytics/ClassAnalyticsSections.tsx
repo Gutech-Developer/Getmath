@@ -854,7 +854,7 @@ export function BaseSiswaSection({
         avatarTone:
           STUDENT_AVATAR_ACCENTS[index % STUDENT_AVATAR_ACCENTS.length],
         initial: student.fullname.trim().charAt(0).toUpperCase() || "?",
-        progress: inferStudentProgress(student, index),
+        progress: student.progress ?? inferStudentProgress(student, index),
         emotion: inferStudentEmotion(student),
         isOnline: inferStudentOnlineState(student, index),
       })),
@@ -894,36 +894,6 @@ export function BaseSiswaSection({
             aria-label="Cari siswa"
           />
         </label>
-
-        <div className="relative w-full md:w-auto">
-          <FilterIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
-          <select
-            value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(event.target.value as StudentStatusFilter)
-            }
-            className="h-11 w-full appearance-none rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] pl-9 pr-9 text-sm font-semibold text-[#475569] outline-none transition focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE] md:min-w-[190px]"
-            aria-label="Filter status siswa"
-          >
-            <option value="Semua">Filter: Semua</option>
-            <option value="Lulus">Filter: Lulus</option>
-            <option value="Remedial">Filter: Remedial</option>
-          </select>
-          <svg
-            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]"
-            viewBox="0 0 20 20"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M5 7.5L10 12.5L15 7.5"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -940,15 +910,6 @@ export function BaseSiswaSection({
                 Progress
               </th>
               <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
-                Nilai Terakhir
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
-                Emosi
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
                 Aksi
               </th>
             </tr>
@@ -958,7 +919,7 @@ export function BaseSiswaSection({
             {filteredStudents.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={4}
                   className="px-4 py-10 text-center text-sm text-[#94A3B8]"
                 >
                   Tidak ada data siswa yang sesuai dengan pencarian atau filter.
@@ -1014,37 +975,6 @@ export function BaseSiswaSection({
                         {student.progress}%
                       </span>
                     </div>
-                  </td>
-
-                  <td
-                    className={cn(
-                      "px-4 py-3 text-sm font-bold",
-                      student.score >= 75 ? "text-[#059669]" : "text-[#DC2626]",
-                    )}
-                  >
-                    {student.score}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm text-[#475569]">
-                    {student.emotion}
-                  </td>
-
-                  <td className="px-4 py-3 align-middle">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-semibold",
-                        student.status === "Lulus"
-                          ? "bg-[#DCFCE7] text-[#16A34A]"
-                          : "bg-[#FEE2E2] text-[#DC2626]",
-                      )}
-                    >
-                      {student.status === "Lulus" ? (
-                        <CheckCircleIcon className="h-3.5 w-3.5" />
-                      ) : (
-                        <AlertIcon className="h-3.5 w-3.5" />
-                      )}
-                      {student.status}
-                    </span>
                   </td>
 
                   <td className="px-4 py-3 align-middle">

@@ -48,7 +48,7 @@ export default function CtaSection() {
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
-                href="/register"
+                href="/login"
                 className="flex h-12 w-full items-center justify-center rounded-2xl bg-white px-8 text-sm font-medium text-lottie-midnight transition-colors hover:bg-lottie-pearl sm:w-auto shadow-sm"
               >
                 Mulai Belajar Sekarang
