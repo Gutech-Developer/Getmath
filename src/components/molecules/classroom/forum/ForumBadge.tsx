@@ -6,6 +6,7 @@ type ForumBadgeTone =
   | "pinned"
   | "teacher"
   | "student"
+  | "admin"
   | "material"
   | "inactive"
   | "mine";
@@ -21,6 +22,7 @@ const toneClassMap: Record<ForumBadgeTone, string> = {
   pinned: "border-[#FDE68A] bg-[#FFF7ED] text-[#D97706]",
   teacher: "border-[#BBF7D0] bg-[#ECFDF5] text-[#059669]",
   student: "border-[#FECACA] bg-[#FEF2F2] text-[#DC2626]",
+  admin: "border-[#C4B5FD] bg-[#F5F3FF] text-[#7C3AED]", // Violet theme for admin
   material: "border-[#DBEAFE] bg-[#EFF6FF] text-[#2563EB]",
   inactive: "border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]",
   mine: "border-[#FBCFE8] bg-[#FFF1F2] text-[#E11D48]",

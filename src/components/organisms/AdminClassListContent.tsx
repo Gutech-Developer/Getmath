@@ -9,6 +9,7 @@ import SortIcon from "@/components/atoms/icons/SortIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import SearchableInput from "@/components/atoms/SearchableInput";
 import { Modal } from "@/components/molecules/Modal";
+import { TeacherClassCard } from "@/components/molecules/cards/TeacherClassCard";
 import { showToast } from "@/libs/toast";
 import { cn } from "@/libs/utils";
 
@@ -390,25 +391,65 @@ export default function AdminClassListContent({
             {filteredClasses.map((classItem) => (
               <li
                 key={classItem.id}
-                className="rounded-3xl border border-[#E5E7EB] bg-white p-5 md:p-6"
+                className="rounded-3xl border border-[#E5E7EB] bg-white transition hover:border-[#BFDBFE] hover:shadow-[0_8px_24px_rgba(59,130,246,0.08)]"
               >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-[#111827]">
-                      {classItem.name}
-                    </h2>
-                    <p className="text-sm text-[#6B7280]">
-                      Guru: {classItem.teacherName}
-                    </p>
+                <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-3 bg-[#F8FAFC] rounded-t-3xl">
+                  <div className="text-sm font-medium text-[#475569]">
+                    Guru: <span className="font-bold text-[#0F172A]">{classItem.teacherName}</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditModal(classItem)}
-                    className="p-2 border border-[#BFDBFE] rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition"
-                  >
-                    <EditIcon className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleClassStatus(classItem.id);
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 p-1.5 px-3 border rounded-lg transition text-xs font-semibold",
+                        classItem.status === "Aktif"
+                          ? "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                      )}
+                    >
+                      {classItem.status === "Aktif" ? "Arsipkan" : "Aktifkan"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditModal(classItem);
+                      }}
+                      className="flex items-center gap-1.5 p-1.5 px-3 border border-[#BFDBFE] rounded-lg bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition text-xs font-semibold"
+                    >
+                      <EditIcon className="h-3.5 w-3.5" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm("Apakah Anda yakin ingin menghapus kelas ini? Tindakan ini tidak dapat dibatalkan.")) {
+                          onDeleteClass(classItem.id);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 p-1.5 px-3 border border-rose-200 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition text-xs font-semibold"
+                    >
+                      <TrashIcon className="h-3.5 w-3.5" />
+                      Hapus
+                    </button>
+                  </div>
                 </div>
+                <TeacherClassCard
+                  title={classItem.name}
+                  classCode={classItem.code}
+                  totalStudents={classItem.studentCount}
+                  progress={classItem.progress}
+                  progressVariant="primary"
+                  isActive={classItem.status === "Aktif"}
+                  activeTests={classItem.testCount}
+                  onManage={() => onManageClass?.(classItem.id)}
+                  className="border-none px-6 py-5 rounded-b-3xl"
+                />
               </li>
             ))}
           </ul>

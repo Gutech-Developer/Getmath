@@ -9,6 +9,7 @@ export interface IAdminClassListItem {
   testCount: number;
   code: string;
   status: AdminClassStatus;
+  progress: number;
 }
 
 export interface ITeacherOption {

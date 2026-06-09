@@ -123,6 +123,14 @@ export function resolveTopbarTitle({
     return "Edit Tes Diagnostik";
   }
 
+  // Forum pages
+  if (/\/(?:teacher|admin)\/dashboard\/.*\/discussion\/[^/]+$/i.test(normalizedPathname)) {
+    return "Detail Diskusi";
+  }
+  if (/\/(?:teacher|admin)\/dashboard\/.*\/forum$/i.test(normalizedPathname)) {
+    return "Forum Diskusi";
+  }
+
   // ELKPD Score pages
   if (/\/elkpd\/[^/]+$/i.test(normalizedPathname)) {
     const slug = pickSlug(slugParam);
@@ -154,7 +162,7 @@ export function resolveTopbarTitle({
     .at(-1);
 
   if (!fallbackSegment) {
-    return "GetMath";
+    return "GetSmart";
   }
 
   return stripTrailingClassCode(humanizeSegment(fallbackSegment));

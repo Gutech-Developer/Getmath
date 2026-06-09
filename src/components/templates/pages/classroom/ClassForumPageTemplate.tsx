@@ -53,12 +53,11 @@ const DEFAULT_FORUM_FILTERS: IForumFilterState = {
 export default function ClassForumPageTemplate({
   slug,
 }: IClassForumPageTemplateProps) {
-  const classTitle = formatClassTitleFromSlug(slug);
-  const [localLikes, setLocalLikes] = useState<Record<string, { isLiked: boolean; count: number }>>({});
-
   // ── Resolve courseId from slug ──────────────────────────────────────────
   const { data: course } = useGsCourseBySlug(slug);
   const courseId = course?.id ?? "";
+  const classTitle = course?.courseName ?? formatClassTitleFromSlug(slug);
+  const [localLikes, setLocalLikes] = useState<Record<string, { isLiked: boolean; count: number }>>({});
 
   const [filters, setFilters] = useState<IForumFilterState>(
     DEFAULT_FORUM_FILTERS,
@@ -130,6 +129,14 @@ export default function ClassForumPageTemplate({
         ? (matchedModule.subject?.subjectName ?? matchedModule.diagnosticTest?.testName) 
         : undefined;
 
+      const isCurrentUser = d.authorUserId === currentUser?.id || d.author?.id === currentUser?.id;
+      const authorRole = (isCurrentUser && currentUser?.role === "ADMIN") 
+        ? "admin" 
+        : (d.author?.role ? d.author.role.toLowerCase() : (d.author?.teacher ? "teacher" : "student"));
+      const authorName = (isCurrentUser && currentUser?.fullName) 
+        ? currentUser.fullName 
+        : d.author?.teacher?.fullName ?? d.author?.student?.fullName ?? d.author?.fullName ?? (authorRole === "admin" ? "Admin" : "Pengguna");
+
       return {
         id: d.id,
         content: d.content,
@@ -142,10 +149,10 @@ export default function ClassForumPageTemplate({
         likesCount: localLikes[d.id]?.count ?? d.totalLikes ?? d.likeCount ?? 0,
         author: {
           id: d.author?.id ?? "unknown",
-          name: d.author?.teacher?.fullName ?? d.author?.student?.fullName ?? d.author?.fullName ?? "Pengguna",
-          role: (d.author?.teacher ? "teacher" : "student") as any,
+          name: authorName,
+          role: authorRole as any,
           tone: "slate" as const,
-          isCurrentUser: d.authorUserId === currentUser?.id,
+          isCurrentUser,
         },
         replies: [],
         commentCount: d.totalComments ?? d.commentCount ?? 0,

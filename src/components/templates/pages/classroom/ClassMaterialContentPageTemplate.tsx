@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import BookIcon from "@/components/atoms/icons/BookIcon";
@@ -60,7 +66,7 @@ interface YoutubePlayerProps {
 const YoutubePlayer = React.memo(
   ({ iframeId, url, title, onEnded }: YoutubePlayerProps) => {
     const onEndedRef = useRef(onEnded);
-    
+
     useEffect(() => {
       onEndedRef.current = onEnded;
     }, [onEnded]);

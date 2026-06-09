@@ -3014,7 +3014,7 @@ export function TeacherOverviewSection({
             href="?view=Siswa"
             className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-[#1D4ED8] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#1E40AF]"
           >
-            Analisis Per Siswa
+            Analisis Per Siswa 
           </Link>
         </div>
       </article>

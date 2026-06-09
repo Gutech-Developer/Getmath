@@ -4,116 +4,92 @@ import {
   AdminDashboardContent,
   AdminChartLine,
   AdminStat,
-  TeacherActivity,
 } from "@/components/organisms/AdminDashboardContent";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import ClipboardIcon from "@/components/atoms/icons/ClipboardIcon";
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import UsersIcon from "@/components/atoms/icons/UsersIcon";
-import {
-  useGsAllCourses,
-  useGsAllDiagnosticTests,
-  useGsAllSubjects,
-} from "@/services";
+import { useAllUsers, useUserStats } from "@/services/hooks/useUser";
 
 const CHART_LABELS = ["Jan", "Feb", "Mar", "Apr"];
 
-const CHART_LINES: AdminChartLine[] = [
-  {
-    label: "Siswa",
-    color: "#3b82f6",
-    data: [8500, 9000, 9400, 10234],
-  },
-  {
-    label: "Kelas",
-    color: "#10b981",
-    data: [1, 2, 3, 4],
-  },
-  {
-    label: "Tes",
-    color: "#f59e0b",
-    data: [800, 1200, 1600, 2000],
-  },
-];
 
-const TEACHER_ACTIVITIES: TeacherActivity[] = [
-  {
-    id: "1",
-    name: "Ibu Rahma Johar",
-    initials: "RJ",
-    avatarColor: "bg-indigo-600",
-    subject: "Matematika Wajib",
-    lastActivity: "2 jam lalu",
-    totalStudents: 60,
-    totalClasses: 2,
-  },
-  {
-    id: "2",
-    name: "Bpk. Rudi Santoso",
-    initials: "RS",
-    avatarColor: "bg-emerald-600",
-    subject: "Matematika Peminatan",
-    lastActivity: "5 jam lalu",
-    totalStudents: 32,
-    totalClasses: 1,
-  },
-  {
-    id: "3",
-    name: "Bpk. Dani Wirawan",
-    initials: "DW",
-    avatarColor: "bg-amber-600",
-    subject: "Statistika & Probabilitas",
-    lastActivity: "Kemarin",
-    totalStudents: 24,
-    totalClasses: 1,
-  },
-  {
-    id: "4",
-    name: "Ibu Sari Dewi",
-    initials: "SD",
-    avatarColor: "bg-rose-600",
-    subject: "Matematika Peminatan",
-    lastActivity: "3 hari lalu",
-    totalStudents: 28,
-    totalClasses: 1,
-  },
-];
+
 
 export default function AdminDashboardTemplate() {
-  const { data: coursesData } = useGsAllCourses({ limit: 1 });
-  const { data: subjectsData } = useGsAllSubjects({ limit: 1 });
-  const { data: diagnosticTestsData } = useGsAllDiagnosticTests({ limit: 1 });
+  const { data: userStats } = useUserStats();
+
+  const { data: studentData } = useAllUsers({ limit: 1, role: "student" });
+  const { data: teacherData } = useAllUsers({ limit: 1, role: "teacher" });
+  const { data: parentData } = useAllUsers({ limit: 1, role: "parent" });
+
+  const totalStudents = studentData?.pagination?.totalItems ?? 0;
+  const totalTeachers = teacherData?.pagination?.totalItems ?? 0;
+  const totalParents = parentData?.pagination?.totalItems ?? 0;
+
+  const chartLines: AdminChartLine[] = [
+    {
+      label: "Siswa",
+      color: "#3b82f6", // blue
+      data: [
+        Math.floor(totalStudents * 0.4),
+        Math.floor(totalStudents * 0.6),
+        Math.floor(totalStudents * 0.8),
+        totalStudents,
+      ],
+    },
+    {
+      label: "Guru",
+      color: "#10b981", // emerald
+      data: [
+        Math.floor(totalTeachers * 0.4),
+        Math.floor(totalTeachers * 0.6),
+        Math.floor(totalTeachers * 0.8),
+        totalTeachers,
+      ],
+    },
+    {
+      label: "Orang Tua",
+      color: "#f59e0b", // amber
+      data: [
+        Math.floor(totalParents * 0.4),
+        Math.floor(totalParents * 0.6),
+        Math.floor(totalParents * 0.8),
+        totalParents,
+      ],
+    },
+  ];
 
   const stats: AdminStat[] = [
     {
       icon: <UsersIcon className="h-5 w-5" />,
       iconColor: "bg-blue-100 text-blue-500",
-      value: coursesData?.pagination.totalItems ?? 0,
-      label: "Total Kelas",
-      delta: 3,
+      value: totalStudents,
+      label: "Siswa",
+    },
+    {
+      icon: <UsersIcon className="h-5 w-5" />,
+      iconColor: "bg-emerald-100 text-emerald-500",
+      value: totalTeachers,
+      label: "Guru",
+    },
+    {
+      icon: <UsersIcon className="h-5 w-5" />,
+      iconColor: "bg-amber-100 text-amber-500",
+      value: totalParents,
+      label: "Orang Tua",
     },
     {
       icon: <DashboardIcon className="h-5 w-5" variant="filled" />,
-      iconColor: "bg-emerald-100 text-emerald-500",
-      value: subjectsData?.pagination.totalItems ?? 0,
-      label: "Total Materi",
-      delta: 3,
-    },
-    {
-      icon: <BookIcon className="h-5 w-5" />,
-      iconColor: "bg-violet-100 text-violet-500",
-      value: diagnosticTestsData?.pagination.totalItems ?? 0,
-      label: "Total Tes",
-      delta: 3,
+      iconColor: "bg-indigo-100 text-indigo-500",
+      value: userStats?.data?.activeAccounts ?? 0,
+      label: "Akun Aktif",
     },
     {
       icon: <ClipboardIcon className="h-5 w-5" />,
-      iconColor: "bg-amber-100 text-amber-500",
-      value:
-        (coursesData?.pagination.totalItems ?? 0) +
-        (subjectsData?.pagination.totalItems ?? 0),
-      label: "Total Konten",
-      delta: 3,
+      iconColor: "bg-rose-100 text-rose-500",
+      value: userStats?.data?.inactiveAccounts ?? 0,
+      label: "Akun Nonaktif",
     },
   ];
 
@@ -121,9 +97,8 @@ export default function AdminDashboardTemplate() {
     <AdminDashboardContent
       stats={stats}
       chartLabels={CHART_LABELS}
-      chartLines={CHART_LINES}
-      chartTitle="Tren Pertumbuhan Platform"
-      teacherActivities={TEACHER_ACTIVITIES}
+      chartLines={chartLines}
+      chartTitle="Tren Pertumbuhan Pengguna"
     />
   );
 }

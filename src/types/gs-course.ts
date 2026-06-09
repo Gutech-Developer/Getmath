@@ -82,6 +82,21 @@ export interface GsPaginatedCourses {
   pagination: GsPaginationMeta;
 }
 
+export interface GsStudentDashboardResponse {
+  courseId: string;
+  courseName: string;
+  courseCode: string;
+  progressPercent: number;
+  enrolledCount: number;
+  subjectModuleTotal: number;
+  subjectModuleRead: number;
+  diagnosticTestTotal: number;
+  enrolledStudentNames: Array<{
+    id: string;
+    fullName: string;
+  }>;
+}
+
 // ── Course Module ─────────────────────────────────────────────────────────────
 
 /** Subset subject yang di-embed dalam modul */

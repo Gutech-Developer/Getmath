@@ -41,11 +41,11 @@ export default function ClassForumDetailPageTemplate({
   discussionId,
   backHref: customBackHref,
 }: IClassForumDetailPageTemplateProps & { backHref?: string }) {
-  const classTitle = formatClassTitleFromSlug(slug);
   const [localLikes, setLocalLikes] = useState<Record<string, { isLiked: boolean; count: number }>>({});
   const router = useRouter();
 
   const { data: course } = useGsCourseBySlug(slug);
+  const classTitle = course?.courseName ?? formatClassTitleFromSlug(slug);
   const courseId = course?.id ?? "";
   const { data: currentUser } = useGsCurrentUser();
   const isElevated = currentUser?.role === "TEACHER" || currentUser?.role === "ADMIN";
@@ -85,9 +85,15 @@ export default function ClassForumDetailPageTemplate({
       : undefined;
 
     const replies = (commentsData?.comments ?? []).map((c) => {
-      const authorName = c.author?.teacher?.fullName ?? c.author?.student?.fullName ?? c.author?.fullName ?? "Pengguna";
-      const authorRole = c.author?.teacher ? "teacher" : "student";
-      const isCurrentUser = c.authorUserId === currentUser?.id;
+      const isCurrentUser = c.authorUserId === currentUser?.id || c.author?.id === currentUser?.id;
+      const authorRole = (isCurrentUser && currentUser?.role === "ADMIN") 
+        ? "admin" 
+        : c.author?.role 
+          ? c.author.role.toLowerCase() 
+          : (c.author?.teacher ? "teacher" : "student");
+      const authorName = (isCurrentUser && currentUser?.fullName) 
+        ? currentUser.fullName 
+        : c.author?.teacher?.fullName ?? c.author?.student?.fullName ?? c.author?.fullName ?? (authorRole === "admin" ? "Admin" : "Pengguna");
       
       return {
         id: c.id,
@@ -106,6 +112,14 @@ export default function ClassForumDetailPageTemplate({
       };
     });
 
+    const isDiscussionCurrentUser = apiDiscussion.authorUserId === currentUser?.id || apiDiscussion.author?.id === currentUser?.id;
+    const discussionAuthorRole = (isDiscussionCurrentUser && currentUser?.role === "ADMIN") 
+      ? "admin" 
+      : (apiDiscussion.author?.role ? apiDiscussion.author.role.toLowerCase() : (apiDiscussion.author?.teacher ? "teacher" : "student"));
+    const discussionAuthorName = (isDiscussionCurrentUser && currentUser?.fullName) 
+      ? currentUser.fullName 
+      : apiDiscussion.author?.teacher?.fullName ?? apiDiscussion.author?.student?.fullName ?? apiDiscussion.author?.fullName ?? (discussionAuthorRole === "admin" ? "Admin" : "Pengguna");
+
     return {
       id: apiDiscussion.id,
       content: apiDiscussion.content,
@@ -118,10 +132,10 @@ export default function ClassForumDetailPageTemplate({
       isLiked: localLikes[apiDiscussion.id]?.isLiked ?? apiDiscussion.isLiked ?? false,
       author: {
         id: apiDiscussion.author?.id ?? "unknown",
-        name: apiDiscussion.author?.teacher?.fullName ?? apiDiscussion.author?.student?.fullName ?? apiDiscussion.author?.fullName ?? "Pengguna",
-        role: (apiDiscussion.author?.teacher ? "teacher" : "student") as any,
+        name: discussionAuthorName,
+        role: discussionAuthorRole as any,
         tone: "slate" as const,
-        isCurrentUser: apiDiscussion.authorUserId === currentUser?.id,
+        isCurrentUser: isDiscussionCurrentUser,
       },
       replies: replies,
     };

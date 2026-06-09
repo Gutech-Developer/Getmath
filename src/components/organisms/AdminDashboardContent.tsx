@@ -3,10 +3,20 @@
 import { ReactNode } from "react";
 import { SectionHeader } from "@/components/molecules/SectionHeader";
 import { AdminStatCard } from "@/components/molecules/cards/AdminStatCard";
-import { ScoreTrendChart } from "@/components/molecules/charts/ScoreTrendChart";
-import { TeacherActivityCard } from "@/components/molecules/cards/TeacherActivityCard";
 import TrendUpIcon from "@/components/atoms/icons/TrendUpIcon";
 import ActivityIcon from "@/components/atoms/icons/ActivityIcon";
+import UsersIcon from "@/components/atoms/icons/UsersIcon";
+import BookIcon from "@/components/atoms/icons/BookIcon";
+import Link from "next/link";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 // ============ TYPES ============
 
@@ -24,23 +34,11 @@ export interface AdminChartLine {
   data: number[];
 }
 
-export interface TeacherActivity {
-  id: string;
-  name: string;
-  initials: string;
-  avatarColor?: string;
-  subject: string;
-  lastActivity: string;
-  totalStudents: number;
-  totalClasses: number;
-}
-
 interface AdminDashboardContentProps {
   stats: AdminStat[];
   chartLabels: string[];
   chartLines: AdminChartLine[];
   chartTitle?: string;
-  teacherActivities: TeacherActivity[];
 }
 
 export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
@@ -48,12 +46,18 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
   chartLabels,
   chartLines,
   chartTitle = "Tren Pertumbuhan Platform",
-  teacherActivities,
 }) => {
+  const chartData = chartLabels.map((label, index) => {
+    const dataPoint: any = { name: label };
+    chartLines.forEach((line) => {
+      dataPoint[line.label] = line.data[index] || 0;
+    });
+    return dataPoint;
+  });
   return (
     <div className="w-full flex flex-col gap-6 md:gap-8">
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {stats.map((stat, index) => (
           <AdminStatCard
             key={index}
@@ -69,29 +73,103 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       {/* Platform Growth Chart */}
       <div className="bg-white border border-grey-stroke rounded-2xl p-5 md:p-6 flex flex-col gap-4">
         <SectionHeader title={chartTitle} />
-        <ScoreTrendChart labels={chartLabels} lines={chartLines} />
+        <div className="h-[300px] w-full mt-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
+              <defs>
+                {chartLines.map((line) => (
+                  <linearGradient key={line.label} id={`color${line.label.replace(/\\s/g, "")}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={line.color} stopOpacity={0.8} />
+                    <stop offset="95%" stopColor={line.color} stopOpacity={0} />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#6B7280", fontSize: 12 }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6B7280", fontSize: 12 }} dx={-10} />
+              <Tooltip
+                contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", backgroundColor: "#ffffff" }}
+                itemStyle={{ color: "#475569" }}
+                labelStyle={{ color: "#0F172A", fontWeight: "bold" }}
+              />
+              {chartLines.map((line) => (
+                <Area
+                  key={line.label}
+                  type="monotone"
+                  dataKey={line.label}
+                  stroke={line.color}
+                  fillOpacity={1}
+                  fill={`url(#color${line.label.replace(/\\s/g, "")})`}
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
-      {/* Teacher Activity */}
-      {teacherActivities.length > 0 && (
-        <div className="bg-white border border-grey-stroke rounded-2xl p-5 md:p-6 flex flex-col gap-4">
-          <SectionHeader title="Aktivitas Guru" />
-          <div className="flex flex-col">
-            {teacherActivities.map((teacher) => (
-              <TeacherActivityCard
-                key={teacher.id}
-                name={teacher.name}
-                initials={teacher.initials}
-                avatarColor={teacher.avatarColor}
-                subject={teacher.subject}
-                lastActivity={teacher.lastActivity}
-                totalStudents={teacher.totalStudents}
-                totalClasses={teacher.totalClasses}
-              />
-            ))}
-          </div>
+      {/* Aksi Cepat */}
+      <div className="bg-white border border-grey-stroke rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+        <SectionHeader title="Aksi Cepat" />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <Link href="/admin/dashboard/manage-users/student" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#3b82f6] hover:bg-blue-50 transition-colors">
+            <div className="bg-blue-100 text-[#3b82f6] p-2 rounded-lg">
+              <UsersIcon className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-[#0F172A]">Kelola Pengguna</span>
+              <span className="text-xs text-[#64748B]">Tambah siswa/guru baru</span>
+            </div>
+          </Link>
+          <Link href="/admin/dashboard/courses" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#10b981] hover:bg-emerald-50 transition-colors">
+            <div className="bg-emerald-100 text-[#10b981] p-2 rounded-lg">
+              <BookIcon className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-[#0F172A]">Daftar Kelas</span>
+              <span className="text-xs text-[#64748B]">Manajemen kelas & guru</span>
+            </div>
+          </Link>
+          <Link href="/admin/dashboard/learning-analytics" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#f59e0b] hover:bg-amber-50 transition-colors">
+            <div className="bg-amber-100 text-[#f59e0b] p-2 rounded-lg">
+              <ActivityIcon className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-[#0F172A]">Analitik Belajar</span>
+              <span className="text-xs text-[#64748B]">Pantau progres siswa</span>
+            </div>
+          </Link>
+          <Link href="/admin/dashboard/diagnostic-tests" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#8b5cf6] hover:bg-purple-50 transition-colors">
+            <div className="bg-purple-100 text-[#8b5cf6] p-2 rounded-lg">
+              <TrendUpIcon className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-[#0F172A]">Evaluasi & Tes</span>
+              <span className="text-xs text-[#64748B]">Kelola tes diagnostik</span>
+            </div>
+          </Link>
+          <Link href="/admin/dashboard/announcements" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#ec4899] hover:bg-pink-50 transition-colors">
+            <div className="bg-pink-100 text-[#ec4899] p-2 rounded-lg">
+              <ActivityIcon className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-[#0F172A]">Pusat Informasi</span>
+              <span className="text-xs text-[#64748B]">Kirim pengumuman</span>
+            </div>
+          </Link>
+          <Link href="/admin/dashboard/settings" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#64748b] hover:bg-slate-50 transition-colors">
+            <div className="bg-slate-100 text-[#64748b] p-2 rounded-lg">
+              <UsersIcon className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-[#0F172A]">Pengaturan</span>
+              <span className="text-xs text-[#64748B]">Konfigurasi sistem</span>
+            </div>
+          </Link>
         </div>
-      )}
+      </div>
     </div>
   );
 };

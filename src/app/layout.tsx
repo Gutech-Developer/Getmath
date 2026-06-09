@@ -7,8 +7,8 @@ import MainLayout from "@/components/templates/layouts/MainLayout";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "GetMath",
-  description: "GetMath Adaptive Learning Platform",
+  title: "GetSmart",
+  description: "GetSmart Adaptive Learning Platform",
 };
 
 export default function RootLayout({

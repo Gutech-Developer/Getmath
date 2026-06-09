@@ -18,6 +18,7 @@ import type {
   GsUpdateCourseInput,
   GsPaginatedCourses,
   GsPaginationParams,
+  GsStudentDashboardResponse,
 } from "@/types/gs-course";
 import { buildQuery } from "./helper";
 
@@ -92,6 +93,17 @@ export function useGsCourseById(id: string) {
     queryFn: () => gsGet<GsCourse>(`/courses/${id}`),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── STUDENT: GET /courses/:id/dashboard/student ─────────────────────────────
+
+export function useGsStudentDashboard(courseId: string) {
+  return useQuery<GsStudentDashboardResponse, Error>({
+    queryKey: [...queryKeys.gsCourses.detail(courseId), "student-dashboard"],
+    queryFn: () => gsGet<GsStudentDashboardResponse>(`/courses/${courseId}/dashboard/student`),
+    enabled: !!courseId,
+    staleTime: 2 * 60 * 1000,
   });
 }
 

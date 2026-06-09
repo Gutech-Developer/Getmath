@@ -1,0 +1,14 @@
+src/components/molecules/classroom/forum/ForumReplyCard.tsx(60,36): error TS2339: Property 'role' does not exist on type 'GsForumUser'.
+src/components/molecules/classroom/forum/ForumReplyCard.tsx(61,20): error TS2339: Property 'role' does not exist on type 'GsForumUser'.
+src/components/templates/pages/classroom/ClassForumDetailPageTemplate.tsx(89,36): error TS2339: Property 'role' does not exist on type 'GsForumUser'.
+src/components/templates/pages/classroom/ClassForumDetailPageTemplate.tsx(90,20): error TS2339: Property 'role' does not exist on type 'GsForumUser'.
+src/components/templates/pages/classroom/ClassForumDetailPageTemplate.tsx(124,38): error TS2339: Property 'role' does not exist on type 'GsForumUser'.
+src/components/templates/pages/classroom/ClassForumDetailPageTemplate.tsx(124,66): error TS2339: Property 'role' does not exist on type 'GsForumUser'.
+src/components/templates/pages/classroom/ClassForumPageTemplate.tsx(145,28): error TS2339: Property 'role' does not exist on type 'GsForumUser'.
+src/components/templates/pages/classroom/ClassForumPageTemplate.tsx(145,44): error TS2339: Property 'role' does not exist on type 'GsForumUser'.
+src/components/templates/pages/dashboard/TeacherClassListTemplate.tsx(53,9): error TS2322: Type '{ id: string; name: string; teacherName: string; createdAt: string; studentCount: number; testCount: number; code: string; status: "Aktif" | "Nonaktif"; }[]' is not assignable to type 'IAdminClassListItem[]'.
+  Property 'progress' is missing in type '{ id: string; name: string; teacherName: string; createdAt: string; studentCount: number; testCount: number; code: string; status: "Aktif" | "Nonaktif"; }' but required in type 'IAdminClassListItem'.
+src/constant/adminClassList.ts(14,3): error TS2741: Property 'progress' is missing in type '{ id: string; name: string; teacherName: string; createdAt: string; studentCount: number; testCount: number; code: string; status: "Aktif"; }' but required in type 'IAdminClassListItem'.
+src/constant/adminClassList.ts(24,3): error TS2741: Property 'progress' is missing in type '{ id: string; name: string; teacherName: string; createdAt: string; studentCount: number; testCount: number; code: string; status: "Aktif"; }' but required in type 'IAdminClassListItem'.
+src/constant/adminClassList.ts(34,3): error TS2741: Property 'progress' is missing in type '{ id: string; name: string; teacherName: string; createdAt: string; studentCount: number; testCount: number; code: string; status: "Aktif"; }' but required in type 'IAdminClassListItem'.
+src/constant/adminClassList.ts(44,3): error TS2741: Property 'progress' is missing in type '{ id: string; name: string; teacherName: string; createdAt: string; studentCount: number; testCount: number; code: string; status: "Nonaktif"; }' but required in type 'IAdminClassListItem'.
