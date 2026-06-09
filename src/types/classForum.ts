@@ -1,4 +1,4 @@
-export type ForumParticipantRole = "teacher" | "student";
+export type ForumParticipantRole = "admin" | "teacher" | "student";
 
 export type ForumDiscussionStatus = "active" | "inactive";
 

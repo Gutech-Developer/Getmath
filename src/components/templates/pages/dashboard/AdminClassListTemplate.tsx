@@ -18,6 +18,7 @@ import {
   useGsUpdateCourse,
 } from "@/services";
 import { useSearchUser } from "@/services/hooks/useUser";
+import { useGsAssignCourseToTeacher } from "@/services/hooks/useGsAdmin";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("id-ID", {
@@ -52,6 +53,7 @@ export default function AdminClassListTemplate() {
   const archiveCourse = useGsArchiveCourse();
   const unarchiveCourse = useGsUnarchiveCourse();
   const deleteCourse = useGsDeleteCourse();
+  const assignCourse = useGsAssignCourseToTeacher();
 
   const teacherOptions = useMemo(() => {
     if (!teachers?.users) return [];
@@ -73,6 +75,7 @@ export default function AdminClassListTemplate() {
         testCount: course.diagnosticTestCount ?? 0,
         code: course.courseCode,
         status: course.isArchived ? "Nonaktif" : "Aktif",
+        progress: course.averageProgressPercent ?? 0,
       })),
     [coursesData],
   );
@@ -96,6 +99,10 @@ export default function AdminClassListTemplate() {
 
   const handleUpdateClass = useCallback(
     (classId: string, payload: IClassFormPayload) => {
+      const existingCourse = coursesData?.courses.find((c) => c.id === classId);
+      const isTeacherChanged =
+        payload.teacherId && existingCourse?.teacher?.id !== payload.teacherId;
+
       updateCourse.mutate(
         {
           id: classId,
@@ -105,14 +112,27 @@ export default function AdminClassListTemplate() {
           },
         },
         {
-          onSuccess: () =>
-            showToast.success("Perubahan kelas berhasil disimpan"),
+          onSuccess: () => {
+            if (isTeacherChanged) {
+              assignCourse.mutate(
+                { courseId: classId, teacherId: payload.teacherId },
+                {
+                  onSuccess: () =>
+                    showToast.success("Perubahan kelas dan guru berhasil disimpan"),
+                  onError: (error) =>
+                    showToast.error(error.message ?? "Gagal menugaskan kelas ke guru"),
+                }
+              );
+            } else {
+              showToast.success("Perubahan kelas berhasil disimpan");
+            }
+          },
           onError: (error) =>
             showToast.error(error.message ?? "Gagal memperbarui kelas"),
         },
       );
     },
-    [updateCourse],
+    [updateCourse, assignCourse, coursesData],
   );
 
   const handleDeleteClass = useCallback(

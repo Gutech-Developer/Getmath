@@ -37,7 +37,7 @@ export function formatBreadcrumbLabel(
   }
 
   if (segment === slug) {
-    return formatContentTitle(segment);
+    return "";
   }
 
   if (segment === "materi") {

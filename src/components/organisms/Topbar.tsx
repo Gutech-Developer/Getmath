@@ -99,9 +99,7 @@ const Topbar = () => {
           </p>
         </div>
         {/* Search Bar - Hidden on small mobile, visible on sm+ */}
-        <div className="hidden sm:flex flex-1 justify-end max-w-md">
-          <SearchBar />
-        </div>
+      
 
         <Link
           href={notificationHref ?? pathname}

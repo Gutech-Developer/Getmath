@@ -26,7 +26,8 @@ import type {
   IStudentAnalyticsItem,
 } from "@/types/learningAnalytics";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export type { IClassLearningAnalyticsDetail, IStudentAnalyticsItem };
 
@@ -153,9 +154,30 @@ export default function AdminLearningAnalyticsClassContent({
   initialViewType,
   buildStudentDetailHref,
 }: AdminLearningAnalyticsClassContentProps) {
+  const searchParams = useSearchParams();
+  const viewQuery = searchParams.get("view");
+
   const [activeViewType, setActiveViewType] = useState<ClassAnalyticsViewType>(
     initialViewType ?? classDetail.defaultViewType ?? "Laporan",
   );
+
+  useEffect(() => {
+    if (
+      viewQuery &&
+      [
+        "Beranda",
+        "Siswa",
+        "Materi",
+        "Nilai E-LKPD",
+        "Nilai Test",
+        "Laporan",
+        "Forum",
+      ].includes(viewQuery)
+    ) {
+      setActiveViewType(viewQuery as ClassAnalyticsViewType);
+    }
+  }, [viewQuery]);
+
   const { mutate: kickStudent, isPending: isKickingStudent } =
     useGsKickStudentFromCourse();
 

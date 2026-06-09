@@ -11,7 +11,7 @@ import PDFIcon from "@/components/atoms/icons/PDFIcon";
 import SearchIcon from "@/components/atoms/icons/SearchIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { cn } from "@/libs/utils";
-import { useGsCourseBySlug, useGsModulesByCourse } from "@/services";
+import { useGsCourseBySlug, useGsModulesByCourse, useGsStudentDashboard } from "@/services";
 import type { GsCourseModule, GsCourseModuleSubject } from "@/types/gs-course";
 
 /* ------------------------------------------------------------------ */
@@ -222,6 +222,7 @@ export default function ClassMaterialListPageTemplate({
   slug,
 }: IClassMaterialListPageTemplateProps) {
   const { data: course } = useGsCourseBySlug(slug);
+  const { data: studentDashboard } = useGsStudentDashboard(course?.id ?? "");
   const { data: courseModules, isLoading } = useGsModulesByCourse(
     course?.id ?? "",
   );
@@ -261,6 +262,12 @@ export default function ClassMaterialListPageTemplate({
     (sum, m) => sum + m.completedSteps,
     0,
   );
+
+  const displayCompletedModules = studentDashboard ? studentDashboard.subjectModuleRead : completedModules;
+  // Memakai asumsi modul diagnostik belum tercatat sebagai 'read', namun subjectModuleTotal bisa digunakan.
+  // Jika diagnostic dihitung ke total:
+  const displayTotalModules = studentDashboard ? studentDashboard.subjectModuleTotal + studentDashboard.diagnosticTestTotal : totalModules;
+  const displayProgress = studentDashboard ? studentDashboard.progressPercent : overallProgress;
 
   const filteredModules = searchQuery.trim()
     ? modules.filter(
@@ -302,7 +309,7 @@ export default function ClassMaterialListPageTemplate({
 
           <div className="flex items-center gap-2">
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/90">
-              {completedModules}/{totalModules} Modul Selesai
+              {displayCompletedModules}/{displayTotalModules} Modul Selesai
             </span>
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/90">
               {completedStepsAll}/{totalStepsAll} Langkah
@@ -314,12 +321,12 @@ export default function ClassMaterialListPageTemplate({
         <div className="mt-5">
           <div className="flex items-center justify-between text-xs font-medium text-white/85">
             <span>Progres keseluruhan materi</span>
-            <span>{overallProgress}%</span>
+            <span>{displayProgress}%</span>
           </div>
           <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/20">
             <div
               className="h-full rounded-full bg-[#DCE3FF] transition-all duration-500"
-              style={{ width: `${overallProgress}%` }}
+              style={{ width: `${displayProgress}%` }}
             />
           </div>
         </div>

@@ -8,7 +8,9 @@ interface IClassMateriContentPageProps {
   params: Promise<{ slug: string; id: string }>;
 }
 
-export default function ContentMateri({ params }: IClassMateriContentPageProps) {
+export default function ContentMateri({
+  params,
+}: IClassMateriContentPageProps) {
   const { slug, id } = use(params);
   const { data: course, isLoading } = useGsCourseBySlug(slug);
 
