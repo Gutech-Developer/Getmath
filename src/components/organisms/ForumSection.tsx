@@ -94,6 +94,14 @@ export default function ForumSection({
         ? (matchedModule.subject?.subjectName ?? matchedModule.diagnosticTest?.testName) 
         : undefined;
 
+      const isCurrentUser = d.authorUserId === currentUser?.id || d.author?.id === currentUser?.id;
+      const authorRole = (isCurrentUser && currentUser?.role === "ADMIN") 
+        ? "admin" 
+        : (d.author?.role ? d.author.role.toLowerCase() : (d.author?.teacher ? "teacher" : "student"));
+      const authorName = (isCurrentUser && currentUser?.fullName) 
+        ? currentUser.fullName 
+        : d.author?.teacher?.fullName ?? d.author?.student?.fullName ?? d.author?.fullName ?? (authorRole === "admin" ? "Admin" : "Pengguna");
+
       return {
         id: d.id,
         content: d.content,
@@ -106,10 +114,10 @@ export default function ForumSection({
         isLiked: localLikes[d.id]?.isLiked ?? d.isLiked ?? false,
         author: {
           id: d.author?.id ?? "unknown",
-          name: d.author?.teacher?.fullName ?? d.author?.student?.fullName ?? d.author?.fullName ?? "Pengguna",
-          role: (d.author?.teacher ? "teacher" : "student") as any,
+          name: authorName,
+          role: authorRole as any,
           tone: "slate" as const,
-          isCurrentUser: d.authorUserId === currentUser?.id,
+          isCurrentUser,
         },
         replies: [],
         commentCount: d.totalComments ?? d.commentCount ?? 0,

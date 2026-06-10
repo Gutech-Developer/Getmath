@@ -6,6 +6,7 @@ export interface GsForumUser {
   id: string;
   fullName?: string;
   email: string;
+  role?: string;
   avatarUrl?: string;
   teacher?: {
     id: string;

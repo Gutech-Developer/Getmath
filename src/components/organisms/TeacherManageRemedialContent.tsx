@@ -95,7 +95,7 @@ export default function TeacherManageRemedialContent({
   const remedials: IRemedialItem[] = (
     remedialTestsData?.remedialTests ?? []
   ).map(mapGsRemedialToItem);
- 
+
 
   const handleDelete = (id: string, title: string) => {
     if (!confirm(`Hapus "${title}"?`)) return;
@@ -105,7 +105,7 @@ export default function TeacherManageRemedialContent({
     });
   };
 
-   console.log("ini DataRemedial",remedialTestsData?.remedialTests.forEach((item)=> item.totalQuestions))
+  console.log("ini DataRemedial", remedialTestsData?.remedialTests.forEach((item) => item.totalQuestions))
   /* ------------------------------------------------------------------ */
   return (
     <section className="w-full space-y-4">
@@ -125,7 +125,7 @@ export default function TeacherManageRemedialContent({
           onClick={() =>
             router.push(`${basePath}/manage-remedial/create`)
           }
-          className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+          className="inline-flex items-center gap-2.5 rounded-2xl bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-5 py-3 text-sm"
         >
           <PlusIcon className="h-5 w-5" />
           <span>Tambah Tes Remedial</span>
@@ -147,7 +147,7 @@ export default function TeacherManageRemedialContent({
         {remedials.map((remedial) => (
           <li
             key={remedial.id}
-            className="flex flex-wrap items-start gap-4 rounded-3xl border border-[#E5E7EB] bg-white px-5 py-5"
+            className="getmath-card flex flex-wrap items-start gap-4 px-5 py-5"
           >
             {/* Info */}
             <div className="min-w-0 flex-1">
@@ -161,7 +161,7 @@ export default function TeacherManageRemedialContent({
                 {remedial.packageSummaries.map((pkg) => (
                   <span
                     key={pkg.label}
-                    className="inline-flex rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#2563EB]"
+                    className="inline-flex rounded-full bg-lottie-teal/10 px-3 py-1 text-xs font-semibold text-lottie-teal"
                   >
                     {pkg.label} · {pkg.questionCount} soal
                   </span>
@@ -203,7 +203,7 @@ export default function TeacherManageRemedialContent({
                       `${basePath}/manage-remedial/${remedial.id}`,
                     )
                   }
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-lottie-teal/5 text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
                   aria-label={`Preview ${remedial.title}`}
                 >
                   <EyeIcon className="h-5 w-5" />
@@ -215,7 +215,7 @@ export default function TeacherManageRemedialContent({
                       `${basePath}/manage-remedial/${remedial.id}/edit`,
                     )
                   }
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-lottie-teal/5 text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
                   aria-label={`Edit ${remedial.title}`}
                 >
                   <EditIcon className="h-5 w-5" />
@@ -223,7 +223,7 @@ export default function TeacherManageRemedialContent({
                 <button
                   type="button"
                   onClick={() => handleDelete(remedial.id, remedial.title)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2] cursor-pointer"
                   aria-label={`Hapus ${remedial.title}`}
                 >
                   <TrashIcon className="h-5 w-5" />

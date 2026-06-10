@@ -12,7 +12,7 @@ interface AdminStatCardProps {
 
 export const AdminStatCard: React.FC<AdminStatCardProps> = ({
   icon,
-  iconColor = "bg-indigo-100 text-indigo-500",
+  iconColor = "bg-lottie-teal/5 text-lottie-teal",
   value,
   label,
   delta,
@@ -21,16 +21,20 @@ export const AdminStatCard: React.FC<AdminStatCardProps> = ({
   return (
     <div
       className={cn(
-        "bg-white border border-grey-stroke rounded-2xl p-5 flex flex-col gap-3",
+        "getmath-card px-5 py-4 flex items-center gap-4 relative",
         className,
       )}
     >
-      {/* Value + label */}
-      <div className="flex flex-col gap-0.5">
+      {icon && (
+        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", iconColor)}>
+          {icon}
+        </div>
+      )}
+      <div className="flex flex-col">
         <span className="text-2xl font-bold text-neutral-02 leading-tight">
           {typeof value === "number" ? value.toLocaleString("id-ID") : value}
         </span>
-        <span className="text-sm text-grey">{label}</span>
+        <span className="text-xs text-grey mt-0.5">{label}</span>
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ export default function ClassModuleCard({ item }: IClassModuleCardProps) {
   return (
     <Link
       href={item.href}
-      className="group flex items-center justify-between gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 transition hover:-translate-y-0.5 hover:border-[#CBD5E1] hover:shadow-[0px_12px_24px_rgba(148,163,184,0.2)]"
+      className="group flex items-center justify-between gap-3 getmath-card p-4 transition-all hover:-translate-y-0.5"
     >
       <div className="flex min-w-0 items-center gap-3">
         <div
@@ -27,10 +27,10 @@ export default function ClassModuleCard({ item }: IClassModuleCardProps) {
           <Icon className={cn("h-4 w-4", tone.iconClassName)} />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[#0F172A]">
+          <p className="truncate text-sm font-semibold text-lottie-midnight">
             {item.label}
           </p>
-          <p className="truncate text-xs text-[#64748B]">{item.description} </p>
+          <p className="truncate text-xs text-lottie-zinc-500">{item.description} </p>
         </div>
       </div>
 
@@ -40,7 +40,7 @@ export default function ClassModuleCard({ item }: IClassModuleCardProps) {
             {item.badge}
           </span>
         )}
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F8FAFC] text-[#64748B] transition group-hover:bg-[#EEF2FF] group-hover:text-[#3730A3]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-lottie-pearl text-lottie-zinc-500 transition group-hover:bg-lottie-mint-wash group-hover:text-lottie-teal">
           <ArrowIcon className="h-4 w-4" />
         </span>
       </div>

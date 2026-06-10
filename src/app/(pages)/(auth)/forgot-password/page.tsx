@@ -4,9 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useGsForgotPassword } from "@/services";
 import { toast } from "sonner";
-import { BodySmallMedium, Heading3 } from "@/components/atoms/Typography";
+import { BodySmallMedium } from "@/components/atoms/Typography";
 import EmailInput from "@/components/atoms/inputs/EmailInput";
-import { SubmitButton } from "@/components/atoms/buttons/SubmitButton";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -37,16 +36,16 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-[448px]">
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 text-[13px] text-[#6b7280] hover:text-[#4b5563]"
+            className="inline-flex items-center gap-2 text-[13px] font-semibold text-lottie-teal hover:opacity-85 transition duration-200"
           >
-            <span aria-hidden="true">&lt;</span>
+            <span aria-hidden="true">&larr;</span>
             Kembali ke Login
           </Link>
-          <div className="mt-4 bg-white/95 rounded-[24px] shadow-[0px_20px_60px_0px_rgba(26,35,126,0.12)] border border-[#1a237e]/10 p-5 sm:p-6 lg:p-7">
+          <div className="mt-4 getmath-card p-5 sm:p-6 lg:p-7">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-[#1a237e]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-lottie-teal/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-lottie-teal/20">
                 <svg
-                  className="w-8 h-8 text-[#1a237e]"
+                  className="w-8 h-8 text-lottie-teal"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -59,16 +58,16 @@ export default function ForgotPasswordPage() {
                   />
                 </svg>
               </div>
-              <h2 className="text-2xl lg:text-[34px] font-extrabold text-[#1a237e] leading-tight mb-2">
+              <h2 className="text-3xl font-extrabold text-lottie-teal leading-tight mb-2">
                 Email Terkirim!
               </h2>
-              <p className="text-[13px] text-grey">
+              <p className="text-[13px] text-lottie-zinc-500">
                 Silakan cek email Anda dan klik link reset password yang telah
                 dikirim.
               </p>
             </div>
             <Link href="/login" className="block w-full">
-              <button className="w-full flex justify-center items-center border-0 text-white bg-[linear-gradient(173deg,#1a237e_0%,#00acc1_100%)] hover:text-white rounded-[12px] shadow-[0px_10px_20px_rgba(26,35,126,0.2)] py-2.5 text-sm font-medium transition-colors">
+              <button className="w-full flex justify-center items-center rounded-xl bg-lottie-teal mantaps text-white  px-4 py-3 text-sm font-semibold transition cursor-pointer">
                 Kembali ke Login
               </button>
             </Link>
@@ -83,18 +82,18 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-[448px]">
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-[13px] text-[#6b7280] hover:text-[#4b5563]"
+          className="inline-flex items-center gap-2 text-[13px] font-semibold text-lottie-teal hover:opacity-85 transition duration-200"
         >
-          <span aria-hidden="true">&lt;</span>
+          <span aria-hidden="true">&larr;</span>
           Kembali ke Login
         </Link>
 
-        <div className="mt-4 bg-white/95 rounded-[24px] shadow-[0px_20px_60px_0px_rgba(26,35,126,0.12)] border border-[#1a237e]/10 p-5 sm:p-6 lg:p-7">
+        <div className="mt-4 getmath-card p-5 sm:p-6 lg:p-7">
           <div className="mb-5 text-center">
-            <h2 className="text-2xl lg:text-[34px] font-extrabold text-[#1a237e] leading-tight mb-1.5">
+            <h2 className="text-3xl font-extrabold text-lottie-teal leading-tight mb-1.5">
               Lupa Password?
             </h2>
-            <p className="text-[13px] text-grey">
+            <p className="text-[13px] text-lottie-zinc-500">
               Masukkan email Anda untuk menerima link reset password.
             </p>
           </div>
@@ -102,14 +101,14 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label htmlFor="email" className="block">
-                <BodySmallMedium className="text-[#4b5563]">
+                <BodySmallMedium className="text-lottie-zinc-500">
                   Email
                 </BodySmallMedium>
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lottie-zinc-500">
                   <svg
-                    className="w-3.5 h-3.5"
+                    className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -130,19 +129,19 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Masukkan email Anda"
-                  className="rounded-[12px] bg-[#1a237e]/5 px-3.5 py-2.5 pl-8 text-[13px] outline-[#1a237e]/10 focus:outline-[#00acc1]"
+                  className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 pl-10 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
                 />
               </div>
             </div>
 
             <div className="pt-1">
-              <SubmitButton
-                variant="outline"
+              <button
                 type="submit"
-                className="w-full flex justify-center items-center border-0 text-white bg-[linear-gradient(173deg,#1a237e_0%,#00acc1_100%)] hover:text-white rounded-[12px] shadow-[0px_10px_20px_rgba(26,35,126,0.2)]"
+                className="w-full flex justify-center items-center rounded-xl bg-lottie-teal mantaps text-white  px-4 py-3 text-sm font-semibold transition cursor-pointer disabled:opacity-70"
                 disabled={forgotPassword.isPending}
-                text={forgotPassword.isPending ? "Mengirim..." : "Lanjut"}
-              />
+              >
+                {forgotPassword.isPending ? "Mengirim..." : "Lanjut"}
+              </button>
             </div>
           </form>
         </div>

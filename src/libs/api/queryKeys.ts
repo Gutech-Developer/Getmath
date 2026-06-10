@@ -390,6 +390,7 @@ export const queryKeys = {
     remedialTestDistribution: (courseId: string) => [...queryKeys.lad.all, "remedialTestDistribution", courseId] as const,
     studyTimeByModule: (courseModuleId: string, studentId: string) => [...queryKeys.lad.all, "studyTimeByModule", courseModuleId, studentId] as const,
     activityLogs: (courseId: string, studentId: string, page: number, limit: number) => [...queryKeys.lad.all, "activityLogs", courseId, studentId, page, limit] as const,
+    moduleProgressTable: (courseModuleId: string, studentId: string) => [...queryKeys.lad.all, "moduleProgressTable", courseModuleId, studentId] as const,
   },
 
   // Remediation / Diagnostic Tests Results

@@ -53,7 +53,7 @@ export default function RolesSection() {
         "Bergabung ke kelas via kode dari guru",
       ],
       linkText: "Daftar sebagai Siswa",
-      linkHref: "/register?role=student",
+      linkHref: "/register/student",
     },
     {
       title: "Guru",
@@ -85,7 +85,7 @@ export default function RolesSection() {
         "Export laporan aktivitas siswa",
       ],
       linkText: "Daftar sebagai Guru",
-      linkHref: "/register?role=teacher",
+      linkHref: "/register/teacher",
     },
     {
       title: "Orang Tua",
@@ -117,7 +117,7 @@ export default function RolesSection() {
         "Akses dari perangkat mobile kapan saja",
       ],
       linkText: "Daftar sebagai Orang Tua",
-      linkHref: "/register?role=parent",
+      linkHref: "/register/parent",
     },
   ];
 
@@ -295,7 +295,7 @@ export default function RolesSection() {
                   Siswa
                 </span>
                 <Link
-                  href="/register?role=student"
+                  href="/register/student"
                   className="inline-flex items-center gap-1 text-xs font-bold text-[#1F2375] hover:underline font-inter"
                 >
                   Daftar{" "}
@@ -504,8 +504,8 @@ export default function RolesSection() {
                 <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 font-inter">
                   Guru
                 </span>
-                <Link
-                  href="/register?role=teacher"
+                <Link 
+                  href="/register/teacher"
                   className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 hover:underline font-inter"
                 >
                   Daftar{" "}
@@ -534,7 +534,7 @@ export default function RolesSection() {
                   Orang Tua
                 </span>
                 <Link
-                  href="/register?role=parent"
+                  href="/register/parent"
                   className="inline-flex items-center gap-1 text-xs font-bold text-rose-800 hover:underline font-inter"
                 >
                   Daftar{" "}

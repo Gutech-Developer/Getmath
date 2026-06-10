@@ -73,7 +73,7 @@ export default function DashboardSidebarNav({
               </span>
 
               {!!item.badgeCount && item.badgeCount > 0 && (
-                <span className="ml-auto inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#2563EB] px-1.5 text-[11px] font-semibold text-white">
+                <span className="ml-auto inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-lottie-teal px-1.5 text-[11px] font-semibold text-white">
                   {item.badgeCount}
                 </span>
               )}
@@ -96,7 +96,7 @@ export default function DashboardSidebarNav({
               <div
                 className={cn(
                   "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E5E7EB] text-[#6B7280]",
-                  isActive && "bg-[#DCE3FF] text-[#2563EB]",
+                  isActive && "bg-[#DCE3FF] text-lottie-teal",
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -137,9 +137,9 @@ export default function DashboardSidebarNav({
                       ? "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[#6B7280] transition hover:bg-[#F3F4F6]"
                       : "relative flex items-center gap-4 rounded-2xl px-3 py-3 text-[#6B7280] transition hover:bg-[#F3F4F6]",
                     isTeacherVariant
-                      ? isActive && "bg-[#E9EEFF] text-[#2563EB]"
+                      ? isActive && "bg-[#E9EEFF] text-lottie-teal"
                       : isActive &&
-                          "bg-[#E9EEFF] pr-4 text-[#2563EB] before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-r-full before:bg-[#2563EB]",
+                          "bg-[#E9EEFF] pr-4 text-lottie-teal before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-r-full before:bg-lottie-teal",
                   )}
                 >
                   {linkContent}
@@ -153,9 +153,9 @@ export default function DashboardSidebarNav({
                       ? "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[#6B7280] transition hover:bg-[#F3F4F6]"
                       : "relative flex items-center gap-4 rounded-2xl px-3 py-3 text-[#6B7280] transition hover:bg-[#F3F4F6]",
                     isTeacherVariant
-                      ? isActive && "bg-[#E9EEFF] text-[#2563EB]"
+                      ? isActive && "bg-[#E9EEFF] text-lottie-teal"
                       : isActive &&
-                          "bg-[#E9EEFF] pr-4 text-[#2563EB] before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-r-full before:bg-[#2563EB]",
+                          "bg-[#E9EEFF] pr-4 text-lottie-teal before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-r-full before:bg-lottie-teal",
                   )}
                 >
                   {linkContent}
@@ -180,7 +180,7 @@ export default function DashboardSidebarNav({
                             className={cn(
                               "block rounded-lg px-3 py-2 text-[0.9rem] font-medium transition",
                               isSubActive
-                                ? "bg-[#E9EEFF] text-[#2563EB]"
+                                ? "bg-[#E9EEFF] text-lottie-teal"
                                 : "text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#374151]",
                             )}
                           >

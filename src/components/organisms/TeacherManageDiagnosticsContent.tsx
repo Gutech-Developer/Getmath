@@ -116,7 +116,7 @@ export default function TeacherManageDiagnosticsContent({
           onClick={() =>
             router.push(`${basePath}/manage-diagnostics/create`)
           }
-          className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+          className="inline-flex items-center gap-2.5 rounded-2xl bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-5 py-3 text-sm"
         >
           <PlusIcon className="h-5 w-5" />
           <span>Tambah Tes Diagnostik</span>
@@ -138,7 +138,7 @@ export default function TeacherManageDiagnosticsContent({
         {diagnostics.map((diagnostic) => (
           <li
             key={diagnostic.id}
-            className="flex flex-wrap items-start gap-4 rounded-3xl border border-[#E5E7EB] bg-white px-5 py-5"
+            className="getmath-card flex flex-wrap items-start gap-4 px-5 py-5"
           >
             {/* Info */}
             <div className="min-w-0 flex-1">
@@ -152,7 +152,7 @@ export default function TeacherManageDiagnosticsContent({
                 {diagnostic.packageSummaries.map((pkg) => (
                   <span
                     key={pkg.label}
-                    className="inline-flex rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#2563EB]"
+                    className="inline-flex rounded-full bg-lottie-teal/10 px-3 py-1 text-xs font-semibold text-lottie-teal"
                   >
                     {pkg.label} · {pkg.questionCount} soal
                   </span>
@@ -194,7 +194,7 @@ export default function TeacherManageDiagnosticsContent({
                       `${basePath}/manage-diagnostics/${diagnostic.id}`,
                     )
                   }
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-lottie-teal/5 text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
                   aria-label={`Preview ${diagnostic.title}`}
                 >
                   <EyeIcon className="h-5 w-5" />
@@ -206,7 +206,7 @@ export default function TeacherManageDiagnosticsContent({
                       `${basePath}/manage-diagnostics/${diagnostic.id}/edit`,
                     )
                   }
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-lottie-teal/5 text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
                   aria-label={`Edit ${diagnostic.title}`}
                 >
                   <EditIcon className="h-5 w-5" />
@@ -214,7 +214,7 @@ export default function TeacherManageDiagnosticsContent({
                 <button
                   type="button"
                   onClick={() => handleDelete(diagnostic.id, diagnostic.title)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#EF4444] transition hover:bg-[#FEE2E2] cursor-pointer"
                   aria-label={`Hapus ${diagnostic.title}`}
                 >
                   <TrashIcon className="h-5 w-5" />

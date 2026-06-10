@@ -5,7 +5,7 @@ import Topbar from "@/components/organisms/Topbar";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="w-full min-h-screen flex relative overflow-x-hidden">
+    <div className="w-full min-h-screen flex relative overflow-x-hidden math-grid-bg">
       <Topbar />
       <Sidebar />
       <ContentLayout>{children}</ContentLayout>

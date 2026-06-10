@@ -20,7 +20,7 @@ function StepIcon({ typeLabel }: { typeLabel: string }) {
     return <VideoIcon className="h-4 w-4 text-[#2563EB]" />;
   if (typeLabel === "E-LKPD")
     return <DocumentIcon className="h-4 w-4 text-[#16A34A]" />;
-  if (typeLabel === "Tes" || typeLabel === "Test Diagnosis")
+  if (typeLabel === "Tes" || typeLabel === "Tes Diagnostik")
     return <ClockIcon className="h-4 w-4 text-[#94A3B8]" />;
   return <NotebookIcon className="h-4 w-4 text-[#2563EB]" />;
 }

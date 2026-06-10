@@ -48,9 +48,9 @@ import {
   useGsMyRemedialTests,
   useGsRemedialTestsByTeacher,
 } from "@/services/hooks/useGsRemedialTest";
-import { 
-  useGsDiagnosticScores, 
-  useGsRemedialScores 
+import {
+  useGsDiagnosticScores,
+  useGsRemedialScores
 } from "@/services/hooks/useGsProgress";
 import type { GsCourseModule } from "@/types/gs-course";
 import Link from "next/link";
@@ -75,7 +75,7 @@ import type {
 } from "@/types/learningAnalytics";
 import { LADDonutChart } from "../classroom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
-import { 
+import {
   useEmotionDistributionOverall,
   useDiagnosticTestDistribution,
   useRemedialTestDistribution
@@ -167,14 +167,14 @@ const VIEW_ITEMS: Array<{
   type: ClassAnalyticsViewType;
   icon: ComponentType<{ className?: string }>;
 }> = [
-  { type: "Beranda", icon: DashboardIcon },
-  { type: "Siswa", icon: ThreeUserGroupIcon },
-  { type: "Materi", icon: NotebookIcon },
-  { type: "Nilai E-LKPD", icon: ClipboardIcon },
-  { type: "Nilai Test", icon: ClipboardIcon },
-  { type: "Laporan", icon: TrendUpIcon },
-  { type: "Forum", icon: ChatIcon },
-];
+    { type: "Beranda", icon: DashboardIcon },
+    { type: "Siswa", icon: ThreeUserGroupIcon },
+    { type: "Materi", icon: NotebookIcon },
+    { type: "Nilai E-LKPD", icon: ClipboardIcon },
+    { type: "Nilai Test", icon: ClipboardIcon },
+    { type: "Laporan", icon: TrendUpIcon },
+    { type: "Forum", icon: ChatIcon },
+  ];
 
 const REPORT_MODES = ["Analisis Nilai & Emosi", "Word Cloud Forum"] as const;
 
@@ -182,17 +182,17 @@ const FORUM_WORD_CLOUD_ITEMS: IForumWordCloudItem[] = [
   {
     label: "persamaan",
     className:
-      "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#2563EB]",
+      "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#1F2375]",
   },
   {
     label: "kuadrat",
     className:
-      "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#2563EB]",
+      "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#1F2375]",
   },
   {
     label: "cara",
     className:
-      "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#2563EB]",
+      "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#1F2375]",
   },
   {
     label: "rumus",
@@ -471,7 +471,7 @@ function getAssetIconComponent(
 
 function getAssetTextClassName(kind: MateriAssetKind): string {
   if (kind === "PDF") {
-    return "text-[#2563EB]";
+    return "text-[#1F2375]";
   }
 
   if (kind === "Video") {
@@ -729,10 +729,10 @@ export function LearningAnalyticsViewSwitcher({
             type="button"
             onClick={() => onChange(item.type)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition",
+              "border border-lottie-teal/20 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition",
               isActive
-                ? "border-[#2563EB] bg-[#2563EB] text-white"
-                : "border-[#E5E7EB] bg-white text-[#475569] hover:bg-[#F8FAFC]",
+                ? "bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold"
+                : " bg-white text-[#475569] hover:bg-[#F8FAFC]",
             )}
           >
             <item.icon className="h-4 w-4" />
@@ -766,7 +766,7 @@ export function BaseBerandaSection({
           >
             <p
               className={cn(
-                "text-2xl font-extrabold leading-none text-[#2563EB]",
+                "text-2xl font-extrabold leading-none text-[#1F2375]",
                 card.valueClassName,
               )}
             >
@@ -799,7 +799,7 @@ export function BaseBerandaSection({
                   </p>
                   <p className="text-xs text-[#94A3B8]">{material.updatedAt}</p>
                 </div>
-                <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#2563EB]">
+                <span className="rounded-full bg-[#E0E7FF] px-2.5 py-1 text-xs font-semibold text-[#1F2375]">
                   {material.type}
                 </span>
               </div>
@@ -823,7 +823,7 @@ export function BaseBerandaSection({
                   </p>
                   <p className="text-xs text-[#94A3B8]">NIS: {student.nis}</p>
                 </div>
-                <p className="text-sm font-semibold text-[#2563EB]">
+                <p className="text-sm font-semibold text-[#1F2375]">
                   {student.score}
                 </p>
               </div>
@@ -854,7 +854,7 @@ export function BaseSiswaSection({
         avatarTone:
           STUDENT_AVATAR_ACCENTS[index % STUDENT_AVATAR_ACCENTS.length],
         initial: student.fullname.trim().charAt(0).toUpperCase() || "?",
-        progress: inferStudentProgress(student, index),
+        progress: student.progress ?? inferStudentProgress(student, index),
         emotion: inferStudentEmotion(student),
         isOnline: inferStudentOnlineState(student, index),
       })),
@@ -890,40 +890,10 @@ export function BaseSiswaSection({
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
             placeholder="Cari nama atau NIS..."
-            className="h-11 w-full rounded-2xl border border-[#E5E7EB] bg-white pl-9 pr-3 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+            className="h-11 w-full rounded-2xl border border-[#E5E7EB] bg-white pl-9 pr-3 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal/20 focus:ring-2 focus:ring-[#DBEAFE]"
             aria-label="Cari siswa"
           />
         </label>
-
-        <div className="relative w-full md:w-auto">
-          <FilterIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
-          <select
-            value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(event.target.value as StudentStatusFilter)
-            }
-            className="h-11 w-full appearance-none rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] pl-9 pr-9 text-sm font-semibold text-[#475569] outline-none transition focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE] md:min-w-[190px]"
-            aria-label="Filter status siswa"
-          >
-            <option value="Semua">Filter: Semua</option>
-            <option value="Lulus">Filter: Lulus</option>
-            <option value="Remedial">Filter: Remedial</option>
-          </select>
-          <svg
-            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]"
-            viewBox="0 0 20 20"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M5 7.5L10 12.5L15 7.5"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -940,15 +910,6 @@ export function BaseSiswaSection({
                 Progress
               </th>
               <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
-                Nilai Terakhir
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
-                Emosi
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
                 Aksi
               </th>
             </tr>
@@ -958,7 +919,7 @@ export function BaseSiswaSection({
             {filteredStudents.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={4}
                   className="px-4 py-10 text-center text-sm text-[#94A3B8]"
                 >
                   Tidak ada data siswa yang sesuai dengan pencarian atau filter.
@@ -1006,7 +967,7 @@ export function BaseSiswaSection({
                     <div className="flex items-center gap-2.5">
                       <div className="h-1.5 w-[88px] rounded-full bg-[#E5E7EB]">
                         <div
-                          className="h-full rounded-full bg-[#2563EB]"
+                          className="h-full rounded-full bg-[#1F2375]"
                           style={{ width: `${student.progress}%` }}
                         />
                       </div>
@@ -1014,37 +975,6 @@ export function BaseSiswaSection({
                         {student.progress}%
                       </span>
                     </div>
-                  </td>
-
-                  <td
-                    className={cn(
-                      "px-4 py-3 text-sm font-bold",
-                      student.score >= 75 ? "text-[#059669]" : "text-[#DC2626]",
-                    )}
-                  >
-                    {student.score}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm text-[#475569]">
-                    {student.emotion}
-                  </td>
-
-                  <td className="px-4 py-3 align-middle">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-semibold",
-                        student.status === "Lulus"
-                          ? "bg-[#DCFCE7] text-[#16A34A]"
-                          : "bg-[#FEE2E2] text-[#DC2626]",
-                      )}
-                    >
-                      {student.status === "Lulus" ? (
-                        <CheckCircleIcon className="h-3.5 w-3.5" />
-                      ) : (
-                        <AlertIcon className="h-3.5 w-3.5" />
-                      )}
-                      {student.status}
-                    </span>
                   </td>
 
                   <td className="px-4 py-3 align-middle">
@@ -1877,7 +1807,7 @@ export function BaseMateriSection({
             type="button"
             onClick={() => setIsModuleModalOpen(true)}
             disabled={isMutatingCourseModules}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#1F2375] px-4 text-sm font-semibold text-white transition hover:bg-[#171B5C]"
           >
             <PlusIcon className="h-4 w-4" />
             Tambah Modul
@@ -1942,7 +1872,7 @@ export function BaseMateriSection({
                       value={moduleTitle}
                       onChange={(event) => setModuleTitle(event.target.value)}
                       placeholder="Contoh: Modul Aljabar"
-                      className="h-11 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+                      className="h-11 w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal/20 focus:ring-2 focus:ring-[#DBEAFE]"
                     />
                   </div>
 
@@ -1961,12 +1891,12 @@ export function BaseMateriSection({
                       }
                       placeholder="Deskripsi modul"
                       rows={3}
-                      className="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+                      className="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal/20 focus:ring-2 focus:ring-[#DBEAFE]"
                     />
                   </div>
                 </>
               ) : (
-                <div className="rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] px-4 py-3 text-sm text-[#1D4ED8]">
+                <div className="rounded-2xl border border-[#DBEAFE] bg-[#E0E7FF] px-4 py-3 text-sm text-[#171B5C]">
                   Subject yang tampil di bawah ini diambil dari data materi yang
                   sudah Anda buat. Pilih satu subject untuk dijadikan modul
                   berikutnya di urutan kelas.
@@ -2005,10 +1935,10 @@ export function BaseMateriSection({
                             className={cn(
                               "flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left transition",
                               isSelected
-                                ? "border-[#BFDBFE] bg-[#EFF6FF]"
+                                ? "border-lottie-teal/20 bg-[#E0E7FF]"
                                 : "border-transparent bg-transparent hover:bg-[#F8FAFC]",
                               isAlreadyAdded &&
-                                "cursor-not-allowed border-[#E5E7EB] bg-[#F8FAFC] opacity-60",
+                              "cursor-not-allowed border-[#E5E7EB] bg-[#F8FAFC] opacity-60",
                             )}
                           >
                             <div className="flex items-center gap-2.5">
@@ -2029,11 +1959,11 @@ export function BaseMateriSection({
                             </div>
 
                             {isAlreadyAdded ? (
-                              <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#2563EB]">
+                              <span className="rounded-full bg-[#E0E7FF] px-2.5 py-1 text-xs font-semibold text-[#1F2375]">
                                 Sudah ditambahkan
                               </span>
                             ) : isSelected ? (
-                              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#2563EB] text-white">
+                              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#1F2375] text-white">
                                 <svg
                                   viewBox="0 0 20 20"
                                   fill="none"
@@ -2076,7 +2006,7 @@ export function BaseMateriSection({
                 type="button"
                 onClick={() => void saveNewModule()}
                 disabled={isModuleSaveDisabled}
-                className="h-11 rounded-2xl bg-[#2563EB] text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-11 rounded-2xl bg-[#1F2375] text-sm font-semibold text-white transition hover:bg-[#171B5C] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {createCourseModuleMutation.isPending
                   ? "Menyimpan..."
@@ -2132,10 +2062,10 @@ export function BaseMateriSection({
                   const alreadyAdded = isApiMode
                     ? usedDiagnosticIds.has(option.id)
                     : sequenceItems.some(
-                        (item) =>
-                          item.type === "Tes Diagnostik" &&
-                          item.title === option.title,
-                      );
+                      (item) =>
+                        item.type === "Tes Diagnostik" &&
+                        item.title === option.title,
+                    );
 
                   return (
                     <button
@@ -2169,7 +2099,7 @@ export function BaseMateriSection({
                       </div>
 
                       {alreadyAdded && (
-                        <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-semibold text-[#2563EB]">
+                        <span className="rounded-full bg-[#E0E7FF] px-2.5 py-1 text-xs font-semibold text-[#1F2375]">
                           Sudah ditambahkan
                         </span>
                       )}
@@ -2206,14 +2136,14 @@ export function BaseMateriSection({
           size="md"
         >
           <div className="space-y-4">
-            <div className="rounded-2xl border border-[#EFF6FF] bg-[#EFF6FF] p-4 text-sm text-[#1E40AF]">
-              <p className="font-semibold text-xs text-[#2563EB] uppercase tracking-wider">
+            <div className="rounded-2xl border border-[#E0E7FF] bg-[#E0E7FF] p-4 text-sm text-[#1E40AF]">
+              <p className="font-semibold text-xs text-[#1F2375] uppercase tracking-wider">
                 Tes Diagnostik Terpilih
               </p>
               <p className="mt-1 font-bold text-base text-[#1E3A8A] leading-snug">
                 {selectedDiagnosticForPairing.title}
               </p>
-              <p className="mt-1 text-xs text-[#2563EB] font-medium">
+              <p className="mt-1 text-xs text-[#1F2375] font-medium">
                 {selectedDiagnosticForPairing.questionCount} Soal ·{" "}
                 {selectedDiagnosticForPairing.durationMinutes} Menit
               </p>
@@ -2241,7 +2171,7 @@ export function BaseMateriSection({
                   </p>
                   <a
                     href="/teacher/dashboard/manage-remedial/create"
-                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1D4ED8]"
+                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-[#1F2375] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#171B5C]"
                   >
                     Buat Tes Remedial Baru
                   </a>
@@ -2254,7 +2184,7 @@ export function BaseMateriSection({
                       type="button"
                       onClick={() => void confirmPairingAndSave(remedial.id)}
                       disabled={createCourseModuleMutation.isPending}
-                      className="flex w-full items-center justify-between rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-left transition hover:border-[#2563EB] hover:bg-[#EFF6FF] group"
+                      className="flex w-full items-center justify-between rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-left transition hover:border-[#1F2375] hover:bg-[#E0E7FF] group"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-[#1F2937] group-hover:text-[#1E40AF] truncate">
@@ -2265,7 +2195,7 @@ export function BaseMateriSection({
                           {remedial.durationMinutes} Menit
                         </p>
                       </div>
-                      <span className="text-xs font-semibold text-[#2563EB] ml-3 shrink-0 rounded-lg bg-[#EFF6FF] px-2.5 py-1 transition group-hover:bg-[#2563EB] group-hover:text-white">
+                      <span className="text-xs font-semibold text-[#1F2375] ml-3 shrink-0 rounded-lg bg-[#E0E7FF] px-2.5 py-1 transition group-hover:bg-[#1F2375] group-hover:text-white">
                         Pilih & Pasangkan
                       </span>
                     </button>
@@ -2296,13 +2226,13 @@ export function BaseMateriSection({
         elkpds={
           resolvedSelectedModule?.subject?.eLKPDTitle
             ? [
-                {
-                  id: resolvedSelectedModule.subject.id, // Using subject id as a fallback for elkpd id
-                  title: resolvedSelectedModule.subject.eLKPDTitle,
-                  description: resolvedSelectedModule.subject.eLKPDDescription,
-                  fileUrl: resolvedSelectedModule.subject.eLKPDFileUrl || "",
-                },
-              ]
+              {
+                id: resolvedSelectedModule.subject.id, // Using subject id as a fallback for elkpd id
+                title: resolvedSelectedModule.subject.eLKPDTitle,
+                description: resolvedSelectedModule.subject.eLKPDDescription,
+                fileUrl: resolvedSelectedModule.subject.eLKPDFileUrl || "",
+              },
+            ]
             : []
         }
         students={students}
@@ -2389,15 +2319,15 @@ export function BaseNilaiTestSection({ courseId }: { courseId?: string }) {
           const isExpanded = expandedModuleId === m.id;
           return (
             <div key={m.id} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0px_4px_16px_rgba(148,163,184,0.08)]">
-              <div 
-                className="flex cursor-pointer items-center justify-between" 
+              <div
+                className="flex cursor-pointer items-center justify-between"
                 onClick={() => {
                   setExpandedModuleId(isExpanded ? "" : m.id);
                   setActiveScoreType("DIAGNOSTIC"); // default tab
                 }}
               >
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB]">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E0E7FF] text-[#1F2375]">
                     <NotebookIcon className="h-5 w-5" />
                   </span>
                   <div>
@@ -2408,50 +2338,50 @@ export function BaseNilaiTestSection({ courseId }: { courseId?: string }) {
                   </div>
                 </div>
                 <div className="text-[#94A3B8] transition-transform duration-200">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="24" 
-                    height="24" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     className={cn("h-5 w-5", isExpanded && "rotate-180")}
                   >
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </div>
               </div>
-              
+
               {isExpanded && (
                 <div className="mt-5 border-t border-[#F1F5F9] pt-5">
                   <div className="flex items-center gap-2 mb-4">
-                    <button 
+                    <button
                       onClick={() => setActiveScoreType("DIAGNOSTIC")}
                       className={cn(
                         "rounded-lg px-4 py-2 text-xs font-semibold transition",
-                        activeScoreType === "DIAGNOSTIC" 
-                        ? "bg-[#2563EB] text-white" 
-                        : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
+                        activeScoreType === "DIAGNOSTIC"
+                          ? "bg-[#1F2375] text-white"
+                          : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
                       )}
                     >
                       Nilai Diagnostik
                     </button>
-                    <button 
+                    <button
                       onClick={() => setActiveScoreType("REMEDIAL")}
                       className={cn(
                         "rounded-lg px-4 py-2 text-xs font-semibold transition",
-                        activeScoreType === "REMEDIAL" 
-                        ? "bg-[#2563EB] text-white" 
-                        : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
+                        activeScoreType === "REMEDIAL"
+                          ? "bg-[#1F2375] text-white"
+                          : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
                       )}
                     >
                       Nilai Remedial
                     </button>
                   </div>
-                  
+
                   <NilaiTestScoreTable moduleId={m.id} type={activeScoreType} />
                 </div>
               )}
@@ -2645,7 +2575,7 @@ export function BaseKelolaELKPDSection({
                       </button>
                       <button
                         type="button"
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-xl bg-[#E0E7FF] text-[#1F2375] transition hover:bg-lottie-teal/10"
                         aria-label={`Lihat ${item.title}`}
                       >
                         <EyeIcon className="h-4 w-4" />
@@ -2663,14 +2593,14 @@ export function BaseKelolaELKPDSection({
                       {buildELKPDScoreHref ? (
                         <Link
                           href={buildELKPDScoreHref(item.id)}
-                          className="inline-flex h-8 items-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                          className="inline-flex h-8 items-center rounded-xl bg-[#1F2375] px-5 text-sm font-semibold text-white transition hover:bg-[#171B5C]"
                         >
                           Nilai
                         </Link>
                       ) : (
                         <button
                           type="button"
-                          className="inline-flex h-8 items-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                          className="inline-flex h-8 items-center rounded-xl bg-[#1F2375] px-5 text-sm font-semibold text-white transition hover:bg-[#171B5C]"
                         >
                           Nilai
                         </button>
@@ -2783,7 +2713,7 @@ function ReportScoreChart({
           <p className="mt-1 text-xs text-[#64748B]">
             {!isPending && (
               <>
-                Rata-rata: <span className="font-semibold text-[#2563EB]">{averageScore.toFixed(1)}</span>
+                Rata-rata: <span className="font-semibold text-[#1F2375]">{averageScore.toFixed(1)}</span>
                 <span className="mx-2 text-[#CBD5E1]">|</span>
                 Sampel: <span className="font-semibold text-[#0F172A]">{totalSamples} Sesi</span>
               </>
@@ -2795,7 +2725,7 @@ function ReportScoreChart({
         <select
           value={distributionType}
           onChange={(e) => setDistributionType(e.target.value as "diagnostic" | "remedial")}
-          className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] shadow-sm outline-none transition focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] cursor-pointer"
+          className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] shadow-sm outline-none transition focus:border-[#1F2375] focus:ring-1 focus:ring-[#1F2375] cursor-pointer"
         >
           <option value="diagnostic">Tes Diagnostik</option>
           <option value="remedial">Tes Remedial</option>
@@ -2805,7 +2735,7 @@ function ReportScoreChart({
       <div className="mt-5 rounded-2xl border border-[#F1F5F9] bg-[#F8FAFC] p-4 md:p-5">
         {isPending ? (
           <div className="flex h-44 items-center justify-center text-sm text-[#64748B] font-medium">
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#2563EB]" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#1F2375]" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
@@ -2900,7 +2830,7 @@ function ReportStudentRows({
           <article key={student.id} className="px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white">
+                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1F2375] text-xs font-bold text-white">
                   {student.fullname.charAt(0).toUpperCase()}
                 </span>
                 <div className="min-w-0">
@@ -2937,7 +2867,7 @@ function ReportWordCloudForum() {
       <article className="rounded-2xl border border-[#E5E7EB] bg-white">
         <div className="border-b border-[#E5E7EB] px-4 py-4 md:px-6">
           <div className="flex items-start gap-2.5">
-            <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#2563EB]">
+            <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#1F2375]">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -2990,7 +2920,7 @@ function ReportWordCloudForum() {
           {FORUM_POST_ITEMS.map((post) => (
             <article key={post.id} className="px-4 py-3.5 md:px-6">
               <div className="flex items-start gap-3">
-                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1F2375] text-xs font-bold text-white">
                   {post.authorName.charAt(0).toUpperCase()}
                 </span>
 
@@ -3063,7 +2993,7 @@ export function TeacherOverviewSection({
 
   return (
     <section className="space-y-4">
-      <article className="overflow-hidden rounded-2xl bg-linear-to-r from-[#2563EB] to-[#2563EB]/90 px-4 py-4 text-white shadow-[0_16px_35px_rgba(37,99,235,0.28)] md:px-5 md:py-5">
+      <article className="overflow-hidden rounded-2xl bg-linear-to-r from-[#1F2375] to-[#1F2375]/90 px-4 py-4 text-white shadow-[0_16px_32px_rgba(31,35,117,0.1)] md:px-5 md:py-5">
         <p className="text-sm font-medium text-white/75">Dashboard Analitik</p>
         <h2 className="mt-1 text-xl font-bold leading-tight md:text-2xl">
           Mau lihat hasil analisis siswa kelas {classDetail.className}?
@@ -3076,13 +3006,13 @@ export function TeacherOverviewSection({
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Link
             href="?view=Laporan"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white px-3.5 py-2 text-xs font-semibold text-[#2563EB] transition hover:bg-[#EFF6FF]"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white px-3.5 py-2 text-xs font-semibold text-[#1F2375] transition hover:bg-[#E0E7FF]"
           >
             Analisis Keseluruhan Kelas
           </Link>
           <Link
             href="?view=Siswa"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-[#1D4ED8] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#1E40AF]"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-[#171B5C] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#1E40AF]"
           >
             Analisis Per Siswa
           </Link>
@@ -3091,7 +3021,7 @@ export function TeacherOverviewSection({
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-center">
-          <p className="text-3xl font-extrabold leading-none text-[#2563EB]">
+          <p className="text-3xl font-extrabold leading-none text-[#1F2375]">
             {activeStudents}
           </p>
           <p className="mt-1 text-xs text-[#94A3B8]">Siswa Aktif</p>
@@ -3153,7 +3083,7 @@ export function BaseLaporanSection({
     "Analisis Nilai & Emosi",
   );
 
-  const {data: emotionOverall, isPending} = useEmotionDistributionOverall(classId)
+  const { data: emotionOverall, isPending } = useEmotionDistributionOverall(classId)
 
   return (
     <section className="space-y-4">
@@ -3165,14 +3095,14 @@ export function BaseLaporanSection({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-2 text-xs font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-lottie-teal/20 bg-[#E0E7FF] px-3 py-2 text-xs font-semibold text-[#1F2375] transition hover:bg-lottie-teal/10"
           >
             <DownloadIcon className="h-3.5 w-3.5" />
             Export Kelas Ini
           </button>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-2 text-xs font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-lottie-teal/20 bg-[#E0E7FF] px-3 py-2 text-xs font-semibold text-[#1F2375] transition hover:bg-lottie-teal/10"
           >
             <DownloadIcon className="h-3.5 w-3.5" />
             Export Semua Kelas
@@ -3188,7 +3118,7 @@ export function BaseLaporanSection({
           >
             <p
               className={cn(
-                "text-3xl font-extrabold leading-none text-[#2563EB]",
+                "text-3xl font-extrabold leading-none text-[#1F2375]",
                 card.valueClassName,
               )}
             >
@@ -3216,7 +3146,7 @@ export function BaseLaporanSection({
               className={cn(
                 "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition",
                 isActive
-                  ? "border-[#2563EB] bg-[#EFF6FF] text-[#2563EB]"
+                  ? "border-[#1F2375] bg-[#E0E7FF] text-[#1F2375]"
                   : "border-[#E5E7EB] bg-white text-[#64748B] hover:bg-[#F8FAFC]",
               )}
             >
@@ -3231,54 +3161,54 @@ export function BaseLaporanSection({
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-1">
             <ReportScoreChart classId={classId} />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <SectionCard
-                      title="Emosi saat Membaca Materi"
-                      icon={
-                        <svg
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          className="h-4 w-4"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      }
-                    >
-                      <LADDonutChart
-                        segments={mapDistributionToSegments(
-                          emotionOverall?.moduleLearning.distribution
-                        )}
-                      />
-                    </SectionCard>
-            
-                    <SectionCard
-                      title="Emosi saat Tes Diagnostik"
-                      icon={
-                        <svg
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          className="h-4 w-4"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      }
-                    >
-                      <LADDonutChart
-                        segments={mapDistributionToSegments(
-                          emotionOverall?.remedial.distribution
-                        )}
-                      />
-                    </SectionCard>
-                  </div>
+              <SectionCard
+                title="Emosi saat Membaca Materi"
+                icon={
+                  <svg
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                }
+              >
+                <LADDonutChart
+                  segments={mapDistributionToSegments(
+                    emotionOverall?.moduleLearning.distribution
+                  )}
+                />
+              </SectionCard>
+
+              <SectionCard
+                title="Emosi saat Tes Diagnostik"
+                icon={
+                  <svg
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                }
+              >
+                <LADDonutChart
+                  segments={mapDistributionToSegments(
+                    emotionOverall?.remedial.distribution
+                  )}
+                />
+              </SectionCard>
+            </div>
           </div>
 
           <ReportStudentRows

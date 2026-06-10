@@ -55,7 +55,7 @@ function SchoolFormModal({
         onClick={onClose}
         aria-label="Tutup popup"
       />
-      <div className="relative w-full max-w-[500px] overflow-visible rounded-[28px] border border-[#E5E7EB] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)]">
+      <div className="relative w-full max-w-[500px] overflow-visible rounded-[28px] border border-lottie-teal/16 bg-white shadow-[0_24px_70px_rgba(31,35,117,0.15)]">
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-5 overflow-hidden rounded-t-[28px]">
           <h2 className="text-2xl font-semibold leading-tight text-[#111827]">
             {title}
@@ -94,7 +94,7 @@ function SchoolFormModal({
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="cth: SMAN 1 Jakarta"
-              className="h-12 w-full rounded-2xl border border-[#D1D5DB] px-4 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              className="h-12 w-full rounded-2xl border border-[#D1D5DB] px-4 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
               autoFocus
             />
           </div>
@@ -103,10 +103,10 @@ function SchoolFormModal({
             type="submit"
             disabled={isSubmitDisabled}
             className={cn(
-              "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold transition relative z-10",
+              "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold transition relative z-10 cursor-pointer",
               isSubmitDisabled
-                ? "cursor-not-allowed bg-[#E5E7EB] text-white"
-                : "bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+                ? "cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]"
+                : "bg-lottie-teal mantaps text-white  text-white"
             )}
           >
             <PlusIcon className="h-4 w-4" />
@@ -202,7 +202,7 @@ export default function AdminManageSchoolsTemplate() {
           <button
             type="button"
             onClick={() => setIsAddOpen(true)}
-            className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+            className="inline-flex items-center gap-2.5 rounded-2xl bg-lottie-teal mantaps text-white  px-5 py-3 text-sm font-semibold text-white transition cursor-pointer"
           >
             <PlusIcon className="h-4 w-4" />
             <span>Tambah Sekolah</span>
@@ -215,7 +215,7 @@ export default function AdminManageSchoolsTemplate() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Cari nama sekolah..."
-            className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+            className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal/20 focus:ring-2 focus:ring-lottie-mint-glow/20"
           />
         </div>
 
@@ -226,7 +226,7 @@ export default function AdminManageSchoolsTemplate() {
             {schools.map((school) => (
               <li
                 key={school.id}
-                className="rounded-3xl border border-[#E5E7EB] bg-white p-5 md:p-6"
+                className="getmath-card p-5 md:p-6"
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
@@ -234,16 +234,16 @@ export default function AdminManageSchoolsTemplate() {
                       {school.name}
                     </h3>
                     <div className="mt-2 flex gap-4 text-sm text-[#6B7280]">
-                      <span>Guru: <strong className="text-[#374151]">{school.teacherCount}</strong></span>
-                      <span>Siswa: <strong className="text-[#374151]">{school.studentCount}</strong></span>
-                      <span>Kelas: <strong className="text-[#374151]">{school.courseCount}</strong></span>
+                      <span>Guru: <strong className="text-lottie-teal">{school.teacherCount}</strong></span>
+                      <span>Siswa: <strong className="text-lottie-teal">{school.studentCount}</strong></span>
+                      <span>Kelas: <strong className="text-lottie-teal">{school.courseCount}</strong></span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setEditingSchool(school)}
-                      className="p-2 border border-[#BFDBFE] rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition"
+                      className="p-2 border border-lottie-teal/20 rounded-xl bg-lottie-teal/5 text-lottie-teal hover:bg-lottie-teal/10 transition cursor-pointer"
                       title="Edit Sekolah"
                     >
                       <EditIcon className="h-4 w-4" />
@@ -251,7 +251,7 @@ export default function AdminManageSchoolsTemplate() {
                     <button
                       type="button"
                       onClick={() => setDeletingSchool(school)}
-                      className="p-2 border border-[#FECACA] rounded-xl bg-[#FEF2F2] text-[#DC2626] hover:bg-[#FEE2E2] transition"
+                      className="p-2 border border-red-200 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition cursor-pointer"
                       title="Hapus Sekolah"
                     >
                       <TrashIcon className="h-4 w-4" />

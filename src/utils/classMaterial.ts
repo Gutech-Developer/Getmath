@@ -7,7 +7,7 @@ export function getActiveContentMode(typeLabel: string) {
     return "E-LKPD";
   }
 
-  if (typeLabel === "Tes" || typeLabel === "Test Diagnosis") {
+  if (typeLabel === "Tes" || typeLabel === "Tes Diagnostik") {
     return "Tes Diagnostik";
   }
 
@@ -37,7 +37,7 @@ export function formatBreadcrumbLabel(
   }
 
   if (segment === slug) {
-    return formatContentTitle(segment);
+    return "";
   }
 
   if (segment === "materi") {

@@ -47,7 +47,7 @@ interface IELKPDScoreRow {
 
 const ELKPD_AVATAR_ACCENTS = [
   "bg-[#CA8A04]",
-  "bg-[#2563EB]",
+  "bg-[#1f2375]",
   "bg-[#16A34A]",
   "bg-[#7C3AED]",
   "bg-[#0EA5E9]",
@@ -60,183 +60,151 @@ function buildClassHref(role: AnalyticsRole, slug: string): string {
   }
 
   return `/teacher/dashboard/class-list/${slug}`;
-}function GradeInputCell({
+} function GradeForm({
+  student,
   elkpdId,
-  studentId,
-  initialScore,
-  initialNote,
-  isScored,
-  onResetClick,
+  onClose,
 }: {
+  student: IELKPDScoreRow;
   elkpdId: string;
-  studentId: string;
-  initialScore: number | null;
-  initialNote: string | null;
-  isScored: boolean;
-  onResetClick: () => void;
+  onClose: () => void;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [scoreValue, setScoreValue] = useState(
-    initialScore !== null ? String(initialScore) : "",
+  const [score, setScore] = useState(
+    student.scoreValue !== null ? String(student.scoreValue) : "",
   );
-  const [noteValue, setNoteValue] = useState(initialNote || "");
+  const [note, setNote] = useState(student.teacherNote || "");
+  const [errorMsg, setErrorMsg] = useState("");
   const { mutate: gradeELKPD, isPending } = useGradeELKPD(elkpdId);
-  const { mutate: resetGrade, isPending: isResetting } =
-    useResetELKPDGrade(elkpdId);
 
   const handleSave = () => {
-    const numScore = parseInt(scoreValue, 10);
-    if (!isNaN(numScore) && numScore >= 0 && numScore <= 100) {
-      gradeELKPD(
-        {
-          studentId,
-          input: {
-            score: numScore,
-            teacherNote: noteValue || undefined,
-          },
-        },
-        {
-          onSuccess: () => {
-            showToast.success("Nilai berhasil diperbarui");
-            setIsEditing(false);
-          },
-          onError: (error) => {
-            showErrorToast(error);
-          },
-        },
-      );
-    } else {
-      showToast.error("Nilai harus antara 0 - 100");
+    const numScore = parseInt(score, 10);
+    if (isNaN(numScore) || numScore < 0 || numScore > 100) {
+      setErrorMsg("Nilai harus berupa angka antara 0 hingga 100");
+      return;
     }
-  };
+    setErrorMsg("");
 
-  const handleCancel = () => {
-    setScoreValue(initialScore !== null ? String(initialScore) : "");
-    setNoteValue(initialNote || "");
-    setIsEditing(false);
-  };
-
-  const handleReset = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onResetClick();
-  };
-
-  if (isEditing) {
-    return (
-      <div className="flex flex-col items-end gap-2 p-1 min-w-[200px]">
-        <div className="flex items-center gap-1.5 w-full justify-end">
-          <div className="relative flex items-center">
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={scoreValue}
-              onChange={(e) => setScoreValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) handleSave();
-                if (e.key === "Escape") handleCancel();
-              }}
-              disabled={isPending}
-              autoFocus
-              className="w-16 rounded border border-[#E5E7EB] px-2 py-1 text-right text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
-            />
-            <span className="ml-1 text-[10px] text-[#94A3B8]">/100</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleSave}
-              disabled={isPending}
-              className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2563EB] text-white transition hover:bg-[#1D4ED8] disabled:opacity-50"
-              title="Simpan"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={handleCancel}
-              disabled={isPending}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#E5E7EB] text-[#94A3B8] transition hover:bg-[#F8FAFC] disabled:opacity-50"
-              title="Batal"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <textarea
-          placeholder="Tambah catatan untuk siswa (opsional)..."
-          value={noteValue}
-          onChange={(e) => setNoteValue(e.target.value)}
-          disabled={isPending}
-          className="w-full rounded border border-[#E5E7EB] px-2 py-1.5 text-xs outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] resize-none min-h-[60px]"
-        />
-      </div>
+    gradeELKPD(
+      {
+        studentId: student.id,
+        input: {
+          score: numScore,
+          teacherNote: note.trim() || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          showToast.success(`Nilai untuk ${student.fullname} berhasil disimpan`);
+          onClose();
+        },
+        onError: (err) => {
+          showErrorToast(err);
+        },
+      },
     );
-  }
+  };
 
   return (
-    <div className="group flex items-center justify-end gap-2">
-      {isScored && !isEditing && (
-        <button
-          onClick={handleReset}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-[#94A3B8] opacity-0 transition hover:bg-[#FEE2E2] hover:text-[#EF4444] group-hover:opacity-100 disabled:opacity-50"
-          title="Hapus Nilai"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
-        </button>
-      )}
+    <div className="space-y-4">
+      {/* Detail Siswa */}
+      <div className="rounded-2xl bg-[#F8FAFC] p-4 border border-[#E2E8F0] space-y-1">
+        <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+          Siswa yang Dinilai
+        </p>
+        <h3 className="text-sm font-bold text-[#1F2937]">{student.fullname}</h3>
+        <p className="text-xs text-[#94A3B8]">NIS: {student.nis}</p>
+      </div>
 
-      <div
-        className={cn(
-          "cursor-pointer rounded px-2 py-1 transition hover:bg-[#F1F5F9]",
-          isScored ? "text-[#16A34A]" : "text-[#94A3B8]",
+      {/* Input Nilai */}
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-bold text-[#475569] uppercase tracking-wider">
+          Nilai E-LKPD (Skala 0 - 100)
+        </label>
+        <div className="relative flex items-center">
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={score}
+            onChange={(e) => {
+              setScore(e.target.value);
+              setErrorMsg("");
+            }}
+            placeholder="Masukkan nilai"
+            className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F2937] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
+            disabled={isPending}
+            autoFocus
+          />
+          <span className="absolute right-4 text-xs font-semibold text-[#94A3B8]">
+            / 100
+          </span>
+        </div>
+        {errorMsg && (
+          <p className="text-xs font-semibold text-[#EF4444]">{errorMsg}</p>
         )}
-        onClick={() => setIsEditing(true)}
-        title="Klik untuk mengubah nilai"
-      >
-        {initialScore !== null ? `${initialScore}/100` : "-/100"}
+      </div>
+
+      {/* Input Catatan */}
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-bold text-[#475569] uppercase tracking-wider">
+          Catatan Guru (Umpan Balik)
+        </label>
+        <textarea
+          placeholder="Berikan umpan balik atau catatan terkait pengerjaan E-LKPD siswa (opsional)..."
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm text-[#1F2937] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50 min-h-[100px] resize-none"
+          disabled={isPending}
+        />
+      </div>
+
+      {/* Button Actions */}
+      <div className="flex flex-col gap-2 sm:flex-row pt-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="h-10 flex-1 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 text-sm font-semibold text-[#64748B] transition hover:bg-[#F1F5F9] disabled:opacity-50"
+          disabled={isPending}
+        >
+          Batal
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isPending}
+          className="h-10 flex-1 rounded-xl bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-4 text-sm disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+        >
+          {isPending ? (
+            <>
+              <svg
+                className="animate-spin h-4 w-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Menyimpan...
+            </>
+          ) : (
+            "Simpan Nilai"
+          )}
+        </button>
       </div>
     </div>
   );
 }
-
-
 
 export default function LearningAnalyticsELKPDScoreContent({
   role,
@@ -258,6 +226,7 @@ export default function LearningAnalyticsELKPDScoreContent({
     id: string;
     name: string;
   } | null>(null);
+  const [gradeTarget, setGradeTarget] = useState<IELKPDScoreRow | null>(null);
 
   // 1. Fetch Grades & Students for this ELKPD module
   const { data: gradesData } = useELKPDGradesByModule(elkpdId);
@@ -297,10 +266,9 @@ export default function LearningAnalyticsELKPDScoreContent({
           avatarTone: ELKPD_AVATAR_ACCENTS[index % ELKPD_AVATAR_ACCENTS.length],
           isOnline: true,
           isScored,
-        
           scoreValue: grade.score,
           scoreLabel: isScored ? `${grade.score}/100` : "-/100",
-          submissionUrl: grade.submissionId ? "#" : undefined, // Link if submission exists
+          submissionUrl: grade.submissionId ? "#" : undefined,
           teacherNote: grade.teacherNote,
         };
       });
@@ -365,17 +333,17 @@ export default function LearningAnalyticsELKPDScoreContent({
       <div className="space-y-3">
         <Link
           href={backHref}
-          className="inline-flex items-center text-sm font-semibold text-[#2563EB] transition hover:text-[#1D4ED8]"
+          className="inline-flex items-center text-sm font-semibold text-lottie-teal transition hover:opacity-90"
         >
-          + Kembali ke Daftar E-LKPD
+          ← Kembali ke Daftar E-LKPD
         </Link>
 
-        <section className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
-            <h2 className="truncate text-sm font-semibold text-[#1F2937]">
+        <section className="getmath-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4 bg-white">
+            <h2 className="truncate text-sm font-bold text-[#1F2937]">
               {selectedELKPD?.title ?? "Nilai E-LKPD"}
             </h2>
-            <p className="shrink-0 text-xs text-[#94A3B8]">
+            <p className="shrink-0 text-xs text-[#94A3B8] font-medium">
               {selectedELKPD?.dueLabel
                 ? `Batas pengumpulan: ${selectedELKPD.dueLabel}`
                 : "Pantau nilai siswa"}
@@ -383,20 +351,23 @@ export default function LearningAnalyticsELKPDScoreContent({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-[860px] w-full border-collapse">
+            <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-[#E5E7EB] bg-[#FCFCFD]">
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
+                  <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] min-w-[240px]">
                     Nama Siswa
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
-                    NIS
+                  <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] min-w-[140px]">
+                    Status Penilaian
                   </th>
-                   <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
-                    Catatan 
+                  <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] max-w-[280px] min-w-[220px]">
+                    Catatan Guru
                   </th>
-                  <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.03em] text-[#94A3B8]">
-                    Nilai
+                  <th className="px-5 py-3.5 text-center text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] min-w-[120px]">
+                    Nilai E-LKPD
+                  </th>
+                  <th className="px-5 py-3.5 text-right text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] min-w-[160px]">
+                    Aksi
                   </th>
                 </tr>
               </thead>
@@ -405,8 +376,8 @@ export default function LearningAnalyticsELKPDScoreContent({
                 {scoreRows.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={4}
-                      className="px-4 py-10 text-center text-sm text-[#94A3B8]"
+                      colSpan={5}
+                      className="px-5 py-12 text-center text-sm text-[#94A3B8]"
                     >
                       Belum ada data siswa untuk E-LKPD ini.
                     </td>
@@ -415,58 +386,154 @@ export default function LearningAnalyticsELKPDScoreContent({
                   scoreRows.map((row) => (
                     <tr
                       key={row.id}
-                      className="border-b border-[#E5E7EB] transition-colors hover:bg-[#F8FAFC]"
+                      className="border-b border-[#E5E7EB] last:border-0 transition-colors hover:bg-[#F8FAFC]"
                     >
-                      <td className="px-4 py-3">
+                      {/* 1. Nama Siswa & NIS */}
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <span
                             className={cn(
-                              "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
+                              "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm",
                               row.avatarTone,
                             )}
                           >
                             {row.initial}
                           </span>
-
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-[#1F2937]">
                               {row.fullname}
                             </p>
-                            <p
-                              className={cn(
-                                "text-xs",
-                                row.isOnline
-                                  ? "text-[#16A34A]"
-                                  : "text-[#9CA3AF]",
-                              )}
-                            >
-                              {row.isOnline ? "Online" : "Offline"}
+                            <p className="text-xs text-[#94A3B8] font-medium">
+                              NIS: {row.nis}
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-4 py-3 text-sm text-[#94A3B8]">
-                        {row.nis}
+                      {/* 2. Status Penilaian */}
+                      <td className="px-5 py-3.5">
+                        {row.isScored ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF5] px-2.5 py-0.5 text-xs font-semibold text-[#047857]">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />
+                            Sudah Dinilai
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-xs font-semibold text-[#64748B]">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#94A3B8]" />
+                            Belum Dinilai
+                          </span>
+                        )}
                       </td>
 
-                      <td className="px-4 py-3 text-sm text-[#94A3B8]">
-                        {row.teacherNote || "-"}
+                      {/* 3. Catatan Guru */}
+                      <td className="px-5 py-3.5 text-sm text-[#475569] max-w-[280px]">
+                        {row.teacherNote ? (
+                          <p
+                            className="truncate italic text-[#475569]/80 font-medium"
+                            title={row.teacherNote}
+                          >
+                            "{row.teacherNote}"
+                          </p>
+                        ) : (
+                          <span className="text-[#CBD5E1] font-normal">-</span>
+                        )}
                       </td>
 
-                      
+                      {/* 4. Nilai E-LKPD */}
+                      <td className="px-5 py-3.5 text-center">
+                        {row.isScored && row.scoreValue !== null ? (
+                          <span
+                            className={cn(
+                              "inline-flex rounded-lg px-2.5 py-1 text-sm font-bold shadow-sm border",
+                              row.scoreValue >= 75
+                                ? "bg-[#ECFDF5] text-[#047857] border-[#A7F3D0]"
+                                : "bg-[#FEF2F2] text-[#B91C1C] border-[#FCA5A5]",
+                            )}
+                          >
+                            {row.scoreValue} / 100
+                          </span>
+                        ) : (
+                          <span className="text-[#CBD5E1] text-sm font-normal">
+                            - / 100
+                          </span>
+                        )}
+                      </td>
 
-                      <td className="px-4 py-3 text-right text-sm font-semibold">
-                        <GradeInputCell
-                          elkpdId={elkpdId}
-                          studentId={row.id}
-                          initialScore={row.scoreValue}
-                          initialNote={row.teacherNote ?? null}
-                          isScored={row.isScored}
-                          onResetClick={() =>
-                            setResetTarget({ id: row.id, name: row.fullname })
-                          }
-                        />
+                      {/* 5. Aksi */}
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          {row.isScored ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setGradeTarget(row)}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-lottie-teal/20 bg-white px-2.5 text-xs font-semibold text-[#475569] transition hover:bg-lottie-teal/5 hover:text-lottie-teal cursor-pointer"
+                                title="Ubah Nilai"
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5 text-[#64748B]"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setResetTarget({
+                                    id: row.id,
+                                    name: row.fullname,
+                                  })
+                                }
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#FEE2E2] bg-white text-[#EF4444] transition hover:bg-[#FEF2F2]"
+                                title="Hapus Nilai"
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setGradeTarget(row)}
+                              className="inline-flex h-8 items-center gap-1 rounded-lg bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-2.5 text-xs cursor-pointer"
+                            >
+                              <svg
+                                className="h-3.5 w-3.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M12 4v16m8-8H4"
+                                />
+                              </svg>
+                              Beri Nilai
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -477,6 +544,25 @@ export default function LearningAnalyticsELKPDScoreContent({
         </section>
       </div>
 
+      {/* Modal Input Nilai */}
+      <Modal
+        isOpen={!!gradeTarget}
+        onClose={() => {
+          if (!isResetting) setGradeTarget(null);
+        }}
+        title="Beri Nilai E-LKPD"
+        size="md"
+      >
+        {gradeTarget && (
+          <GradeForm
+            student={gradeTarget}
+            elkpdId={elkpdId}
+            onClose={() => setGradeTarget(null)}
+          />
+        )}
+      </Modal>
+
+      {/* Modal Hapus Nilai */}
       <Modal
         isOpen={!!resetTarget}
         onClose={() => setResetTarget(null)}

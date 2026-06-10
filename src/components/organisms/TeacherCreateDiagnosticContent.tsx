@@ -277,7 +277,7 @@ export default function TeacherCreateDiagnosticContent({
       urlsToDelete.forEach(async (url) => {
         try {
           await deleteMutation.mutateAsync(url);
-        } catch (e) {}
+        } catch (e) { }
       });
     }
 
@@ -413,7 +413,7 @@ export default function TeacherCreateDiagnosticContent({
         <button
           type="button"
           onClick={() => router.push(`${basePath}/manage-diagnostics`)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:bg-[#F3F4F6]"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-lottie-teal/10 bg-white text-lottie-teal hover:bg-lottie-teal/5 transition cursor-pointer"
           aria-label="Kembali"
         >
           <ChevronLeftIcon className="h-5 w-5" />
@@ -431,7 +431,7 @@ export default function TeacherCreateDiagnosticContent({
       </div>
 
       {/* Info Tes */}
-      <section className="space-y-4 rounded-3xl border border-[#E5E7EB] bg-white px-6 py-5">
+      <section className="space-y-4 getmath-card px-6 py-5">
         <p className="text-sm font-semibold text-[#374151]">Informasi Tes</p>
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-[#374151]">
@@ -442,7 +442,7 @@ export default function TeacherCreateDiagnosticContent({
             value={testTitle}
             onChange={(e) => setTestTitle(e.target.value)}
             placeholder="Judul tes diagnostik"
-            className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+            className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
           />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -455,7 +455,7 @@ export default function TeacherCreateDiagnosticContent({
               min={1}
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
-              className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
           <div className="space-y-1.5">
@@ -468,7 +468,7 @@ export default function TeacherCreateDiagnosticContent({
               max={100}
               value={kkm}
               onChange={(e) => setKkm(Number(e.target.value))}
-              className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
         </div>
@@ -481,7 +481,7 @@ export default function TeacherCreateDiagnosticContent({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Deskripsi tes diagnostik"
             rows={2}
-            className="w-full resize-none rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+            className="w-full resize-none rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
           />
         </div>
 
@@ -509,10 +509,10 @@ export default function TeacherCreateDiagnosticContent({
       </section>
 
       {/* Soal Tes */}
-      <section className="overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white">
-        <div className="flex items-center gap-3 border-b border-[#E5E7EB] px-5 py-4">
-          <h2 className="text-sm font-semibold text-[#1F2937]">Daftar Soal</h2>
-          <span className="rounded-full bg-[#DBEAFE] px-2 py-0.5 text-xs font-semibold text-[#1D4ED8]">
+      <section className="overflow-hidden getmath-card">
+        <div className="flex items-center gap-3 border-b border-[#E5E7EB] px-5 py-4 bg-lottie-teal/5">
+          <h2 className="text-sm font-semibold text-lottie-midnight">Daftar Soal</h2>
+          <span className="rounded-full bg-lottie-teal/10 px-2.5 py-0.5 text-xs font-semibold text-lottie-teal">
             {questions.length} Soal
           </span>
         </div>
@@ -532,7 +532,7 @@ export default function TeacherCreateDiagnosticContent({
                   className="flex w-full justify-between items-center gap-3 bg-[#F9FAFB] px-4 py-3 text-left"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-sm font-semibold text-white">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lottie-teal text-sm font-semibold text-white">
                       {qi + 1}
                     </span>
                     <div className="max-w-md truncate text-sm">
@@ -540,7 +540,7 @@ export default function TeacherCreateDiagnosticContent({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="shrink-0 rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
+                    <span className="shrink-0 rounded-full border border-lottie-teal/20 bg-lottie-teal/5 px-3 py-1 text-xs font-semibold text-lottie-teal">
                       Benar: {question.correctAnswer}
                     </span>
                     <ChevronLeftIcon
@@ -579,7 +579,7 @@ export default function TeacherCreateDiagnosticContent({
                         onImageDelete={async (url) => {
                           try {
                             await deleteMutation.mutateAsync(url);
-                          } catch {}
+                          } catch { }
                         }}
                       />
                     </div>
@@ -597,7 +597,7 @@ export default function TeacherCreateDiagnosticContent({
                               className={cn(
                                 "flex items-start gap-3 rounded-2xl border p-3 transition-colors",
                                 isCorrect
-                                  ? "border-[#3B82F6] bg-[#EFF6FF]"
+                                  ? "border-lottie-teal bg-lottie-teal/5"
                                   : "border-[#E5E7EB] bg-white",
                               )}
                             >
@@ -612,7 +612,7 @@ export default function TeacherCreateDiagnosticContent({
                                 className={cn(
                                   "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition",
                                   isCorrect
-                                    ? "border-[#3B82F6] bg-[#3B82F6] text-white"
+                                    ? "border-lottie-teal bg-lottie-teal text-white"
                                     : "border-[#D1D5DB] text-[#9CA3AF] hover:border-[#9CA3AF]",
                                 )}
                               >
@@ -647,7 +647,7 @@ export default function TeacherCreateDiagnosticContent({
                                   onImageDelete={async (url) => {
                                     try {
                                       await deleteMutation.mutateAsync(url);
-                                    } catch {}
+                                    } catch { }
                                   }}
                                 />
                               </div>
@@ -675,7 +675,7 @@ export default function TeacherCreateDiagnosticContent({
           <button
             type="button"
             onClick={() => addQuestion()}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#93C5FD] bg-[#F0F9FF] py-3 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-lottie-teal/30 bg-lottie-teal/5 py-3 text-sm font-semibold text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
           >
             <PlusIcon className="h-4 w-4" /> Tambah Soal
           </button>
@@ -683,11 +683,11 @@ export default function TeacherCreateDiagnosticContent({
       </section>
 
       {/* Footer */}
-      <div className="flex flex-wrap items-center justify-end gap-3 rounded-3xl border border-[#E5E7EB] bg-white px-6 py-4">
+      <div className="flex flex-wrap items-center justify-end gap-3 getmath-card px-6 py-4">
         <button
           type="button"
           onClick={() => router.push(`${basePath}/manage-diagnostics`)}
-          className="rounded-2xl border border-[#D1D5DB] bg-[#F9FAFB] px-8 py-2.5 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F3F4F6]"
+          className="rounded-2xl px-8 py-2.5 text-sm font-semibold btn-secondary-subtle cursor-pointer"
         >
           Batal
         </button>
@@ -695,7 +695,7 @@ export default function TeacherCreateDiagnosticContent({
           type="button"
           onClick={handleSave}
           disabled={isSaving}
-          className="rounded-2xl bg-[#2563EB] px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60"
+          className="rounded-2xl px-8 py-2.5 text-sm font-semibold bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold disabled:opacity-60 cursor-pointer"
         >
           {isSaving
             ? "Menyimpan…"

@@ -20,31 +20,31 @@ const registerOptions: Array<{
   className: string;
   icon: React.ReactNode;
 }> = [
-  {
-    role: "student",
-    label: "Buat Akun Siswa",
-    href: "/register/student",
-    className:
-      "border-[#1a237e]/10 text-[#1a237e] hover:border-[#1a237e]/25 hover:bg-[#1a237e]/5",
-    icon: <NotebookIcon className="w-3.5 h-3.5" variant="outline" />,
-  },
-  {
-    role: "teacher",
-    label: "Buat Akun Guru",
-    href: "/register/teacher",
-    className:
-      "border-[#7c3aed]/20 text-[#7c3aed] hover:border-[#7c3aed]/35 hover:bg-[#7c3aed]/5",
-    icon: <DashboardIcon className="w-3.5 h-3.5" variant="outline" />,
-  },
-  {
-    role: "parent",
-    label: "Buat Akun Orang Tua",
-    href: "/register/parent",
-    className:
-      "border-[#047857]/20 text-[#047857] hover:border-[#047857]/35 hover:bg-[#047857]/5",
-    icon: <ThreeUserGroupIcon className="w-3.5 h-3.5" variant="outline" />,
-  },
-];
+    {
+      role: "student",
+      label: "Buat Akun Siswa",
+      href: "/register/student",
+      className:
+        "border-lottie-teal/10 text-lottie-teal hover:border-lottie-teal/25 hover:bg-lottie-teal/5",
+      icon: <NotebookIcon className="w-3.5 h-3.5" variant="outline" />,
+    },
+    {
+      role: "teacher",
+      label: "Buat Akun Guru",
+      href: "/register/teacher",
+      className:
+        "border-lottie-teal/10 text-lottie-teal hover:border-lottie-teal/25 hover:bg-lottie-teal/5",
+      icon: <DashboardIcon className="w-3.5 h-3.5" variant="outline" />,
+    },
+    {
+      role: "parent",
+      label: "Buat Akun Orang Tua",
+      href: "/register/parent",
+      className:
+        "border-lottie-teal/10 text-lottie-teal hover:border-lottie-teal/25 hover:bg-lottie-teal/5",
+      icon: <ThreeUserGroupIcon className="w-3.5 h-3.5" variant="outline" />,
+    },
+  ];
 
 const LoginFormContent: React.FC = () => {
   const [email, setEmail] = useState<string>("");
@@ -110,7 +110,7 @@ const LoginFormContent: React.FC = () => {
         type="button"
         onClick={() => startGoogleLogin()}
         disabled={isLoading}
-        className="w-full rounded-[12px] border border-gray-300 bg-white py-2.5 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-3 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full rounded-xl border border-lottie-teal/10 bg-white/80 py-3 px-4 text-sm font-semibold text-neutral-02 hover:bg-lottie-teal/5 transition duration-200 flex items-center justify-center gap-3 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -138,17 +138,17 @@ const LoginFormContent: React.FC = () => {
       </button>
 
       <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-[#1a237e]/10" />
-        <span className="text-[12px] text-[#9ca3af]">atau dengan email</span>
-        <div className="h-px flex-1 bg-[#1a237e]/10" />
+        <div className="h-px flex-1 bg-lottie-teal/10" />
+        <span className="text-[12px] text-lottie-zinc-500">atau dengan email</span>
+        <div className="h-px flex-1 bg-lottie-teal/10" />
       </div>
 
       <div className="space-y-1.5">
         <label htmlFor="email" className="block">
-          <BodySmallMedium className="text-[#4b5563]">Email</BodySmallMedium>
+          <BodySmallMedium className="text-lottie-zinc-500">Email</BodySmallMedium>
         </label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lottie-fog">
             <svg
               className="w-3.5 h-3.5"
               fill="none"
@@ -170,7 +170,7 @@ const LoginFormContent: React.FC = () => {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded-[12px] bg-[#1a237e]/5 px-3.5 py-2.5 pl-8 text-[13px] outline-[#1a237e]/10 focus:outline-[#00acc1]"
+            className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 pl-9 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
             placeholder="nama@email.com"
           />
         </div>
@@ -179,20 +179,20 @@ const LoginFormContent: React.FC = () => {
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <label htmlFor="password" className="block">
-            <BodySmallMedium className="text-[#4b5563]">
+            <BodySmallMedium className="text-lottie-zinc-500">
               Password
             </BodySmallMedium>
           </label>
           <div className="text-sm">
             <Link href="/forgot-password">
-              <BodySmallMedium className="text-[#00acc1] hover:text-[#1a237e] transition-colors">
+              <BodySmallMedium className="text-lottie-teal hover:underline duration-200 font-semibold">
                 Lupa password?
               </BodySmallMedium>
             </Link>
           </div>
         </div>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af] z-10">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lottie-fog z-10">
             <svg
               className="w-3.5 h-3.5"
               fill="none"
@@ -220,7 +220,7 @@ const LoginFormContent: React.FC = () => {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-[12px] bg-[#1a237e]/5 py-2.5 pl-8 pr-8 text-[13px] outline-[#1a237e]/10 focus:outline-[#00acc1]"
+            className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 pl-9 pr-9 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
             placeholder="Masukkan password"
           />
         </div>
@@ -236,26 +236,30 @@ const LoginFormContent: React.FC = () => {
         <SubmitButton
           variant="outline"
           text={isLoading ? "Sedang masuk..." : "Masuk"}
-          className="w-full flex justify-center items-center border-0 text-white bg-[linear-gradient(173deg,#1a237e_0%,#00acc1_100%)] hover:text-white rounded-[12px] shadow-[0px_10px_20px_rgba(26,35,126,0.2)]"
+          className="w-full flex justify-center disabled:cursor-not-allowed! disabled:opacity-80 items-center border-0 text-white bg-lottie-teal mantaps text-white  rounded-xl py-3 text-sm font-semibold cursor-pointer"
           disabled={isLoading}
         />
       </div>
 
       <div className="flex items-center gap-3 pt-1">
-        <div className="h-px flex-1 bg-[#1a237e]/10" />
-        <span className="text-[12px] text-[#9ca3af]">Belum punya akun?</span>
-        <div className="h-px flex-1 bg-[#1a237e]/10" />
+        <div className="h-px flex-1 bg-lottie-teal/10" />
+        <span className="text-[12px] text-lottie-zinc-500">Belum punya akun?</span>
+        <div className="h-px flex-1 bg-lottie-teal/10" />
       </div>
 
-      <div className="space-y-2.5">
+      <div className="grid grid-cols-3 gap-2.5 pt-1">
         {registerOptions.map((item) => (
           <Link
             key={item.role}
             href={item.href}
-            className={`flex items-center gap-2 rounded-[12px] border bg-white px-3 py-2.5 text-sm font-semibold transition-colors ${item.className}`}
+            className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-lottie-teal/10 bg-white/60 p-3 text-[11px] font-bold text-lottie-teal transition hover:border-lottie-teal/30 hover:bg-lottie-teal/5 cursor-pointer"
           >
-            <span>{item.icon}</span>
-            {item.label}
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-lottie-teal/5 text-lottie-teal">
+              {item.icon}
+            </span>
+            <span className="text-center leading-tight">
+              {item.role === "student" ? "Siswa" : item.role === "teacher" ? "Guru" : "Orang Tua"}
+            </span>
           </Link>
         ))}
       </div>

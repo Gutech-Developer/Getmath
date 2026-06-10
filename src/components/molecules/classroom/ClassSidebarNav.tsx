@@ -45,7 +45,7 @@ export default function ClassSidebarNav({
       if (item.key === "materi") {
         return {
           ...item,
-          description: `${totalSubjects} materi tersedia`,
+          description: `Daftar materi tersedia`,
         };
       }
       if (item.key === "diagnosis") {
@@ -71,7 +71,6 @@ export default function ClassSidebarNav({
 
       <div className="mt-3 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
         <p className="text-sm font-bold text-[#1E3A8A]">{classTitle}</p>
-        <p className="mt-1 text-xs text-[#64748B]">{teacherName}</p>
       </div>
 
       <nav className="mt-4 flex flex-col gap-2">

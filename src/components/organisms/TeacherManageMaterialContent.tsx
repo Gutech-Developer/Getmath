@@ -109,7 +109,7 @@ function PreviewModal({
               href={preview.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl bg-[#EFF6FF] px-3 py-1.5 text-xs font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+              className="rounded-xl bg-lottie-teal/5 px-3 py-1.5 text-xs font-semibold text-lottie-teal transition hover:bg-lottie-teal/10"
             >
               Buka di tab baru
             </a>
@@ -181,7 +181,7 @@ function SubMaterialRow({
       <button
         type="button"
         onClick={onPreview}
-        className="shrink-0 rounded-xl bg-[#EFF6FF] px-3 py-1.5 text-xs font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+        className="shrink-0 rounded-xl bg-lottie-teal/5 px-3 py-1.5 text-xs font-semibold text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
       >
         Preview
       </button>
@@ -287,7 +287,7 @@ function SubjectModal({
   if (!isOpen) return null;
 
   const inputClass =
-    "w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]";
+    "w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50";
   const labelClass = "block text-base font-semibold text-[#374151]";
 
   return (
@@ -406,7 +406,7 @@ function SubjectModal({
             <p className="mb-3 text-base font-semibold text-[#374151]">
               E-LKPD (Liveworksheets - Opsional)
             </p>
-            <div className="space-y-4 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-4">
+            <div className="space-y-4 rounded-2xl border border-lottie-teal/20 bg-lottie-teal/5 p-4">
               <div className="space-y-2">
                 <label className={labelClass}>Judul E-LKPD</label>
                 <input
@@ -456,7 +456,7 @@ function SubjectModal({
             type="button"
             onClick={onSubmit}
             disabled={isSaving}
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#2563EB] px-8 py-2.5 text-base font-semibold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-2xl bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-8 py-2.5 text-base disabled:opacity-60 cursor-pointer"
           >
             <PlusIcon className="h-4 w-4" />
             <span>
@@ -576,12 +576,12 @@ export default function TeacherManageMaterialContent({
     const elkpdData =
       form.elkpdTitle.trim() && form.elkpdFileUrl.trim()
         ? {
-            eLKPD: {
-              title: form.elkpdTitle.trim(),
-              description: form.elkpdDescription.trim() || null,
-              fileUrl: form.elkpdFileUrl.trim(),
-            },
-          }
+          eLKPD: {
+            title: form.elkpdTitle.trim(),
+            description: form.elkpdDescription.trim() || null,
+            fileUrl: form.elkpdFileUrl.trim(),
+          },
+        }
         : {};
 
     const baseSubjectPayload = {
@@ -658,7 +658,7 @@ export default function TeacherManageMaterialContent({
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-lg font-semibold text-white transition hover:bg-[#1D4ED8]"
+            className="inline-flex items-center gap-2.5 rounded-2xl bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-5 py-3 text-base"
           >
             <PlusIcon className="h-5 w-5" />
             <span>Tambah Materi</span>
@@ -690,7 +690,7 @@ export default function TeacherManageMaterialContent({
               return (
                 <li
                   key={subject.id}
-                  className="overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white"
+                  className="getmath-card overflow-hidden"
                 >
                   <div className="flex items-center gap-4 px-5 py-5">
                     <div className="min-w-0 flex-1">
@@ -766,7 +766,7 @@ export default function TeacherManageMaterialContent({
                       <button
                         type="button"
                         onClick={() => openEditModal(subject.id)}
-                        className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] transition hover:bg-[#DBEAFE]"
+                        className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-lottie-teal/5 text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
                       >
                         <EditIcon className="h-5 w-5" />
                       </button>

@@ -23,5 +23,6 @@ export * from "./hooks/useGsUpload";
 export * from "./hooks/useGsEmotion";
 export * from "./hooks/useGsSchool";
 export * from "./hooks/useUser";
+export * from "./hooks/useLAD";
 export { useEmotionDetector } from "./hooks/useEmotionDetector";
 export { useEmotionDetectorBucketed } from "./hooks/useEmotionDetectorBucketed";

@@ -161,7 +161,6 @@ export const Sidebar = () => {
 
   const isDashboardTeacherOrParentVariant =
     role === "teacher" ||
-    role === "counselor" ||
     role === "admin" ||
     role === "student" ||
     role === "parent";

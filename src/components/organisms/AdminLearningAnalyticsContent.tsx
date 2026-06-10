@@ -56,7 +56,7 @@ function buildConicGradient(segments: IEmotionSegment[]) {
 
 function SummaryStatCard({ stat }: { stat: ISummaryStat }) {
   return (
-    <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3.5">
+    <article className="getmath-card px-4 py-3.5">
       <p
         className="text-[2rem] font-extrabold leading-none"
         style={{ color: stat.color }}
@@ -76,7 +76,7 @@ function ScoreDistributionCard({
   scoreBuckets: IScoreBucket[];
 }) {
   return (
-    <article className="rounded-2xl border border-[#E5E7EB] bg-white p-4 md:p-5">
+    <article className="getmath-card p-4 md:p-5">
       <h2 className="text-sm font-semibold text-[#111827]">
         Distribusi Nilai Global
       </h2>
@@ -136,7 +136,7 @@ function EmotionDistributionCard({
   );
 
   return (
-    <article className="rounded-2xl border border-[#E5E7EB] bg-white p-4 md:p-5">
+    <article className="getmath-card p-4 md:p-5">
       <h2 className="text-sm font-semibold text-[#111827]">
         Distribusi Emosi Siswa (Global)
       </h2>
@@ -175,7 +175,7 @@ function EmotionDistributionCard({
 
 function ClassAnalyticsCard({ classItem }: { classItem: IClassAnalytics }) {
   return (
-    <article className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-3.5 md:px-4">
+    <article className="getmath-card px-3 py-3.5 md:px-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-bold text-[#111827]">
@@ -188,7 +188,7 @@ function ClassAnalyticsCard({ classItem }: { classItem: IClassAnalytics }) {
 
         <Link
           href={`/admin/dashboard/learning-analytics/${classItem.id}`}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[#9CA3AF] transition hover:bg-[#F3F4F6]"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[#9CA3AF] transition hover:bg-lottie-teal/5 hover:text-lottie-teal"
           aria-label={`Lihat detail ${classItem.className}`}
         >
           <ChevronLeftIcon className="h-3.5 w-3.5 rotate-180" />
@@ -197,7 +197,7 @@ function ClassAnalyticsCard({ classItem }: { classItem: IClassAnalytics }) {
 
       <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
         <div className="rounded-lg bg-[#F3F4F6] px-3 py-2 text-center">
-          <p className="text-sm font-bold text-[#2563EB]">
+          <p className="text-sm font-bold text-lottie-teal">
             {classItem.averageScore}
           </p>
           <p className="text-[10px] text-[#9CA3AF]">Rata-rata</p>

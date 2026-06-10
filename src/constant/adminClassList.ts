@@ -20,6 +20,7 @@ export const INITIAL_ADMIN_CLASS_LIST: IAdminClassListItem[] = [
     testCount: 5,
     code: "MAT-XI-002",
     status: "Aktif",
+    progress: 0,
   },
   {
     id: "class-2",
@@ -30,6 +31,7 @@ export const INITIAL_ADMIN_CLASS_LIST: IAdminClassListItem[] = [
     testCount: 4,
     code: "STAT-001",
     status: "Aktif",
+    progress: 0,
   },
   {
     id: "class-3",
@@ -40,6 +42,7 @@ export const INITIAL_ADMIN_CLASS_LIST: IAdminClassListItem[] = [
     testCount: 6,
     code: "MWK-X-001",
     status: "Aktif",
+    progress: 0,
   },
   {
     id: "class-4",
@@ -50,5 +53,6 @@ export const INITIAL_ADMIN_CLASS_LIST: IAdminClassListItem[] = [
     testCount: 3,
     code: "GEO-TRI-004",
     status: "Nonaktif",
+    progress: 0,
   },
 ];

@@ -49,7 +49,7 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
     <Link
       href={`/student/dashboard/class/${slug}`}
       className={cn(
-        "bg-white border border-grey-stroke rounded-2xl p-5 flex flex-col gap-4 cursor-pointer hover:shadow-md transition-shadow duration-200 group relative z-0",
+        "getmath-card p-5 flex flex-col gap-4 cursor-pointer group relative z-0",
         className,
       )}
     >
@@ -66,13 +66,13 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
 
       {/* Content */}
       <div className="flex flex-col gap-1.5">
-        <h3 className="text-lg font-semibold text-neutral-02 line-clamp-2 leading-snug">
+        <h3 className="text-xl font-bold text-lottie-teal line-clamp-2 leading-snug">
           {title}
         </h3>
         <div className="flex items-center gap-1.5">
-          <p className="text-xs text-grey truncate">{teacher}</p>
+          <p className="text-xs text-lottie-zinc-500 truncate">{teacher}</p>
         </div>
-        <p className="text-xs text-grey">
+        <p className="text-xs text-lottie-zinc-500">
           {institution} · {academicYear}
         </p>
       </div>
@@ -80,8 +80,8 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
       {/* Progress */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-grey">Progress Belajar</span>
-          <span className="text-xs font-semibold text-neutral-02">
+          <span className="text-xs text-lottie-zinc-500">Progress Belajar</span>
+          <span className="text-xs font-semibold text-lottie-midnight">
             {progressPercent}%
           </span>
         </div>
@@ -89,18 +89,18 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-2 border-t border-grey-stroke">
+      <div className="flex items-center justify-between pt-2 border-t border-lottie-mist">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-grey">
+          <div className="flex items-center gap-1.5 text-lottie-zinc-500">
             <BookIcon className="w-3.5 h-3.5" />
             <span className="text-xs">{totalMaterials} Materi</span>
           </div>
-          <div className="flex items-center gap-1.5 text-grey">
+          <div className="flex items-center gap-1.5 text-lottie-zinc-500">
             <UsersIcon className="w-3.5 h-3.5" />
             <span className="text-xs">{totalStudents}</span>
           </div>
         </div>
-        <ArrowIcon className="w-4 h-4 text-grey group-hover:text-neutral-02 transition-colors" />
+        <ArrowIcon className="w-4 h-4 text-lottie-zinc-500 group-hover:text-lottie-teal transition-colors" />
       </div>
     </Link>
   );
