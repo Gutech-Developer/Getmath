@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import { queryKeys } from "@/libs/api";
-import { gsPublicGet, gsPublicPost, gsPost, gsGet } from "@/libs/api/gsAction";
+import { gsPublicGet, gsPublicPost, gsPost, gsGet, gsPut } from "@/libs/api/gsAction";
 import { saveTokens, clearTokens } from "@/libs/api/getsmart";
 import { decodeGsJWT, getDashboardPath } from "@/libs/gs-jwt";
 import type {
@@ -32,6 +32,7 @@ import type {
   GsGoogleLoginInput,
   GsUser,
   GsMessageResponse,
+  GsUpdateProfileInput,
 } from "@/types/gs-auth";
 
 // ─── GET /api/auth/me ─────────────────────────────────────────────────────────
@@ -46,6 +47,23 @@ export function useGsCurrentUser(options?: { enabled?: boolean }) {
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 menit
     ...options,
+  });
+}
+
+// ─── PUT /api/auth/me ──────────────────────────────────────────────────────────
+
+export function useGsUpdateProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation<GsUser, Error, GsUpdateProfileInput>({
+    mutationFn: async (input) => {
+      const resp = await gsPut<{ user?: GsUser }>("/auth/me", input);
+      return (resp as any).user ?? (resp as unknown as GsUser);
+    },
+    onSuccess: (data) => {
+      // Update cache TanStack Query untuk user profile
+      queryClient.setQueryData(queryKeys.gsAuth.me(), data);
+    },
   });
 }
 

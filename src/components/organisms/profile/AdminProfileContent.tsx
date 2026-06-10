@@ -12,7 +12,7 @@ interface IAdminProfileContentProps {
   school: string;
   avatarInitial: string;
   onChangePhoto: () => void;
-  onEditProfile: () => void;
+  onEditProfile?: () => void;
   onChangePassword: () => void;
   onLogout: () => void;
   isLogoutLoading?: boolean;
@@ -38,6 +38,7 @@ export default function AdminProfileContent({
       isLoading={isLoading}
       fullName={fullName}
       email={email}
+      phone={phone}
       avatarInitial={avatarInitial}
       roleDescription="Administrator · GetMath Platform"
       fields={[

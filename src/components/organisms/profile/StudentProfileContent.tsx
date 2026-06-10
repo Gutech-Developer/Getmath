@@ -13,7 +13,7 @@ interface IStudentProfileContentProps {
   school: string;
   avatarInitial: string;
   onChangePhoto: () => void;
-  onEditProfile: () => void;
+  onEditProfile?: () => void;
   onChangePassword: () => void;
   onLogout: () => void;
   isLogoutLoading?: boolean;
@@ -40,6 +40,7 @@ export default function StudentProfileContent({
       isLoading={isLoading}
       fullName={fullName}
       email={email}
+      phone={phone}
       avatarInitial={avatarInitial}
       roleDescription="Siswa · GetMath Platform"
       fields={[

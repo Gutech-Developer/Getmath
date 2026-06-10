@@ -13,7 +13,7 @@ interface ITeacherProfileContentProps {
   school: string;
   avatarInitial: string;
   onChangePhoto: () => void;
-  onEditProfile: () => void;
+  onEditProfile?: () => void;
   onChangePassword: () => void;
   onLogout: () => void;
   isLogoutLoading?: boolean;
@@ -40,6 +40,7 @@ export default function TeacherProfileContent({
       isLoading={isLoading}
       fullName={fullName}
       email={email}
+      phone={phone}
       avatarInitial={avatarInitial}
       roleDescription="Guru · GetMath Platform"
       fields={[
