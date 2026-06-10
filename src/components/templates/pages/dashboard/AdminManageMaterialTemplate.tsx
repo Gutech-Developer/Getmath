@@ -4,5 +4,5 @@ import TeacherManageMaterialContent from "@/components/organisms/TeacherManageMa
 import { useGsAllSubjects } from "@/services";
 
 export default function AdminManageMaterialTemplate() {
-  return <TeacherManageMaterialContent useSubjectsQuery={useGsAllSubjects} />;
+  return <TeacherManageMaterialContent useSubjectsQuery={useGsAllSubjects} role="admin" />;
 }
