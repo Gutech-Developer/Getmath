@@ -9,5 +9,5 @@ export default function TeacherManageMaterialTemplate({
   role?: "admin" | "teacher";
 }) {
   const query = role === "admin" ? useGsAllSubjects : useGsMySubjects;
-  return <TeacherManageMaterialContent useSubjectsQuery={query} role="admin" />;
+  return <TeacherManageMaterialContent useSubjectsQuery={query} role={role} />;
 }
