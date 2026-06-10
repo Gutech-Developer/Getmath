@@ -387,9 +387,6 @@ export function useStartTestAttempt(courseModuleId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.gsCourseModules.detail(courseModuleId),
-      });
       gsLogger.info("Test attempt started", { attemptId: data?.attemptId });
     },
   });
@@ -440,9 +437,6 @@ export function useSubmitTestAttempt(courseModuleId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.gsCourseModules.detail(courseModuleId),
-      });
       gsLogger.info("Test attempt submitted", {
         attemptId: data?.attemptId,
         score: data?.score,
@@ -485,9 +479,6 @@ export function useStartRemedialAttempt(courseModuleId: string) {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.gsCourseModules.detail(courseModuleId),
       });
       gsLogger.info("Remedial attempt started", { attemptId: data?.attemptId });
     },
@@ -534,9 +525,6 @@ export function useSubmitRemedialVariant(courseModuleId: string) {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.gsCourseModules.detail(courseModuleId),
       });
       // Invalidate remediations list when a remedial attempt is completed
       if (data?.isCompleted) {
@@ -597,9 +585,6 @@ export function useSubmitRemedialBulk(courseModuleId: string) {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.gsCourseModules.detail(courseModuleId),
       });
       if (data?.isPassed !== undefined) {
         queryClient.invalidateQueries({

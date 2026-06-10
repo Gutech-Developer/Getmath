@@ -11,13 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import { queryKeys } from "@/libs/api";
-import {
-  gsPublicGet,
-  gsPublicPost,
-  gsPost,
-  gsGet,
-  gsPut,
-} from "@/libs/api/gsAction";
+import { gsPublicGet, gsPublicPost, gsPost, gsGet } from "@/libs/api/gsAction";
 import { saveTokens, clearTokens } from "@/libs/api/getsmart";
 import { decodeGsJWT, getDashboardPath } from "@/libs/gs-jwt";
 import type {
@@ -38,7 +32,6 @@ import type {
   GsGoogleLoginInput,
   GsUser,
   GsMessageResponse,
-  GsEditCurrentUserInput,
 } from "@/types/gs-auth";
 
 // ─── GET /api/auth/me ─────────────────────────────────────────────────────────
@@ -266,16 +259,5 @@ export function useGsGoogleCompleteProfile() {
   return useMutation<GsAuthResponse, Error, GsGoogleCompleteProfileInput>({
     mutationFn: (input) =>
       gsPublicPost<GsAuthResponse>("/auth/google/complete-profile", input),
-  });
-}
-
-export function useEditCurrentUser() {
-  const queryClient = useQueryClient();
-
-  return useMutation<GsAuthResponse, Error, GsEditCurrentUserInput>({
-    mutationFn: (input) => gsPut<GsAuthResponse>("/auth/me", input),
-    onSuccess: (data) => {
-      queryClient.setQueryData(queryKeys.gsAuth.me(), data.user);
-    },
   });
 }

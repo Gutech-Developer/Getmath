@@ -1,17 +1,14 @@
 "use client";
 
-import { useGsCurrentUser, useGsLogout, useEditCurrentUser } from "@/services";
+import { useGsCurrentUser, useGsLogout } from "@/services";
 import StudentProfileContent from "@/components/organisms/profile/StudentProfileContent";
-import EditProfileModal from "@/components/organisms/profile/EditProfileModal";
 import { showToast } from "@/libs/toast";
 import { useState } from "react";
 
 export default function StudentDashboardProfilPage() {
   const { data: user, isLoading } = useGsCurrentUser();
   const logoutMutation = useGsLogout();
-  const editProfileMutation = useEditCurrentUser();
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const handleChangePhoto = () => {
     showToast.info("Fitur ubah foto akan segera tersedia");
@@ -19,17 +16,7 @@ export default function StudentDashboardProfilPage() {
   };
 
   const handleEditProfile = () => {
-    setIsEditModalOpen(true);
-  };
-
-  const handleSaveProfile = async (data: { fullName: string; phoneNumber: string }) => {
-    try {
-      await editProfileMutation.mutateAsync(data);
-      showToast.success("Profil berhasil diperbarui!");
-    } catch (err: any) {
-      showToast.error(err.message || "Gagal memperbarui profil.");
-      throw err;
-    }
+    showToast.info("Fitur edit profil akan segera tersedia");
   };
 
   const handleChangePassword = () => {
@@ -47,33 +34,23 @@ export default function StudentDashboardProfilPage() {
   const profile = (user?.profile as Record<string, any>) || {};
 
   return (
-    <>
-      <StudentProfileContent
-        isLoading={isLoading}
-        fullName={profile.fullName || user?.fullName || "-"}
-        email={user?.email || "-"}
-        phone={profile.phoneNumber || user?.phoneNumber || "-"}
-        nis={profile.NIS || "-"}
-        province={profile.province || "-"}
-        city={profile.city || "-"}
-        school={profile.schoolName || "-"}
-        avatarInitial={(profile.fullName || user?.fullName || "?")
-          .charAt(0)
-          .toUpperCase()}
-        onChangePhoto={handleChangePhoto}
-        onEditProfile={handleEditProfile}
-        onChangePassword={handleChangePassword}
-        onLogout={handleLogout}
-        isLogoutLoading={logoutMutation.isPending}
-      />
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        initialFullName={profile.fullName || user?.fullName || ""}
-        initialPhoneNumber={profile.phoneNumber || user?.phoneNumber || ""}
-        onSave={handleSaveProfile}
-        isPending={editProfileMutation.isPending}
-      />
-    </>
+    <StudentProfileContent
+      isLoading={isLoading}
+      fullName={profile.fullName || user?.fullName || "-"}
+      email={user?.email || "-"}
+      phone={profile.phoneNumber || user?.phoneNumber || "-"}
+      nis={profile.NIS || "-"}
+      province={profile.province || "-"}
+      city={profile.city || "-"}
+      school={profile.schoolName || "-"}
+      avatarInitial={(profile.fullName || user?.fullName || "?")
+        .charAt(0)
+        .toUpperCase()}
+      onChangePhoto={handleChangePhoto}
+      onEditProfile={handleEditProfile}
+      onChangePassword={handleChangePassword}
+      onLogout={handleLogout}
+      isLogoutLoading={logoutMutation.isPending}
+    />
   );
 }
