@@ -24,6 +24,7 @@ import {
   useMarkVideoWatched,
   useMyTestAttempts,
   useStartTestAttempt,
+  useRemedialAnswersReview,
 } from "@/services";
 import { useEmotionDetectorBucketed } from "@/services/hooks/useEmotionDetectorBucketed";
 import { isEmotionSupported } from "@/libs/emotion";
@@ -291,6 +292,12 @@ function moduleFromDiagnostic(
     flat.remedialTestId ??
     "";
 
+  const hasPassedDiagnostic =
+    module.attemptHistory?.some((attempt) => attempt.isPassed) ?? false;
+
+  const hasAttemptedDiagnostic =
+    module.attemptHistory?.some((attempt) => !!attempt.completedAt) ?? false;
+
   const steps: IFlatStep[] = [
     {
       id: `${moduleId}-diagnostic`,
@@ -322,7 +329,10 @@ function moduleFromDiagnostic(
       url: null,
       rawUrl: null,
       state: "upcoming",
-      status: flat.remedialCompleted ? "completed" : "in-progress",
+      status:
+        hasPassedDiagnostic || flat.remedialCompleted
+          ? "completed"
+          : "in-progress",
     });
   }
 
@@ -414,6 +424,21 @@ export default function ClassMaterialContentPageTemplate({
   const bottomRef = useRef<HTMLDivElement>(null);
   const [maxUnlockedIndex, setMaxUnlockedIndex] = useState<number>(-1);
 
+  const isOpenModuleDiagnostic = useMemo(() => {
+    const openMod = (courseModules ?? []).find((m) => {
+      const mId = m.id ?? (m as any).courseModuleId;
+      return mId === openModuleId;
+    });
+    return openMod?.type === "DIAGNOSTIC_TEST";
+  }, [courseModules, openModuleId]);
+
+  const { data: testAttempts } = useMyTestAttempts(openModuleId ?? "", {
+    enabled: !!openModuleId && isOpenModuleDiagnostic,
+  });
+
+  const { data: remedialReviewData } = useRemedialAnswersReview(openModuleId ?? "", {
+    enabled: !!openModuleId && isOpenModuleDiagnostic,
+  });
   const { data: detailModule } = useGsModuleById(contentId ?? "");
 
   // ── REFACTOR: Mengintegrasikan State Lokal Langsung ke Pemetaan Objek Modules ──
@@ -483,7 +508,7 @@ export default function ClassMaterialContentPageTemplate({
         return view;
       })
       .filter((m: IModuleView | null): m is IModuleView => m !== null);
-  }, [courseModules, detailModule, videoFinished, elkpdFinished]);
+  }, [courseModules, videoFinished, elkpdFinished]);
 
   // ── REFACTOR: flatSteps murni memetakan data modules yang sudah ter-update ──
   const flatSteps = useMemo<IFlatStep[]>(() => {
@@ -646,9 +671,6 @@ export default function ClassMaterialContentPageTemplate({
       ? flatSteps[activeIndex + 1]
       : null;
 
-  const { data: testAttempts } = useMyTestAttempts(activeStep?.moduleId ?? "", {
-    enabled: activeStep?.kind === "DIAGNOSTIC" && !!activeStep?.moduleId,
-  });
 
   const latestAttempt = useMemo(() => {
     if (!testAttempts?.attempts?.length) return null;

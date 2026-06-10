@@ -142,6 +142,18 @@ export interface GsGoogleCompleteProfileInput {
   schoolName?: string;
 }
 
+export interface GsEditCurrentUserInput {
+  fullName?: string;
+  phoneNumber?: string;
+  NIS?: string;
+  NIP?: string;
+  province?: string;
+  city?: string;
+  schoolId?: string;
+  schoolName?: string;
+  address?: string;
+}
+
 // ── Response types ─────────────────────────────────────────────────────────────
 
 export interface GsMessageResponse {

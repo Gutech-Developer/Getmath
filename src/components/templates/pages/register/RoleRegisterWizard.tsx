@@ -466,7 +466,8 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                     placeholder="Minimal 8 karakter"
                   />
                   <p className="text-[11px] text-[#6b7280] leading-normal mt-1">
-                    Password minimal 8 karakter, serta harus mengandung huruf besar, huruf kecil, angka, dan karakter spesial.
+                    Password minimal 8 karakter, serta harus mengandung huruf
+                    besar, huruf kecil, angka, dan karakter spesial.
                   </p>
                   <PasswordField
                     label="Konfirmasi Password"

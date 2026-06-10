@@ -176,6 +176,7 @@ export default function ClassDashboardPageTemplate({
             totalDiagnosticTests > 0 ? `${totalDiagnosticTests} Tes` : null,
             `${totalStudents} Siswa Terdaftar`,
             courseCode,
+            course?.teacher?.fullName,
           ]
             .filter(Boolean)
             .map((tag) => (
@@ -250,4 +251,3 @@ export default function ClassDashboardPageTemplate({
     </ClassPageShellTemplate>
   );
 }
-
