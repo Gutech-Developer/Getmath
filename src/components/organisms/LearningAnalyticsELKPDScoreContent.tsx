@@ -47,7 +47,7 @@ interface IELKPDScoreRow {
 
 const ELKPD_AVATAR_ACCENTS = [
   "bg-[#CA8A04]",
-  "bg-[#2563EB]",
+  "bg-[#1f2375]",
   "bg-[#16A34A]",
   "bg-[#7C3AED]",
   "bg-[#0EA5E9]",
@@ -60,7 +60,7 @@ function buildClassHref(role: AnalyticsRole, slug: string): string {
   }
 
   return `/teacher/dashboard/class-list/${slug}`;
-}function GradeForm({
+} function GradeForm({
   student,
   elkpdId,
   onClose,
@@ -131,7 +131,7 @@ function buildClassHref(role: AnalyticsRole, slug: string): string {
               setErrorMsg("");
             }}
             placeholder="Masukkan nilai"
-            className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F2937] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15"
+            className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm font-semibold text-[#1F2937] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             disabled={isPending}
             autoFocus
           />
@@ -153,7 +153,7 @@ function buildClassHref(role: AnalyticsRole, slug: string): string {
           placeholder="Berikan umpan balik atau catatan terkait pengerjaan E-LKPD siswa (opsional)..."
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm text-[#1F2937] outline-none transition focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15 min-h-[100px] resize-none"
+          className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm text-[#1F2937] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50 min-h-[100px] resize-none"
           disabled={isPending}
         />
       </div>
@@ -172,7 +172,7 @@ function buildClassHref(role: AnalyticsRole, slug: string): string {
           type="button"
           onClick={handleSave}
           disabled={isPending}
-          className="h-10 flex-1 rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1D4ED8] disabled:opacity-50 flex items-center justify-center gap-2"
+          className="h-10 flex-1 rounded-xl bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-4 text-sm disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
         >
           {isPending ? (
             <>
@@ -333,12 +333,12 @@ export default function LearningAnalyticsELKPDScoreContent({
       <div className="space-y-3">
         <Link
           href={backHref}
-          className="inline-flex items-center text-sm font-semibold text-[#2563EB] transition hover:text-[#1D4ED8]"
+          className="inline-flex items-center text-sm font-semibold text-lottie-teal transition hover:opacity-90"
         >
           ← Kembali ke Daftar E-LKPD
         </Link>
 
-        <section className="overflow-hidden rounded-[24px] border border-[#E5E7EB] bg-white shadow-sm">
+        <section className="getmath-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4 bg-white">
             <h2 className="truncate text-sm font-bold text-[#1F2937]">
               {selectedELKPD?.title ?? "Nilai E-LKPD"}
@@ -467,7 +467,7 @@ export default function LearningAnalyticsELKPDScoreContent({
                               <button
                                 type="button"
                                 onClick={() => setGradeTarget(row)}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#CBD5E1] bg-white px-2.5 text-xs font-semibold text-[#475569] transition hover:bg-[#F8FAFC] hover:text-[#2563EB]"
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-lottie-teal/20 bg-white px-2.5 text-xs font-semibold text-[#475569] transition hover:bg-lottie-teal/5 hover:text-lottie-teal cursor-pointer"
                                 title="Ubah Nilai"
                               >
                                 <svg
@@ -515,7 +515,7 @@ export default function LearningAnalyticsELKPDScoreContent({
                             <button
                               type="button"
                               onClick={() => setGradeTarget(row)}
-                              className="inline-flex h-8 items-center gap-1 rounded-lg bg-[#2563EB] px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1D4ED8]"
+                              className="inline-flex h-8 items-center gap-1 rounded-lg bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-2.5 text-xs cursor-pointer"
                             >
                               <svg
                                 className="h-3.5 w-3.5"

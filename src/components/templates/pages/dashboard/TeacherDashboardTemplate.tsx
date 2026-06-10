@@ -68,7 +68,7 @@ function CreateCourseModal({
             value={courseName}
             onChange={(e) => setCourseName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            className="w-full border border-grey-stroke rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+            className="w-full border border-grey-stroke rounded-xl px-4 py-2.5 text-sm outline-none focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50 transition-all placeholder:text-grey/60"
           />
         </div>
 
@@ -78,14 +78,14 @@ function CreateCourseModal({
               setCourseName("");
               onClose();
             }}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-grey hover:bg-grey-stroke/40 transition-colors"
+            className="px-4 py-2.5 rounded-xl text-sm font-semibold btn-secondary-subtle"
           >
             Batal
           </button>
           <button
             onClick={handleSubmit}
             disabled={!courseName.trim() || createCourse.isPending}
-            className="px-5 py-2 rounded-xl text-sm font-semibold bg-[#1F2375] text-white hover:bg-[#171B5C] disabled:cursor-not-allowed disabled:opacity-50 transition-colors flex items-center gap-2"
+            className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2"
           >
             <PlusIcon className="w-4 h-4" />
             {createCourse.isPending ? "Menyimpan..." : "Buat Kelas"}

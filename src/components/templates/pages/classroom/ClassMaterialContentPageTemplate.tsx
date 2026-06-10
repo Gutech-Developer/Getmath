@@ -298,12 +298,15 @@ function moduleFromDiagnostic(
       diagnosticTestId,
       moduleTitle: title,
       kind: "DIAGNOSTIC",
-      typeLabel: "Test Diagnosis",
+      typeLabel: "Tes Diagnostik",
       title,
       url: null,
       rawUrl: null,
       state: index === 0 ? "active" : "upcoming",
-      status: flat.diagnosticCompleted || flat.completed ? "completed" : "in-progress",
+      status:
+        flat.diagnosticCompleted || flat.completed
+          ? "completed"
+          : "in-progress",
     },
   ];
 
@@ -352,16 +355,16 @@ function getStepIcon(kind: StepKind) {
 function getStepTone(kind: StepKind): { bg: string; fg: string } {
   switch (kind) {
     case "VIDEO":
-      return { bg: "bg-[#FEF3C7]", fg: "text-[#D97706]" };
+      return { bg: "bg-amber-50", fg: "text-amber-600" };
     case "ELKPD":
-      return { bg: "bg-[#D1FAE5]", fg: "text-[#059669]" };
+      return { bg: "bg-emerald-50", fg: "text-emerald-600" };
     case "DIAGNOSTIC":
-      return { bg: "bg-[#FEE2E2]", fg: "text-[#DC2626]" };
+      return { bg: "bg-rose-50", fg: "text-rose-600" };
     case "REMEDIAL":
-      return { bg: "bg-[#F5F3FF]", fg: "text-[#7C3AED]" };
+      return { bg: "bg-violet-50", fg: "text-violet-600" };
     case "PDF":
     default:
-      return { bg: "bg-[#DBEAFE]", fg: "text-[#2563EB]" };
+      return { bg: "bg-blue-50", fg: "text-blue-600" };
   }
 }
 
@@ -429,41 +432,39 @@ export default function ClassMaterialContentPageTemplate({
         const moduleToUse: any =
           dId && mId === dId
             ? ({
-                ...detailModule,
-                accessible: (m as any).accessible,
-                fileRead: (m as any).fileRead,
-                videoWatched: (m as any).videoWatched,
-                eLKPDGraded: (m as any).eLKPDGraded,
-                eLKPDSubmitted: (m as any).eLKPDSubmitted,
-                completed:
-                  (detailModule as any).completed ?? (m as any).completed,
-                diagnosticCompleted:
-                  (detailModule as any).diagnosticCompleted ??
-                  (m as any).diagnosticCompleted,
-                remedialCompleted:
-                  (detailModule as any).remedialCompleted ??
-                  (m as any).remedialCompleted,
-                remedialTestId:
-                  (detailModule as any).remedialTestId ??
-                  (m as any).remedialTestId,
-                isPassed:
-                  (detailModule as any).isPassed ??
-                  (m as any).isPassed,
-                // Kunci konsistensi: kunci keberadaan konten harus konsisten antara list & detail
-                hasPDF:
-                  (m as any).hasPDF ?? !!detailModule?.subject?.subjectFileUrl,
-                hasVideo:
-                  (m as any).hasVideo ?? !!(detailModule as any).hasVideo,
-                hasELKPD:
-                  (m as any).hasELKPD ?? !!(detailModule as any).hasELKPD,
-              } as GsCourseModule)
+              ...detailModule,
+              accessible: (m as any).accessible,
+              fileRead: (m as any).fileRead,
+              videoWatched: (m as any).videoWatched,
+              eLKPDGraded: (m as any).eLKPDGraded,
+              eLKPDSubmitted: (m as any).eLKPDSubmitted,
+              completed:
+                (detailModule as any).completed ?? (m as any).completed,
+              diagnosticCompleted:
+                (detailModule as any).diagnosticCompleted ??
+                (m as any).diagnosticCompleted,
+              remedialCompleted:
+                (detailModule as any).remedialCompleted ??
+                (m as any).remedialCompleted,
+              remedialTestId:
+                (detailModule as any).remedialTestId ??
+                (m as any).remedialTestId,
+              isPassed: (detailModule as any).isPassed ?? (m as any).isPassed,
+              // Kunci konsistensi: kunci keberadaan konten harus konsisten antara list & detail
+              hasPDF:
+                (m as any).hasPDF ?? !!detailModule?.subject?.subjectFileUrl,
+              hasVideo:
+                (m as any).hasVideo ?? !!(detailModule as any).hasVideo,
+              hasELKPD:
+                (m as any).hasELKPD ?? !!(detailModule as any).hasELKPD,
+            } as GsCourseModule)
             : {
-                ...m,
-                // Pastikan data list m juga mengenali benderanya sendiri
-                hasPDF: (m as any).hasPDF ?? !!m.subject?.subjectFileUrl,
-                hasVideo: (m as any).hasVideo,
-                hasELKPD: (m as any).hasELKPD,
-              };
+              ...m,
+              // Pastikan data list m juga mengenali benderanya sendiri
+              hasPDF: (m as any).hasPDF ?? !!m.subject?.subjectFileUrl,
+              hasVideo: (m as any).hasVideo,
+              hasELKPD: (m as any).hasELKPD,
+            };
 
         const view = buildModuleView(moduleToUse, i);
         if (!view) return null;
@@ -530,14 +531,14 @@ export default function ClassMaterialContentPageTemplate({
   const overallProgress =
     totalModules > 0
       ? Math.round(
-          modules.reduce((sum, m) => {
-            const mTotal = m.steps.length;
-            const mCompleted = m.steps.filter(
-              (s) => s.status === "completed",
-            ).length;
-            return sum + (mTotal > 0 ? (mCompleted / mTotal) * 100 : 0);
-          }, 0) / totalModules,
-        )
+        modules.reduce((sum, m) => {
+          const mTotal = m.steps.length;
+          const mCompleted = m.steps.filter(
+            (s) => s.status === "completed",
+          ).length;
+          return sum + (mTotal > 0 ? (mCompleted / mTotal) * 100 : 0);
+        }, 0) / totalModules,
+      )
       : 0;
 
   /* ---------- Breadcrumb ---------- */
@@ -577,9 +578,7 @@ export default function ClassMaterialContentPageTemplate({
     }
     if (contentId) {
       return (
-        flatSteps.find((s) => s.moduleId === contentId) ??
-        flatSteps[0] ??
-        null
+        flatSteps.find((s) => s.moduleId === contentId) ?? flatSteps[0] ?? null
       );
     }
     return null;
@@ -599,7 +598,7 @@ export default function ClassMaterialContentPageTemplate({
 
   useEffect(() => {
     if (!isSubjectStep || !emotionSupported) return;
-    subjectEmotion.start().catch(() => {});
+    subjectEmotion.start().catch(() => { });
   }, [isSubjectStep, emotionSupported]);
 
   useEffect(() => {
@@ -672,26 +671,43 @@ export default function ClassMaterialContentPageTemplate({
         showToast.success(
           "Selamat, Kamu menyelesaikan semua materi di kelas ini!",
         );
+
         if (slug) {
           router.push(
             `/student/dashboard/class/${encodeURIComponent(slug)}/materi`,
           );
         }
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+
         return;
       }
+
       setSelectedStepId(step.id);
       setOpenModules((prev) => ({ ...prev, [step.moduleId]: true }));
 
       if (slug) {
         let targetUrl = `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}`;
+
         if (step.kind === "REMEDIAL") {
           targetUrl += "?step=remedial";
         }
-        const currentFullUrl = window.location.pathname + window.location.search;
+
+        const currentFullUrl =
+          window.location.pathname + window.location.search;
+
         if (currentFullUrl !== targetUrl) {
           window.history.pushState(null, "", targetUrl);
         }
       }
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
 
       if (activeStep?.moduleId === contentId) {
         if (activeStep?.kind === "PDF") {
@@ -796,19 +812,19 @@ export default function ClassMaterialContentPageTemplate({
       />
 
       {/* ---- Breadcrumb ---- */}
-      <nav className="mb-3 flex flex-wrap items-center gap-2 text-sm text-[#64748B]">
+      <nav className="mb-3 flex flex-wrap items-center gap-2 text-sm text-lottie-zinc-500">
         {breadcrumbItems.map((item, i) => (
           <span
             key={`${item.label}-${i}`}
             className="inline-flex items-center gap-2"
           >
-            {i > 0 && <span className="text-[#94A3B8]">›</span>}
+            {i > 0 && <span className="text-lottie-fog">›</span>}
             {item.isCurrent ? (
-              <span className="font-medium text-[#3F76EC]">{item.label}</span>
+              <span className="font-medium text-lottie-teal">{item.label}</span>
             ) : (
               <Link
                 href={item.href}
-                className="font-medium text-[#475569] transition hover:text-[#3F76EC]"
+                className="font-medium text-lottie-zinc-500 transition hover:text-lottie-teal"
               >
                 {item.label}
               </Link>
@@ -822,7 +838,7 @@ export default function ClassMaterialContentPageTemplate({
         {/* ==================== LEFT COLUMN ==================== */}
         <div>
           <div className="overflow-hidden rounded-t-2xl">
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#1F2E46] px-4 py-3 text-xs text-white/90">
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-lottie-teal to-lottie-teal/95 px-4 py-3 text-xs text-white/90">
               <div className="inline-flex items-center gap-3">
                 <ActiveIcon className="h-4 w-4 text-white/80" />
                 <div>
@@ -837,366 +853,378 @@ export default function ClassMaterialContentPageTemplate({
             </div>
           </div>
 
-          <div className="rounded-b-2xl bg-[#F8FAFC] p-4 sm:p-6">
+          <div className="rounded-b-2xl bg-white border border-t-0 border-lottie-mist/60 p-4 sm:p-6 shadow-[rgba(31,35,117,0.02)]_0px_16px_32px_0px">
             {!activeStep ? (
               <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB] mb-4 shadow-sm">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-lottie-teal/10 text-lottie-teal mb-4 shadow-xs">
                   <BookIcon className="h-8 w-8" />
                 </div>
-                <h3 className="text-lg font-bold text-[#0F172A] font-outfit">Mulai Pembelajaran</h3>
-                <p className="mt-2 max-w-sm text-sm text-[#64748B] leading-relaxed">
-                  Silakan pilih modul materi atau tes di menu sidebar kanan untuk memulai pembelajaran kelas ini.
+                <h3 className="text-lg  font-normal text-lottie-midnight">
+                  Mulai Pembelajaran
+                </h3>
+                <p className="mt-2 max-w-sm text-sm text-lottie-zinc-500 leading-relaxed">
+                  Silakan pilih modul materi atau tes di menu sidebar kanan
+                  untuk memulai pembelajaran kelas ini.
                 </p>
               </div>
             ) : (
               <>
                 {isVideo && activeStep?.url && (
-              <>
-                <ContentBadge icon={VideoIcon} label="Video Pembelajaran" />
-                <div className="aspect-video overflow-hidden rounded-2xl border border-[#E2E8F0] bg-black">
-                  {activeStep.url.includes("youtube.com/embed") ? (
-                    <YoutubePlayer
-                      key={activeStep.id}
-                      iframeId={`Youtubeer-${activeStep.id}`}
-                      url={activeStep.url}
-                      title={activeStep.title}
-                      onEnded={handleVideoEnded}
-                    />
-                  ) : (
-                    <iframe
-                      id={`Youtubeer-${activeStep.id}`}
-                      key={activeStep.id}
-                      src={activeStep.url}
-                      title={activeStep.title}
-                      className="h-full w-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                      allowFullScreen
-                    />
-                  )}
-                </div>
-              </>
-            )}
-
-            {isPdf && activeStep?.url && (
-              <>
-                <ContentBadge icon={PDFIcon} label="Materi (PDF)" />
-                <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white">
-                  <iframe
-                    key={activeStep.id}
-                    src={activeStep.url}
-                    title={activeStep.title}
-                    className="h-full w-full border-0"
-                    allow="fullscreen"
-                    allowFullScreen
-                  />
-                </div>
-              </>
-            )}
-
-            {isElkpd && activeStep?.url && (
-              <>
-                <ContentBadge icon={DocumentIcon} label="E-LKPD" />
-                <div className="h-[80vh] min-h-[520px] overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white">
-                  <iframe
-                    key={activeStep.id}
-                    src={activeStep.url}
-                    title={activeStep.title}
-                    className="h-full w-full border-0"
-                    allow="clipboard-write; fullscreen"
-                    allowFullScreen
-                  />
-                </div>
-              </>
-            )}
-
-            {isDiagnostic && (
-              <>
-                <ContentBadge icon={CheckCircleIcon} label="Tes Diagnostik" />
-                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#94A3B8]">
-                    Tes Diagnostik
-                  </p>
-                  <h1 className="mt-1 text-xl font-bold text-[#0F172A] sm:text-2xl">
-                    {activeStep?.title}
-                  </h1>
-                  {activeStep?.moduleTitle && (
-                    <p className="mt-1 text-sm text-[#64748B]">
-                      Modul: {activeStep.moduleTitle}
-                    </p>
-                  )}
-
-                  {latestAttempt && latestAttempt.completedAt && (
-                    <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-[#0F172A]">
-                          Hasil Terakhir
-                        </p>
-                        <span
-                          className={cn(
-                            "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                            latestAttempt.isPassed
-                              ? "bg-[#DCFCE7] text-[#166534]"
-                              : "bg-[#FEE2E2] text-[#B91C1C]",
-                          )}
-                        >
-                          {latestAttempt.isPassed ? "Tuntas" : "Belum Tuntas"}
-                        </span>
-                      </div>
-                      <div className="mt-3 flex items-center gap-6">
-                        <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
-                            Skor
-                          </p>
-                          <p className="text-xl font-bold text-[#0F172A]">
-                            {latestAttempt.score ?? 0}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
-                            Status
-                          </p>
-                          <p className="text-xl font-bold text-[#0F172A]">
-                            {latestAttempt.isPassed ? "Lulus" : "Belum Lulus"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
-                            Tanggal
-                          </p>
-                          <p className="text-sm font-medium text-[#475569]">
-                            {new Date(
-                              latestAttempt.startedAt ?? Date.now(),
-                            ).toLocaleDateString("id-ID", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </p>
-                        </div>
-                      </div>
+                  <>
+                    <ContentBadge icon={VideoIcon} label="Video Pembelajaran" />
+                    <div className="aspect-video overflow-hidden rounded-2xl border border-[#E2E8F0] bg-black">
+                      {activeStep.url.includes("youtube.com/embed") ? (
+                        <YoutubePlayer
+                          key={activeStep.id}
+                          iframeId={`Youtubeer-${activeStep.id}`}
+                          url={activeStep.url}
+                          title={activeStep.title}
+                          onEnded={handleVideoEnded}
+                        />
+                      ) : (
+                        <iframe
+                          id={`Youtubeer-${activeStep.id}`}
+                          key={activeStep.id}
+                          src={activeStep.url}
+                          title={activeStep.title}
+                          className="h-full w-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                          allowFullScreen
+                        />
+                      )}
                     </div>
-                  )}
+                  </>
+                )}
 
-                  {slug &&
-                    resolvedDiagnosticTestId &&
-                    (() => {
-                      const attemptCount = testAttempts?.attempts?.length ?? 0;
-                      const finishedAttemptCount =
-                        testAttempts?.attempts?.filter((a) => !!a.completedAt)
-                          ?.length ?? 0;
-                      const hasPassed =
-                        testAttempts?.attempts?.some((a) => a.isPassed) ??
-                        false;
+                {isPdf && activeStep?.url && (
+                  <>
+                    <ContentBadge icon={PDFIcon} label="Materi (PDF)" />
+                    <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white">
+                      <iframe
+                        key={activeStep.id}
+                        src={activeStep.url}
+                        title={activeStep.title}
+                        className="h-full w-full border-0"
+                        allow="fullscreen"
+                        allowFullScreen
+                      />
+                    </div>
+                  </>
+                )}
 
-                      if (hasPassed) {
-                        return (
-                          <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-5 py-3 text-sm font-semibold text-[#166534]">
-                            <CheckCircleIcon className="h-4 w-4" />
-                            Kamu sudah lulus tes ini
+                {isElkpd && activeStep?.url && (
+                  <>
+                    <ContentBadge icon={DocumentIcon} label="E-LKPD" />
+                    <div className="h-[80vh] min-h-[520px] overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white">
+                      <iframe
+                        key={activeStep.id}
+                        src={activeStep.url}
+                        title={activeStep.title}
+                        className="h-full w-full border-0"
+                        allow="clipboard-write; fullscreen"
+                        allowFullScreen
+                      />
+                    </div>
+                  </>
+                )}
+
+                {isDiagnostic && (
+                  <>
+                    <ContentBadge
+                      icon={CheckCircleIcon}
+                      label="Tes Diagnostik"
+                    />
+                    <div className="rounded-2xl border border-lottie-mist bg-white p-6 shadow-xs">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-lottie-zinc-500">
+                        Tes Diagnostik
+                      </p>
+                      <h1 className="mt-1 font-semibold text-2xl  mantap font-normal text-lottie-midnight">
+                        {activeStep?.title}
+                      </h1>
+                      {activeStep?.moduleTitle && (
+                        <p className="mt-1 text-sm text-lottie-zinc-500">
+                          Modul: {activeStep.moduleTitle}
+                        </p>
+                      )}
+
+                      {latestAttempt && latestAttempt.completedAt && (
+                        <div className="mt-4 rounded-xl border border-lottie-mist bg-lottie-pearl/50 p-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-lottie-midnight">
+                              Hasil Terakhir
+                            </p>
+                            <span
+                              className={cn(
+                                "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                latestAttempt.isPassed
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border border-rose-200",
+                              )}
+                            >
+                              {latestAttempt.isPassed
+                                ? "Tuntas"
+                                : "Belum Tuntas"}
+                            </span>
                           </div>
-                        );
-                      }
-
-                      if (finishedAttemptCount > 0) {
-                        if (hasPassed || isRemedialCompleted) {
-                          return (
-                            <div className="mt-4">
-                              <Link
-                                href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
-                                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
-                              >
-                                Lihat Hasil & Pembahasan
-                              </Link>
+                          <div className="mt-3 flex items-center gap-6">
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-lottie-zinc-500">
+                                Skor
+                              </p>
+                              <p className="text-2xl  font-medium text-lottie-midnight">
+                                {latestAttempt.score ?? 0}
+                              </p>
                             </div>
-                          );
-                        }
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-lottie-zinc-500">
+                                Status
+                              </p>
+                              <p className="text-2xl  font-medium text-lottie-midnight">
+                                {latestAttempt.isPassed
+                                  ? "Lulus"
+                                  : "Belum Lulus"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-lottie-zinc-500">
+                                Tanggal
+                              </p>
+                              <p className="text-sm font-medium text-lottie-zinc-600">
+                                {new Date(
+                                  latestAttempt.startedAt ?? Date.now(),
+                                ).toLocaleDateString("id-ID", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                        if (resolvedRemedialTestId) {
-                          return (
-                            <div className="mt-4 space-y-3">
-                              <div className="inline-flex items-center gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-3 text-sm font-semibold text-[#B91C1C]">
-                                Nilai kamu belum mencapai KKM.
+                      {slug &&
+                        resolvedDiagnosticTestId &&
+                        (() => {
+                          const attemptCount =
+                            testAttempts?.attempts?.length ?? 0;
+                          const finishedAttemptCount =
+                            testAttempts?.attempts?.filter(
+                              (a) => !!a.completedAt,
+                            )?.length ?? 0;
+                          const hasPassed =
+                            testAttempts?.attempts?.some((a) => a.isPassed) ??
+                            false;
+
+                          if (hasPassed) {
+                            return (
+                              <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-700">
+                                <CheckCircleIcon className="h-4 w-4" />
+                                Kamu sudah lulus tes ini
                               </div>
-                              <div className="flex gap-2">
+                            );
+                          }
+
+                          if (finishedAttemptCount > 0) {
+                            if (hasPassed || isRemedialCompleted) {
+                              return (
+                                <div className="mt-4">
+                                  <Link
+                                    href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
+                                    className="inline-flex h-11 items-center justify-center rounded-xl border border-lottie-mist bg-white px-5 text-sm font-semibold text-lottie-midnight transition hover:bg-lottie-pearl"
+                                  >
+                                    Lihat Hasil & Pembahasan
+                                  </Link>
+                                </div>
+                              );
+                            }
+
+                            if (resolvedRemedialTestId) {
+                              return (
+                                <div className="mt-4 space-y-3">
+                                  <div className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-700">
+                                    Nilai kamu belum mencapai KKM.
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Link
+                                      href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
+                                      className="inline-flex h-11 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 shadow-xs"
+                                    >
+                                      Kerjakan Tes Remedial
+                                    </Link>
+                                    <Link
+                                      href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
+                                      className="inline-flex h-11 items-center justify-center rounded-xl border border-lottie-mist bg-white px-5 text-sm font-semibold text-lottie-midnight transition hover:bg-lottie-pearl"
+                                    >
+                                      Lihat Hasil & Pembahasan
+                                    </Link>
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              return (
+                                <div className="mt-4 space-y-2">
+                                  <div className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-700">
+                                    Batas percobaan tes sudah habis (1/1)
+                                  </div>
+                                  <p className="text-xs text-lottie-zinc-500">
+                                    Tidak ada tes remedial yang tersedia untuk
+                                    modul ini. Hubungi guru kamu.
+                                  </p>
+                                </div>
+                              );
+                            }
+                          }
+
+                          return (
+                            <Link
+                              href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
+                              className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/95 shadow-xs"
+                            >
+                              {attemptCount > 0
+                                ? "Lanjutkan Tes Diagnostik"
+                                : "Mulai Tes Diagnostik"}
+                            </Link>
+                          );
+                        })()}
+
+                      {slug && !resolvedDiagnosticTestId && (
+                        <p className="mt-4 text-sm font-medium text-[#DC2626]">
+                          Tes diagnostik belum bisa dibuka karena ID diagnostik
+                          tidak ditemukan.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {isRemedial && (
+                  <>
+                    <ContentBadge icon={CheckCircleIcon} label="Tes Remedial" />
+                    <div className="rounded-2xl border border-lottie-mist bg-white p-6 shadow-xs">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-lottie-zinc-500">
+                        Tes Remedial
+                      </p>
+                      <h1 className="mt-1 font-semibold text-2xl  mantap font-normal text-lottie-midnight">
+                        {activeStep?.title}
+                      </h1>
+                      {activeStep?.moduleTitle && (
+                        <p className="mt-1 text-sm text-lottie-zinc-500">
+                          Modul: {activeStep.moduleTitle}
+                        </p>
+                      )}
+
+                      {activeModuleDataAny?.remedialCompleted && (
+                        <div className="mt-4 rounded-xl border border-lottie-mist bg-lottie-pearl/50 p-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-lottie-midnight">
+                              Hasil Terakhir
+                            </p>
+                            <span
+                              className={cn(
+                                "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                                activeModuleDataAny.remedialTest?.isPassed
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border border-rose-200",
+                              )}
+                            >
+                              {activeModuleDataAny.remedialTest?.isPassed
+                                ? "Tuntas"
+                                : "Belum Tuntas"}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex items-center gap-6">
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-lottie-zinc-500">
+                                Skor
+                              </p>
+                              <p className="text-2xl  font-medium text-lottie-midnight">
+                                {activeModuleDataAny.remedialTest?.score ?? 0}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-lottie-zinc-500">
+                                Status
+                              </p>
+                              <p className="text-2xl  font-medium text-lottie-midnight">
+                                {activeModuleDataAny.remedialTest?.isPassed
+                                  ? "Lulus"
+                                  : "Belum Lulus"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {slug &&
+                        resolvedRemedialTestId &&
+                        (() => {
+                          if (
+                            isRemedialCompleted ||
+                            activeModuleDataAny?.hasCompleted ||
+                            activeModuleDataAny?.remedialCompleted
+                          ) {
+                            return (
+                              <div className="mt-4">
                                 <Link
                                   href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
-                                  className="inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
-                                >
-                                  Kerjakan Tes Remedial
-                                </Link>
-                                <Link
-                                  href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
-                                  className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
+                                  className="inline-flex h-11 items-center justify-center rounded-xl border border-lottie-mist bg-white px-5 text-sm font-semibold text-lottie-midnight transition hover:bg-lottie-pearl"
                                 >
                                   Lihat Hasil & Pembahasan
                                 </Link>
                               </div>
-                            </div>
-                          );
-                        } else {
+                            );
+                          }
+
                           return (
                             <div className="mt-4 space-y-2">
-                              <div className="inline-flex items-center gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-5 py-3 text-sm font-semibold text-[#B91C1C]">
-                                Batas percobaan tes sudah habis (1/1)
-                              </div>
-                              <p className="text-xs text-[#94A3B8]">
-                                Tidak ada tes remedial yang tersedia untuk modul
-                                ini. Hubungi guru kamu.
-                              </p>
+                              {latestAttempt && latestAttempt.isPassed && (
+                                <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-700">
+                                  <CheckCircleIcon className="h-4 w-4" />
+                                  Kamu sudah lulus tes diagnostik ini
+                                </div>
+                              )}
+                              {latestAttempt && !latestAttempt.isPassed && (
+                                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                                  <p className="font-semibold">
+                                    Skor Tes Diagnostik belum mencapai KKM (
+                                    {activeModuleDataAny?.passingScore ?? 80}).
+                                  </p>
+                                  <p className="mt-1 text-xs text-rose-600">
+                                    Silakan ikuti Tes Remedial di bawah ini
+                                    untuk memperbaiki pemahaman materi Anda.
+                                  </p>
+                                </div>
+                              )}
+                              <Link
+                                href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
+                                className="inline-flex h-11 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 duration-200"
+                              >
+                                Ikuti Tes Remedial
+                              </Link>
                             </div>
                           );
-                        }
-                      }
+                        })()}
 
-                      return (
-                        <Link
-                          href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/${encodeURIComponent(resolvedDiagnosticTestId)}`}
-                          className="mt-4 inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
-                        >
-                          {attemptCount > 0
-                            ? "Lanjutkan Tes Diagnostik"
-                            : "Mulai Tes Diagnostik"}
-                        </Link>
-                      );
-                    })()}
-
-                  {slug && !resolvedDiagnosticTestId && (
-                    <p className="mt-4 text-sm font-medium text-[#DC2626]">
-                      Tes diagnostik belum bisa dibuka karena ID diagnostik
-                      tidak ditemukan.
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
-
-            {isRemedial && (
-              <>
-                <ContentBadge icon={CheckCircleIcon} label="Tes Remedial" />
-                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm">
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#94A3B8]">
-                    Tes Remedial
-                  </p>
-                  <h1 className="mt-1 text-xl font-bold text-[#0F172A] sm:text-2xl">
-                    {activeStep?.title}
-                  </h1>
-                  {activeStep?.moduleTitle && (
-                    <p className="mt-1 text-sm text-[#64748B]">
-                      Modul: {activeStep.moduleTitle}
-                    </p>
-                  )}
-
-                  {activeModuleDataAny?.remedialCompleted && (
-                    <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-[#0F172A]">
-                          Hasil Terakhir
+                      {slug && !resolvedRemedialTestId && (
+                        <p className="mt-4 text-sm font-medium text-[#DC2626]">
+                          Tes remedial belum bisa dibuka karena ID remedial
+                          tidak ditemukan.
                         </p>
-                        <span
-                          className={cn(
-                            "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                            activeModuleDataAny.remedialTest?.isPassed
-                              ? "bg-[#DCFCE7] text-[#166534]"
-                              : "bg-[#FEE2E2] text-[#B91C1C]",
-                          )}
-                        >
-                          {activeModuleDataAny.remedialTest?.isPassed
-                            ? "Tuntas"
-                            : "Belum Tuntas"}
-                        </span>
-                      </div>
-                      <div className="mt-3 flex items-center gap-6">
-                        <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
-                            Skor
-                          </p>
-                          <p className="text-xl font-bold text-[#0F172A]">
-                            {activeModuleDataAny.remedialTest?.score ?? 0}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-[#94A3B8]">
-                            Status
-                          </p>
-                          <p className="text-xl font-bold text-[#0F172A]">
-                            {activeModuleDataAny.remedialTest?.isPassed
-                              ? "Lulus"
-                              : "Belum Lulus"}
-                          </p>
-                        </div>
-                      </div>
+                      )}
                     </div>
-                  )}
+                  </>
+                )}
 
-                  {slug &&
-                    resolvedRemedialTestId &&
-                    (() => {
-                      if (
-                        isRemedialCompleted ||
-                        activeModuleDataAny?.hasCompleted ||
-                        activeModuleDataAny?.remedialCompleted
-                      ) {
-                        return (
-                          <div className="mt-4">
-                            <Link
-                              href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
-                              className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
-                            >
-                              Lihat Hasil & Pembahasan
-                            </Link>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="mt-4 space-y-2">
-                          {latestAttempt && latestAttempt.isPassed && (
-                            <div className="inline-flex items-center gap-2 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-5 py-3 text-sm font-semibold text-[#166534]">
-                              <CheckCircleIcon className="h-4 w-4" />
-                              Kamu sudah lulus tes diagnostik ini
-                            </div>
-                          )}
-                          {latestAttempt && !latestAttempt.isPassed && (
-                            <div className="rounded-xl border border-[#FEE2E2] bg-[#FEF2F2] p-4 text-sm text-[#991B1B]">
-                              <p className="font-semibold">
-                                Skor Tes Diagnostik belum mencapai KKM (
-                                {activeModuleDataAny?.passingScore ?? 80}).
-                              </p>
-                              <p className="mt-1 text-xs text-[#B91C1C]">
-                                Silakan ikuti Tes Remedial di bawah ini untuk
-                                memperbaiki pemahaman materi Anda.
-                              </p>
-                            </div>
-                          )}
-                          <Link
-                            href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${encodeURIComponent(activeStep?.moduleId ?? contentId)}/remedia/${encodeURIComponent(resolvedRemedialTestId)}`}
-                            className="inline-flex h-11 items-center justify-center rounded-xl bg-[#7C3AED] px-5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
-                          >
-                            Ikuti Tes Remedial
-                          </Link>
-                        </div>
-                      );
-                    })()}
-
-                  {slug && !resolvedRemedialTestId && (
-                    <p className="mt-4 text-sm font-medium text-[#DC2626]">
-                      Tes remedial belum bisa dibuka karena ID remedial tidak
-                      ditemukan.
+                {!activeStep?.url && !isDiagnostic && !isRemedial && (
+                  <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-white p-5">
+                    <p className="text-sm text-[#64748B]">
+                      Materi ini belum memiliki tautan yang dapat ditampilkan.
                     </p>
-                  )}
-                </div>
-              </>
-            )}
+                  </div>
+                )}
 
-            {!activeStep?.url && !isDiagnostic && !isRemedial && (
-              <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-white p-5">
-                <p className="text-sm text-[#64748B]">
-                  Materi ini belum memiliki tautan yang dapat ditampilkan.
-                </p>
-              </div>
-            )}
-
-            <div ref={bottomRef} className="h-px w-full" />
+                <div ref={bottomRef} className="h-px w-full" />
               </>
             )}
           </div>
@@ -1207,12 +1235,13 @@ export default function ClassMaterialContentPageTemplate({
                 type="button"
                 onClick={() => goTo(prevStep)}
                 disabled={!prevStep}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#475569] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-lottie-mist bg-white px-5 text-sm font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl disabled:cursor-not-allowed disabled:opacity-40"
               >
-                ← {prevStep ? `Sebelumnya: ${prevStep.typeLabel}` : "Sebelumnya"}
+                ←{" "}
+                {prevStep ? `Sebelumnya: ${prevStep.typeLabel}` : "Sebelumnya"}
               </button>
               {activeIndex >= 0 && (
-                <span className="text-sm font-semibold text-[#475569]">
+                <span className="text-sm font-semibold text-lottie-zinc-600">
                   {activeIndex + 1} / {flatSteps.length}
                 </span>
               )}
@@ -1222,10 +1251,10 @@ export default function ClassMaterialContentPageTemplate({
                 disabled={
                   isVideo && !nextStep && !videoFinished[activeStep?.id || ""]
                 }
-                className="inline-flex h-11 items-center justify-center rounded-full bg-[#2563EB] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.18)] transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 items-center justify-center rounded-full bg-lottie-teal px-5 text-sm font-semibold text-white shadow-[0_8px_16px_rgba(31,35,117,0.15)] transition hover:bg-lottie-teal/95 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {nextStep
-                  ? `Selanjutnya: ${nextStep.typeLabel === "Test Diagnosis" ? "Tes Diagnostik" : nextStep.typeLabel}`
+                  ? `Selanjutnya: ${nextStep.typeLabel === "Tes Diagnostik" ? "Tes Diagnostik" : nextStep.typeLabel}`
                   : "Selesai"}{" "}
                 →
               </button>
@@ -1234,19 +1263,19 @@ export default function ClassMaterialContentPageTemplate({
         </div>
 
         {/* ==================== RIGHT SIDEBAR ==================== */}
-        <aside className="sticky top-4 h-fit rounded-2xl border border-[#E2E8F0] bg-white p-4 sm:p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#94A3B8]">
+        <aside className="sticky top-4 h-fit getmath-card p-4 sm:p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-lottie-zinc-500">
             Daftar Modul
           </p>
 
-          <div className="mt-3 overflow-hidden rounded-2xl bg-[#1F2375] p-4 text-white shadow-[0px_10px_20px_rgba(39,48,132,0.28)]">
+          <div className="mt-3 overflow-hidden rounded-2xl bg-lottie-teal p-4 text-white shadow-[0px_12px_24px_rgba(31,35,117,0.2)]">
             <div className="flex flex-col gap-3">
               <div>
                 <p className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/90">
                   <BookIcon className="h-3 w-3" />
                   Materi Pembelajaran
                 </p>
-                <h1 className="mt-2 text-base font-bold">
+                <h1 className="mt-2  text-xl font-normal text-white">
                   Daftar Materi Kelas
                 </h1>
                 <p className="mt-1 text-xs text-white/70">
@@ -1271,7 +1300,7 @@ export default function ClassMaterialContentPageTemplate({
               </div>
               <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/20">
                 <div
-                  className="h-full rounded-full bg-[#DCE3FF] transition-all duration-500"
+                  className="h-full rounded-full bg-lottie-mint-glow transition-all duration-500"
                   style={{ width: `${overallProgress}%` }}
                 />
               </div>
@@ -1289,7 +1318,7 @@ export default function ClassMaterialContentPageTemplate({
                 <li
                   key={module.id}
                   className={cn(
-                    "rounded-2xl bg-[#1F2375] transition"
+                    "rounded-2xl bg-lottie-teal transition-all duration-200",
                   )}
                 >
                   <button
@@ -1301,8 +1330,8 @@ export default function ClassMaterialContentPageTemplate({
                       className={cn(
                         "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold",
                         containsActive
-                          ? "bg-[#DBEAFE] text-[#2563EB]"
-                          : "bg-[#F1F5F9] text-[#475569]",
+                          ? "bg-lottie-mint-glow text-white"
+                          : "bg-white/10 text-white/90",
                       )}
                     >
                       {moduleIndex + 1}
@@ -1317,7 +1346,7 @@ export default function ClassMaterialContentPageTemplate({
                     </div>
                     <ChevronLeftIcon
                       className={cn(
-                        "h-4 w-4 shrink-0 text-[#94A3B8] transition-transform",
+                        "h-4 w-4 shrink-0 text-white/80 transition-transform",
                         isOpen ? "-rotate-90" : "rotate-90",
                       )}
                     />
@@ -1326,23 +1355,26 @@ export default function ClassMaterialContentPageTemplate({
                   <div
                     className={cn(
                       "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out",
-                      isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                      isOpen
+                        ? "grid-rows-[1fr] opacity-100"
+                        : "grid-rows-[0fr] opacity-0",
                     )}
                   >
                     <div className="overflow-hidden min-h-0">
-                      <ul className="space-y-1 border rounded-b-2xl bg-[#FAFBFD] p-2 border-[#1F2375]/30">
+                      <ul className="space-y-1 border rounded-b-2xl bg-lottie-pearl p-2 border-lottie-teal/15">
                         {module.steps.map((step, stepIndex) => {
                           const StepIcon = getStepIcon(step.kind);
                           const tone = getStepTone(step.kind);
                           const isActive = activeStep?.id === step.id;
                           const isLocked = step.status === "locked";
                           const stepIsCompleted = step.status === "completed";
-                          const stepIsInProgress = step.status === "in-progress";
+                          const stepIsInProgress =
+                            step.status === "in-progress";
 
                           return (
                             <li key={step.id}>
                               {isLocked ? (
-                                <div className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 opacity-50">
+                                <div className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 opacity-40">
                                   <span
                                     className={cn(
                                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
@@ -1354,14 +1386,14 @@ export default function ClassMaterialContentPageTemplate({
                                     />
                                   </span>
                                   <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium text-[#0F172A]">
+                                    <p className="truncate text-sm font-medium text-lottie-zinc-500">
                                       {step.title}
                                     </p>
-                                    <p className="text-xs text-[#CBD5E1]">
+                                    <p className="text-xs text-lottie-fog">
                                       {step.typeLabel} · Terkunci
                                     </p>
                                   </div>
-                                  <span className="text-xs text-[#CBD5E1]">
+                                  <span className="text-xs text-lottie-fog">
                                     🔒
                                   </span>
                                 </div>
@@ -1372,10 +1404,10 @@ export default function ClassMaterialContentPageTemplate({
                                   className={cn(
                                     "flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition",
                                     isActive
-                                      ? "border-[#BFDBFE] bg-[#EFF6FF]"
+                                      ? "border-lottie-teal/30 bg-lottie-teal/5 shadow-xs text-lottie-teal"
                                       : stepIsInProgress
-                                        ? "border-[#BFDBFE] bg-[#EFF6FF] shadow-sm"
-                                        : "border-transparent hover:border-[#E2E8F0] hover:bg-white",
+                                        ? "border-lottie-teal/20 bg-lottie-teal/5 text-lottie-teal"
+                                        : "border-transparent hover:border-lottie-mist hover:bg-white text-lottie-midnight",
                                   )}
                                 >
                                   <span
@@ -1393,18 +1425,18 @@ export default function ClassMaterialContentPageTemplate({
                                       className={cn(
                                         "truncate text-sm font-medium",
                                         isActive || stepIsInProgress
-                                          ? "text-[#1D4ED8]"
-                                          : "text-[#0F172A]",
+                                          ? "text-lottie-teal font-semibold"
+                                          : "text-lottie-midnight",
                                       )}
                                     >
                                       {step.title}
                                     </p>
-                                    <p className="text-xs text-[#64748B]">
+                                    <p className="text-xs text-lottie-zinc-500">
                                       {step.typeLabel} · Langkah {stepIndex + 1}
                                     </p>
                                   </div>
                                   {stepIsCompleted && (
-                                    <CheckCircleIcon className="h-5 w-5 shrink-0 text-[#22C55E]" />
+                                    <CheckCircleIcon className="h-5 w-5 shrink-0 text-emerald-500" />
                                   )}
                                 </button>
                               )}

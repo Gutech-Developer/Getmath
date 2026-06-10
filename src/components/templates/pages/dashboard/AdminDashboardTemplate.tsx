@@ -30,7 +30,7 @@ export default function AdminDashboardTemplate() {
   const chartLines: AdminChartLine[] = [
     {
       label: "Siswa",
-      color: "#3b82f6", // blue
+      color: "#1F2375", // GetMath Indigo (lottie-teal)
       data: [
         Math.floor(totalStudents * 0.4),
         Math.floor(totalStudents * 0.6),
@@ -40,7 +40,7 @@ export default function AdminDashboardTemplate() {
     },
     {
       label: "Guru",
-      color: "#10b981", // emerald
+      color: "#818cf8", // lottie-mint-glow
       data: [
         Math.floor(totalTeachers * 0.4),
         Math.floor(totalTeachers * 0.6),
@@ -50,7 +50,7 @@ export default function AdminDashboardTemplate() {
     },
     {
       label: "Orang Tua",
-      color: "#f59e0b", // amber
+      color: "#f4d58d", // topaz
       data: [
         Math.floor(totalParents * 0.4),
         Math.floor(totalParents * 0.6),
@@ -63,31 +63,31 @@ export default function AdminDashboardTemplate() {
   const stats: AdminStat[] = [
     {
       icon: <UsersIcon className="h-5 w-5" />,
-      iconColor: "bg-blue-100 text-blue-500",
+      iconColor: "bg-lottie-teal/5 text-lottie-teal",
       value: totalStudents,
       label: "Siswa",
     },
     {
       icon: <UsersIcon className="h-5 w-5" />,
-      iconColor: "bg-emerald-100 text-emerald-500",
+      iconColor: "bg-emerald-50 text-emerald-600",
       value: totalTeachers,
       label: "Guru",
     },
     {
       icon: <UsersIcon className="h-5 w-5" />,
-      iconColor: "bg-amber-100 text-amber-500",
+      iconColor: "bg-amber-50 text-amber-600",
       value: totalParents,
       label: "Orang Tua",
     },
     {
       icon: <DashboardIcon className="h-5 w-5" variant="filled" />,
-      iconColor: "bg-indigo-100 text-indigo-500",
+      iconColor: "bg-lottie-teal/5 text-lottie-teal",
       value: userStats?.data?.activeAccounts ?? 0,
       label: "Akun Aktif",
     },
     {
       icon: <ClipboardIcon className="h-5 w-5" />,
-      iconColor: "bg-rose-100 text-rose-500",
+      iconColor: "bg-red-50 text-red-600",
       value: userStats?.data?.inactiveAccounts ?? 0,
       label: "Akun Nonaktif",
     },

@@ -20,7 +20,7 @@ export default function ClassMetricCard({
   iconClassName,
 }: IClassMetricCardProps) {
   return (
-    <article className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0px_8px_24px_rgba(148,163,184,0.14)]">
+    <article className="getmath-card px-4 py-3">
       <div className="flex items-center gap-3">
         <div
           className={cn(
@@ -31,10 +31,10 @@ export default function ClassMetricCard({
           <Icon className={cn("h-4 w-4", iconClassName)} />
         </div>
         <div className="min-w-0">
-          <p className="text-lg font-bold leading-5 text-[#0F172A]">{value}</p>
-          <p className="truncate text-xs font-medium text-[#64748B]">{label}</p>
+          <p className="text-lg font-bold leading-5 text-lottie-midnight">{value}</p>
+          <p className="truncate text-xs font-medium text-lottie-zinc-500">{label}</p>
           {hint && (
-            <p className="truncate text-[11px] text-[#94A3B8]">{hint}</p>
+            <p className="truncate text-[11px] text-lottie-fog">{hint}</p>
           )}
         </div>
       </div>

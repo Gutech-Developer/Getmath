@@ -7,7 +7,7 @@ export function getActiveContentMode(typeLabel: string) {
     return "E-LKPD";
   }
 
-  if (typeLabel === "Tes" || typeLabel === "Test Diagnosis") {
+  if (typeLabel === "Tes" || typeLabel === "Tes Diagnostik") {
     return "Tes Diagnostik";
   }
 

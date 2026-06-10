@@ -192,7 +192,7 @@ function ClassFormModal({
                 onValuesChange({ ...values, className: event.target.value })
               }
               placeholder="cth: Matematika Wajib Kelas X"
-              className="h-12 w-full rounded-2xl border border-[#D1D5DB] px-4 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              className="h-12 w-full rounded-2xl border border-[#D1D5DB] px-4 text-base text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
 
@@ -229,7 +229,7 @@ function ClassFormModal({
               "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold transition relative z-10",
               isSubmitDisabled
                 ? "cursor-not-allowed bg-[#E5E7EB] text-white"
-                : "bg-[#2563EB] text-white hover:bg-[#1D4ED8]",
+                : "bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white",
             )}
           >
             <PlusIcon className="h-4 w-4" />
@@ -369,7 +369,7 @@ export default function AdminClassListContent({
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-lg font-semibold text-white transition hover:bg-[#1D4ED8]"
+            className="inline-flex items-center gap-2.5 rounded-2xl bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-5 py-3 text-base"
           >
             <PlusIcon className="h-5 w-5" />
             <span>Tambah Kelas</span>
@@ -382,7 +382,7 @@ export default function AdminClassListContent({
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Cari nama kelas, guru, atau kode..."
-            className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+            className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
           />
         </div>
 
@@ -391,9 +391,9 @@ export default function AdminClassListContent({
             {filteredClasses.map((classItem) => (
               <li
                 key={classItem.id}
-                className="rounded-3xl border border-[#E5E7EB] bg-white transition hover:border-[#BFDBFE] hover:shadow-[0_8px_24px_rgba(59,130,246,0.08)]"
+                className="getmath-card overflow-hidden"
               >
-                <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-3 bg-[#F8FAFC] rounded-t-3xl">
+                <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-3 bg-lottie-teal/5">
                   <div className="text-sm font-medium text-[#475569]">
                     Guru: <span className="font-bold text-[#0F172A]">{classItem.teacherName}</span>
                   </div>
@@ -405,7 +405,7 @@ export default function AdminClassListContent({
                         onToggleClassStatus(classItem.id);
                       }}
                       className={cn(
-                        "flex items-center gap-1.5 p-1.5 px-3 border rounded-lg transition text-xs font-semibold",
+                        "flex items-center gap-1.5 p-1.5 px-3 border rounded-lg transition text-xs font-semibold cursor-pointer",
                         classItem.status === "Aktif"
                           ? "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100"
                           : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
@@ -419,7 +419,7 @@ export default function AdminClassListContent({
                         e.stopPropagation();
                         handleOpenEditModal(classItem);
                       }}
-                      className="flex items-center gap-1.5 p-1.5 px-3 border border-[#BFDBFE] rounded-lg bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition text-xs font-semibold"
+                      className="flex items-center gap-1.5 p-1.5 px-3 border border-lottie-teal/20 rounded-lg bg-lottie-teal/5 text-lottie-teal hover:bg-lottie-teal/10 transition text-xs font-semibold cursor-pointer"
                     >
                       <EditIcon className="h-3.5 w-3.5" />
                       Edit
@@ -432,7 +432,7 @@ export default function AdminClassListContent({
                           onDeleteClass(classItem.id);
                         }
                       }}
-                      className="flex items-center gap-1.5 p-1.5 px-3 border border-rose-200 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition text-xs font-semibold"
+                      className="flex items-center gap-1.5 p-1.5 px-3 border border-rose-200 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition text-xs font-semibold cursor-pointer"
                     >
                       <TrashIcon className="h-3.5 w-3.5" />
                       Hapus
@@ -448,7 +448,7 @@ export default function AdminClassListContent({
                   isActive={classItem.status === "Aktif"}
                   activeTests={classItem.testCount}
                   onManage={() => onManageClass?.(classItem.id)}
-                  className="border-none px-6 py-5 rounded-b-3xl"
+                  className="border-none px-6 py-5"
                 />
               </li>
             ))}

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
-import { SidebarProvider } from "@/providers/SidebarProvider";
 import NextTopLoader from "nextjs-toploader";
-import MainLayout from "@/components/templates/layouts/MainLayout";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {

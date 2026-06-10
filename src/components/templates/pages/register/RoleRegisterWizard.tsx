@@ -46,9 +46,9 @@ function PasswordField({
 
   return (
     <div className="space-y-1.5">
-      <label className="block text-xs font-semibold text-[#4b5563]">
+      <label className="block text-xs font-semibold text-lottie-zinc-500">
         {label}
-        <span className="text-[#dc2626]">*</span>
+        <span className="text-red-500">*</span>
       </label>
       <div className="relative">
         <input
@@ -56,12 +56,12 @@ function PasswordField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 pr-10 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
+          className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 pr-10 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
         />
         <button
           type="button"
           onClick={() => setVisible((prev) => !prev)}
-          className="absolute inset-y-0 right-3 text-[#6b7280] text-xs"
+          className="absolute inset-y-0 right-3 text-lottie-zinc-500 text-xs hover:text-lottie-teal"
           tabIndex={-1}
         >
           {visible ? "Sembunyikan" : "Lihat"}
@@ -87,8 +87,8 @@ function RegisterStepIndicator({
         className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"
         style={{
           backgroundColor:
-            isCompleted || isActive ? accent : "rgba(26,35,126,0.04)",
-          color: isCompleted || isActive ? "#fff" : "#9ca3af",
+            isCompleted || isActive ? "var(--color-lottie-teal)" : "rgba(31,35,117,0.04)",
+          color: isCompleted || isActive ? "#fff" : "#9f9fa9",
         }}
       >
         {isCompleted ? (
@@ -117,12 +117,12 @@ function RegisterStepIndicator({
       {renderNode(1)}
       <div
         className="mx-2 h-[2px] flex-1"
-        style={{ backgroundColor: step > 1 ? accent : "rgba(26,35,126,0.09)" }}
+        style={{ backgroundColor: step > 1 ? "var(--color-lottie-teal)" : "rgba(31,35,117,0.09)" }}
       />
       {renderNode(2)}
       <div
         className="mx-2 h-[2px] flex-1"
-        style={{ backgroundColor: step > 2 ? accent : "rgba(26,35,126,0.09)" }}
+        style={{ backgroundColor: step > 2 ? "var(--color-lottie-teal)" : "rgba(31,35,117,0.09)" }}
       />
       {renderNode(3)}
     </div>
@@ -175,7 +175,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
       identityPlaceholder: isTeacher
         ? "Contoh: 197001011998021001"
         : "Contoh: 1234567890",
-      accent: isTeacher ? "#7c3aed" : "#1a237e",
+      accent: isTeacher ? "#7c3aed" : "#1F2375",
       dashboardPath: isTeacher ? "/teacher/dashboard" : "/student/dashboard",
       emailExample: isTeacher ? "guru@gmail.com" : "siswa@gmail.com",
     };
@@ -273,25 +273,25 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
               if (step === 1) router.push("/login");
               if (step === 2) setStep(1);
             }}
-            className="inline-flex items-center gap-2 text-[13px] font-medium text-[#6b7280]"
+            className="inline-flex items-center gap-2 text-[13px] font-semibold text-lottie-teal hover:opacity-85 transition duration-200"
           >
-            <span aria-hidden="true">&lt;</span>
+            <span aria-hidden="true">&larr;</span>
             {topBackText}
           </button>
         )}
 
-        <div className="mt-4 rounded-[24px] border border-[#1a237e]/10 bg-white/95 p-5 sm:p-6 lg:p-7 shadow-[0px_20px_60px_0px_rgba(26,35,126,0.12)]">
+        <div className="mt-4 getmath-card p-5 sm:p-6 lg:p-7 pt-1 lg:pt-1.5">
           {step === 3 ? (
             <div>
-              <p className="text-center text-xs text-[#6b7280]">
+              <p className="text-center text-xs text-[#6b7280] pt-2">
                 Langkah 3 dari 3
               </p>
               <RegisterStepIndicator step={step} accent={config.accent} />
 
               <div className="mt-6 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-[#d1d5db] bg-[#f3f4f6]">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-lottie-mist bg-lottie-pearl text-lottie-zinc-500">
                   <svg
-                    className="w-6 h-6 text-[#9ca3af]"
+                    className="w-6 h-6"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -305,19 +305,19 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                   </svg>
                 </div>
 
-                <h1 className="text-[22px] font-extrabold leading-8 text-[#1a237e]">
+                <h1 className="text-2xl font-extrabold leading-8 text-lottie-teal">
                   Cek Email Kamu!
                 </h1>
-                <p className="mt-4 text-[13px] leading-5 text-[#6b7280]">
+                <p className="mt-4 text-[13px] leading-5 text-lottie-zinc-500">
                   Magic link telah dikirimkan ke{" "}
-                  <span className="font-semibold text-[#00acc1]">
+                  <span className="font-semibold text-lottie-teal">
                     {form.email || config.emailExample}
                   </span>
                   . Klik link di email untuk memverifikasi akun dan mulai
                   menggunakan GetMath!
                 </p>
 
-                <div className="mt-5 rounded-[14px] border border-[#00acc1]/25 bg-[#00acc1]/10 px-4 py-3 text-[12px] text-[#374151]">
+                <div className="mt-5 rounded-xl border border-lottie-teal/20 bg-lottie-teal/5 px-4 py-3 text-[12px] text-lottie-teal font-medium">
                   Tidak menerima email? Cek folder Spam atau kirim ulang setelah
                   60 detik.
                 </div>
@@ -326,31 +326,19 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
           ) : (
             <>
               <div className="text-center">
-                <div
-                  className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border text-3xl"
-                  style={{
-                    backgroundColor:
-                      role === "teacher"
-                        ? "rgba(124, 58, 237, 0.08)"
-                        : "rgba(26, 35, 126, 0.08)",
-                    borderColor:
-                      role === "teacher"
-                        ? "rgba(124, 58, 237, 0.14)"
-                        : "rgba(26, 35, 126, 0.14)",
-                  }}
-                >
+                <div className="w-full flex items-center justify-center mb-4">
                   <Image
                     src="/img/logo/logo.png"
                     alt="GetMath"
-                    width={40}
-                    height={40}
-                    className="w-10 h-10 object-contain"
+                    width={80}
+                    height={80}
+                    className="w-topbar-height h-topbar-height object-contain"
                   />
                 </div>
-                <h1 className="text-[30px] font-extrabold leading-8 text-[#1a237e]">
+                <h1 className="text-3xl font-extrabold leading-8 text-lottie-teal">
                   {config.title}
                 </h1>
-                <p className="mt-1 text-xs text-[#6b7280]">
+                <p className="mt-1 text-xs text-lottie-zinc-500">
                   Langkah {step} dari 3
                 </p>
               </div>
@@ -359,49 +347,10 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
 
               {step === 1 ? (
                 <div className="mt-6 space-y-4">
-                  <button
-                    type="button"
-                    className="w-full rounded-[12px] border border-gray-300 bg-white py-2.5 px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-3 shadow-sm"
-                    onClick={() =>
-                      toast.info("Login dengan Google belum tersedia.")
-                    }
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 48 48"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        fill="#EA4335"
-                        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                      />
-                      <path
-                        fill="#4285F4"
-                        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                      />
-                    </svg>
-                    Masuk dengan Google
-                  </button>
-
-                  <div className="my-2 flex items-center gap-3">
-                    <div className="h-px flex-1 bg-[#1a237e]/10" />
-                    <span className="text-[11px] text-[#9ca3af]">
-                      atau isi formulir
-                    </span>
-                    <div className="h-px flex-1 bg-[#1a237e]/10" />
-                  </div>
 
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#4b5563]">
+                      <label className="block text-xs font-semibold text-lottie-zinc-500">
                         Nama Lengkap<span className="text-[#dc2626]">*</span>
                       </label>
                       <input
@@ -410,12 +359,12 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                           updateField("fullname", e.target.value)
                         }
                         placeholder="Masukkan nama lengkap"
-                        className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
+                        className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#4b5563]">
+                      <label className="block text-xs font-semibold text-lottie-zinc-500">
                         {config.identityLabel}
                         <span className="text-[#dc2626]">*</span>
                       </label>
@@ -425,12 +374,12 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                           updateField("identityNumber", e.target.value)
                         }
                         placeholder={config.identityPlaceholder}
-                        className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
+                        className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#4b5563]">
+                      <label className="block text-xs font-semibold text-lottie-zinc-500">
                         Nomor HP/WhatsApp
                         <span className="text-[#dc2626]">*</span>
                       </label>
@@ -438,12 +387,12 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                         value={form.phone}
                         onChange={(e) => updateField("phone", e.target.value)}
                         placeholder="Contoh: 081234567890"
-                        className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
+                        className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-[#4b5563]">
+                      <label className="block text-xs font-semibold text-lottie-zinc-500">
                         Email<span className="text-[#dc2626]">*</span>
                       </label>
                       <input
@@ -451,7 +400,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                         value={form.email}
                         onChange={(e) => updateField("email", e.target.value)}
                         placeholder="nama@email.com"
-                        className="w-full rounded-[14px] border border-[#1a237e]/10 bg-[#1a237e]/5 px-4 py-2.5 text-[13px] text-[#1f2937] placeholder:text-[#1f2937]/50 outline-none transition focus:ring-2 focus:ring-[#00acc1]/30"
+                        className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
                       />
                     </div>
                   </div>
@@ -459,10 +408,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                   <button
                     type="button"
                     onClick={handleGoNext}
-                    className="mt-4 w-full rounded-[14px] px-4 py-3 text-sm font-bold text-white"
-                    style={{
-                      backgroundImage: `linear-gradient(173deg, ${config.accent} 0%, rgb(0, 172, 193) 100%)`,
-                    }}
+                    className="mt-4 w-full flex justify-center items-center rounded-xl bg-lottie-teal mantaps text-white  px-4 py-3 text-sm font-semibold transition cursor-pointer"
                   >
                     Lanjut
                   </button>
@@ -531,10 +477,7 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
 
                   <button
                     type="submit"
-                    className="w-full rounded-[14px] px-4 py-3 text-sm font-bold text-white disabled:opacity-70"
-                    style={{
-                      backgroundImage: `linear-gradient(173deg, ${config.accent} 0%, rgb(0, 172, 193) 100%)`,
-                    }}
+                    className="w-full flex justify-center items-center rounded-xl bg-lottie-teal mantaps text-white  px-4 py-3 text-sm font-semibold disabled:opacity-70 transition cursor-pointer"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Memproses..." : "Buat Akun"}
@@ -542,9 +485,9 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                 </form>
               )}
 
-              <p className="mt-5 text-center text-[13px] text-[#6b7280]">
+              <p className="mt-5 text-center text-[13px] text-lottie-zinc-500">
                 Sudah punya akun?{" "}
-                <Link href="/login" className="font-bold text-[#00acc1]">
+                <Link href="/login" className="font-bold text-lottie-teal hover:opacity-80 transition duration-200">
                   Masuk di sini
                 </Link>
               </p>

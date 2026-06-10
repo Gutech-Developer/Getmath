@@ -71,7 +71,7 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       </div>
 
       {/* Platform Growth Chart */}
-      <div className="bg-white border border-grey-stroke rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+      <div className="getmath-card p-5 md:p-6 flex flex-col gap-4">
         <SectionHeader title={chartTitle} />
         <div className="h-[300px] w-full mt-4">
           <ResponsiveContainer width="100%" height="100%">
@@ -91,7 +91,7 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 12 }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 12 }} dx={-10} />
               <Tooltip
-                contentStyle={{ borderRadius: "16px", border: "1px solid #E2E8F0", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05)", backgroundColor: "#ffffff", padding: "12px" }}
+                contentStyle={{ borderRadius: "16px", border: "1px solid rgba(31, 35, 117, 0.16)", backdropFilter: "blur(12px)", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05)", backgroundColor: "rgba(255, 255, 255, 0.9)", padding: "12px" }}
                 itemStyle={{ color: "#334155", fontSize: "13px" }}
                 labelStyle={{ color: "#1E293B", fontWeight: "bold", fontSize: "14px", marginBottom: "4px" }}
               />
@@ -113,11 +113,11 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       </div>
 
       {/* Aksi Cepat */}
-      <div className="bg-white border border-grey-stroke rounded-2xl p-5 md:p-6 flex flex-col gap-4">
+      <div className="getmath-card p-5 md:p-6 flex flex-col gap-4">
         <SectionHeader title="Aksi Cepat" />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Link href="/admin/dashboard/manage-users/student" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#3b82f6] hover:bg-blue-50 transition-colors">
-            <div className="bg-blue-100 text-[#3b82f6] p-2 rounded-lg">
+          <Link href="/admin/dashboard/manage-users/student" className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200">
+            <div className="bg-lottie-teal/10 text-lottie-teal p-2 rounded-lg">
               <UsersIcon className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
@@ -125,8 +125,8 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               <span className="text-xs text-[#64748B]">Tambah siswa/guru baru</span>
             </div>
           </Link>
-          <Link href="/admin/dashboard/class-list" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#10b981] hover:bg-emerald-50 transition-colors">
-            <div className="bg-emerald-100 text-[#10b981] p-2 rounded-lg">
+          <Link href="/admin/dashboard/class-list" className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200">
+            <div className="bg-lottie-teal/10 text-lottie-teal p-2 rounded-lg">
               <BookIcon className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
@@ -134,8 +134,8 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               <span className="text-xs text-[#64748B]">Manajemen kelas & guru</span>
             </div>
           </Link>
-          <Link href="/admin/dashboard/learning-analytics" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#f59e0b] hover:bg-amber-50 transition-colors">
-            <div className="bg-amber-100 text-[#f59e0b] p-2 rounded-lg">
+          <Link href="/admin/dashboard/learning-analytics" className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200">
+            <div className="bg-lottie-teal/10 text-lottie-teal p-2 rounded-lg">
               <ActivityIcon className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
@@ -143,8 +143,8 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
               <span className="text-xs text-[#64748B]">Pantau progres siswa</span>
             </div>
           </Link>
-          <Link href="/admin/dashboard/manage-diagnostics" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#8b5cf6] hover:bg-purple-50 transition-colors">
-            <div className="bg-purple-100 text-[#8b5cf6] p-2 rounded-lg">
+          <Link href="/admin/dashboard/manage-diagnostics" className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200">
+            <div className="bg-lottie-teal/10 text-lottie-teal p-2 rounded-lg">
               <TrendUpIcon className="w-5 h-5" />
             </div>
             <div className="flex flex-col">

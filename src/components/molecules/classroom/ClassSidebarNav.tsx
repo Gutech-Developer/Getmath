@@ -45,7 +45,7 @@ export default function ClassSidebarNav({
       if (item.key === "materi") {
         return {
           ...item,
-          description: `${totalSubjects} materi tersedia`,
+          description: `Daftar materi tersedia`,
         };
       }
       if (item.key === "diagnosis") {

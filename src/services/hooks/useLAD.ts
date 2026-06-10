@@ -10,12 +10,15 @@ import type {
     IActivityLogResponse,
     IEmotionDistributionClassOverallResponse,
     IDistributionDiagnosticTestResponse,
-    IDistributionRemedialResponse
+    IDistributionRemedialResponse,
+    IModuleProgressTableResponse
 } from "@/types/LAD";
 import { buildQuery } from "./helper";
 
 function withStudentId(path: string, studentId?: string) {
-    return studentId ? `${path}?studentId=${studentId}` : path;
+    return studentId && studentId !== "undefined" && studentId !== "null"
+        ? `${path}?studentId=${studentId}`
+        : path;
 }
 
 export function useCourseSummary(courseId: string, studentId?: string) {
@@ -80,6 +83,15 @@ export function useRemedialTestDistribution(courseId: string) {
         queryKey: queryKeys.lad.remedialTestDistribution(courseId),
         queryFn: () => gsGet<IDistributionRemedialResponse>(`/learning-analytics/courses/${courseId}/class-remedial-distribution`),
         enabled: !!courseId,
+        staleTime: 2 * 60 * 1000,
+    });
+}
+
+export function useModuleProgressTable(courseModuleId: string, studentId?: string) {
+    return useQuery<IModuleProgressTableResponse, Error>({
+        queryKey: queryKeys.lad.moduleProgressTable(courseModuleId, studentId || ""),
+        queryFn: () => gsGet<IModuleProgressTableResponse>(withStudentId(`/learning-analytics/modules/${courseModuleId}/progress-table`, studentId)),
+        enabled: !!courseModuleId,
         staleTime: 2 * 60 * 1000,
     });
 }

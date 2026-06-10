@@ -188,10 +188,6 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = (props) => {
             ))}
           </div>
         )}
-
-        {!subtitle && roleLabel && (
-          <p className="relative mt-1 text-indigo-200 text-sm">{roleLabel}</p>
-        )}
       </div>
     );
   }

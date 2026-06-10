@@ -20,7 +20,7 @@ export default function LADMetricCard({
   iconFg,
 }: ILADMetricCardProps) {
   return (
-    <article className="flex flex-col gap-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 shadow-[0px_4px_16px_rgba(148,163,184,0.1)]">
+    <article className="flex flex-col gap-1 rounded-2xl border border-lottie-mist bg-white px-4 py-4 shadow-xs">
       <div className="flex items-center gap-3">
         <div
           className={cn(
@@ -31,11 +31,11 @@ export default function LADMetricCard({
           <Icon className={cn("h-4 w-4", iconFg)} />
         </div>
         <div className="min-w-0">
-          <p className="text-xl font-bold leading-6 text-[#0F172A]">{value}</p>
-          <p className="truncate text-xs font-medium text-[#64748B]">{label}</p>
+          <p className="text-2xl  font-normal leading-6 text-lottie-midnight">{value}</p>
+          <p className="truncate text-xs font-medium text-lottie-zinc-500">{label}</p>
         </div>
       </div>
-      {sub && <p className="mt-1 truncate text-[11px] text-[#94A3B8]">{sub}</p>}
+      {sub && <p className="mt-1 truncate text-[11px] text-lottie-zinc-500/80">{sub}</p>}
     </article>
   );
 }

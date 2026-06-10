@@ -76,7 +76,7 @@ export default function ClassDashboardPageTemplate({
         if (item.key === "materi") {
           return {
             ...item,
-            description: `${totalSubjects} materi tersedia`,
+            description: `Daftar materi tersedia`,
           };
         }
         if (item.key === "diagnosis") {
@@ -96,35 +96,35 @@ export default function ClassDashboardPageTemplate({
     hint: string;
     routeKey: ClassSidebarRouteKey;
   }[] = [
-    {
-      key: "metric-read-material",
-      value: `${subjectsRead}/${totalSubjects}`,
-      label: "Materi Terbaca",
-      hint: `${totalSubjects} materi tersedia`,
-      routeKey: "materi",
-    },
-    {
-      key: "metric-diagnostic",
-      value: String(totalDiagnosticTests),
-      label: "Tes Diagnostik",
-      hint: `${totalDiagnosticTests} tes tersedia`,
-      routeKey: "diagnosis",
-    },
-    {
-      key: "metric-progress",
-      value: dashboardMetrics ? `${dashboardMetrics.progressPercent}%` : "–",
-      label: "Rata-rata Nilai",
-      hint: "Lihat LAD lengkapmu",
-      routeKey: "lad",
-    },
-    {
-      key: "metric-score",
-      value: "–",
-      label: "Peringkat Kelas",
-      hint: `Dari ${totalStudents} siswa`,
-      routeKey: "lad",
-    },
-  ];
+      {
+        key: "metric-read-material",
+        value: `${subjectsRead}/${totalSubjects}`,
+        label: "Materi Terbaca",
+        hint: `${totalSubjects} materi tersedia`,
+        routeKey: "materi",
+      },
+      {
+        key: "metric-diagnostic",
+        value: String(totalDiagnosticTests),
+        label: "Tes Diagnostik",
+        hint: `${totalDiagnosticTests} tes tersedia`,
+        routeKey: "diagnosis",
+      },
+      {
+        key: "metric-progress",
+        value: dashboardMetrics ? `${dashboardMetrics.progressPercent}%` : "–",
+        label: "Rata-rata Nilai",
+        hint: "Lihat LAD lengkapmu",
+        routeKey: "lad",
+      },
+      {
+        key: "metric-score",
+        value: "–",
+        label: "Peringkat Kelas",
+        hint: `Dari ${totalStudents} siswa`,
+        routeKey: "lad",
+      },
+    ];
 
   const diagnosticModules = useMemo(() => {
     return (modules ?? []).filter((m) => m.type === "DIAGNOSTIC_TEST");
@@ -136,8 +136,12 @@ export default function ClassDashboardPageTemplate({
       activeKey="overview"
       classTitle={classTitle}
     >
-      <header className="rounded-3xl bg-[#1F2375] p-5 text-white shadow-[0px_20px_40px_rgba(39,48,132,0.28)]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <header className="relative overflow-hidden rounded-3xl bg-lottie-teal p-5 text-white shadow-[0px_20px_40px_rgba(39,48,132,0.28)]">
+        {/* decorative circles */}
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5" />
+        <div className="pointer-events-none absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-white/5" />
+
+        <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">{courseName}</h1>
             <p className="mt-1 text-sm text-white/80">
@@ -147,13 +151,13 @@ export default function ClassDashboardPageTemplate({
           </div>
           <Link
             href="/student/dashboard"
-            className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20"
+            className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20 active:scale-[0.98]"
           >
             Keluar Kelas
           </Link>
         </div>
 
-        <div className="mt-5">
+        <div className="relative z-10 mt-5">
           <div className="flex items-center justify-between text-xs font-medium text-white/85">
             <span>Progres keseluruhan</span>
             <span>{dashboardMetrics?.progressPercent ?? 0}%</span>
@@ -166,7 +170,7 @@ export default function ClassDashboardPageTemplate({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="relative z-10 mt-4 flex flex-wrap gap-2">
           {[
             `${totalSubjects} Materi`,
             totalDiagnosticTests > 0 ? `${totalDiagnosticTests} Tes` : null,
@@ -201,11 +205,11 @@ export default function ClassDashboardPageTemplate({
         ))}
       </section>
 
-      <section className="space-y-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.12)]">
-        <h2 className="text-base font-bold text-[#0F172A]">
+      <section className="space-y-4 getmath-card p-5">
+        <h2 className=" text-xl font-normal text-lottie-teal">
           Akses Modul Kelas
         </h2>
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 ">
           {moduleItems.map((item) => (
             <ClassModuleCard key={item.key} item={item} />
           ))}
@@ -213,31 +217,31 @@ export default function ClassDashboardPageTemplate({
       </section>
 
 
-      <section className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0px_12px_24px_rgba(148,163,184,0.14)]">
+      <section className="space-y-4 getmath-card p-5">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-bold text-[#0F172A]">
+          <h2 className=" text-xl font-normal text-lottie-teal">
             Daftar Siswa Kelas
           </h2>
-          <p className="text-xs text-[#94A3B8]">
+          <p className="text-xs text-lottie-zinc-500">
             {totalStudents} siswa terdaftar
           </p>
         </div>
 
-        <div className="grid  grid-cols-4 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           {studentMap?.map((item, index) => (
             <div
               key={index}
-              className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#F8FAFC] transition-colors"
+              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-lottie-pearl transition-all border border-transparent hover:border-lottie-mist"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0F172A] text-sm font-semibold text-white">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lottie-teal text-sm font-semibold text-white">
                 {item.fullName?.charAt(0).toUpperCase()}
               </div>
 
-              <div className="flex flex-col">
-                <p className="text-sm font-medium text-[#0F172A]">
+              <div className="flex flex-col min-w-0">
+                <p className="text-sm font-medium text-lottie-midnight truncate">
                   {item.fullName}
                 </p>
-                <p className="text-xs text-[#94A3B8]">Siswa</p>
+                <p className="text-xs text-lottie-zinc-500">Siswa</p>
               </div>
             </div>
           ))}

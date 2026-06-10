@@ -55,16 +55,16 @@ export default function AdminLearningAnalyticsStudentContent({
 
       <Link
         href={`/admin/dashboard/learning-analytics/${slug}`}
-        className="inline-flex items-center text-sm font-semibold text-[#2563EB] hover:text-[#1D4ED8]"
+        className="inline-flex items-center text-sm font-semibold text-lottie-teal hover:text-lottie-teal/80"
       >
         ← Kembali ke Daftar Siswa
       </Link>
 
-      <section className="rounded-2xl border border-[#E5E7EB] bg-white p-4 md:p-5">
+      <section className="getmath-card p-4 md:p-5">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2F63DA] text-base font-bold text-white">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lottie-teal text-base font-bold text-white">
                 {student.fullname.charAt(0).toUpperCase()}
               </div>
 
@@ -94,14 +94,14 @@ export default function AdminLearningAnalyticsStudentContent({
             </div>
 
             <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3 text-center">
-              <p className="text-3xl font-extrabold leading-none text-[#2563EB]">
+              <p className="text-3xl font-extrabold leading-none text-lottie-teal">
                 {student.progress}%
               </p>
               <p className="mt-1 text-xs text-[#9CA3AF]">Progress</p>
             </div>
 
             <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3 text-center">
-              <p className="text-3xl font-extrabold leading-none text-[#7C3AED]">
+              <p className="text-3xl font-extrabold leading-none text-lottie-teal">
                 {student.dominantEmotion}
               </p>
               <p className="mt-1 text-xs text-[#9CA3AF]">Emosi Dominan</p>

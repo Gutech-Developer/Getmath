@@ -241,12 +241,12 @@ export default function ClassForumDetailPageTemplate({
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 font-semibold text-[#475569] transition hover:bg-[#F8FAFC]"
+            className="inline-flex items-center gap-2 rounded-2xl border border-lottie-mist bg-white px-4 py-3 font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl"
           >
             <ChevronLeftIcon className="h-4 w-4" />
             Kembali
           </Link>
-          <p className="text-[#94A3B8]">
+          <p className="text-lottie-zinc-400">
             Detail Diskusi . {discussion?.replies.length ?? 0} balasan
           </p>
         </div>
@@ -284,15 +284,15 @@ export default function ClassForumDetailPageTemplate({
               {commentsData?.pagination.hasNextPage && (
                 <button
                   onClick={() => setCommentPage(prev => prev + 1)}
-                  className="w-full rounded-2xl border border-[#E2E8F0] py-3 text-sm font-semibold text-[#64748B] hover:bg-[#F8FAFC] transition"
+                  className="w-full rounded-2xl border border-lottie-mist bg-white py-3 text-sm font-semibold text-lottie-zinc-600 hover:bg-lottie-pearl transition"
                 >
                   {isCommentsLoading ? "Memuat..." : "Muat Lebih Banyak Komentar"}
                 </button>
               )}
             </section>
 
-            <section className="rounded-[28px] border border-[#E2E8F0] bg-white p-5 shadow-[0px_16px_32px_rgba(148,163,184,0.12)] sm:p-6">
-              <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+            <section className="rounded-3xl border border-lottie-mist bg-white p-5 shadow-xs sm:p-6">
+              <label className="block text-xs font-semibold uppercase tracking-[0.14em] text-lottie-zinc-400">
                 Balas Diskusi
               </label>
 
@@ -302,11 +302,11 @@ export default function ClassForumDetailPageTemplate({
                 onKeyDown={handleReplyKeyDown}
                 placeholder="Tulis balasanmu di sini. Tekan Enter untuk kirim, atau Shift + Enter untuk baris baru."
                 rows={4}
-                className="mt-4 min-h-[140px] w-full resize-none rounded-[24px] border border-[#E2E8F0] px-5 py-4 text-sm leading-7 text-[#334155] outline-none transition placeholder:text-[#94A3B8] focus:border-[#1F2375] focus:ring-1 focus:ring-[#1F2375]"
+                className="mt-4 min-h-[140px] w-full resize-none rounded-2xl border border-lottie-mist px-5 py-4 text-sm leading-7 text-lottie-zinc-600 outline-none transition placeholder:text-lottie-zinc-400 focus:border-lottie-teal focus:ring-1 focus:ring-lottie-teal"
               />
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-[#94A3B8]">
+                <p className="text-sm text-lottie-zinc-400">
                   Balasan akan langsung ditambahkan ke thread kelas ini.
                 </p>
 
@@ -314,7 +314,7 @@ export default function ClassForumDetailPageTemplate({
                   type="button"
                   onClick={handleSubmitReply}
                   disabled={!replyContent.trim()}
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#1F2375] px-5 text-sm font-semibold text-white transition hover:bg-[#1F2375]/90 disabled:cursor-not-allowed disabled:bg-[#1F2375]/70"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 disabled:cursor-not-allowed disabled:bg-lottie-teal/60"
                 >
                   Kirim Balasan
                 </button>
@@ -330,7 +330,7 @@ export default function ClassForumDetailPageTemplate({
             action={
               <Link
                 href={backHref}
-                className="rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                className="rounded-2xl bg-lottie-teal px-5 py-3 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
               >
                 Kembali ke Forum
               </Link>
@@ -345,20 +345,20 @@ export default function ClassForumDetailPageTemplate({
           size="sm"
         >
           <div className="space-y-4">
-            <p className="text-sm text-[#475569]">
+            <p className="text-sm text-lottie-zinc-600">
               Apakah Anda yakin ingin menghapus {deleteTarget?.type === "discussion" ? "diskusi" : "komentar"} ini? Tindakan ini tidak dapat dibatalkan.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC]"
+                className="rounded-xl border border-lottie-mist bg-white px-4 py-2 text-sm font-semibold text-lottie-zinc-600 hover:bg-lottie-pearl"
               >
                 Batal
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleteDiscussionMutation.isPending || deleteCommentMutation.isPending}
-                className="rounded-xl bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white hover:bg-[#DC2626] disabled:opacity-50"
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
                 {deleteDiscussionMutation.isPending || deleteCommentMutation.isPending ? "Menghapus..." : "Hapus"}
               </button>

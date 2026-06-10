@@ -125,16 +125,16 @@ export default function ClassForumPageTemplate({
     if (!apiDiscussionsData?.discussions?.length) return [];
     return apiDiscussionsData.discussions.map((d) => {
       const matchedModule = (modulesData || []).find((m) => m.id === d.courseModuleId);
-      const materialName = matchedModule 
-        ? (matchedModule.subject?.subjectName ?? matchedModule.diagnosticTest?.testName) 
+      const materialName = matchedModule
+        ? (matchedModule.subject?.subjectName ?? matchedModule.diagnosticTest?.testName)
         : undefined;
 
       const isCurrentUser = d.authorUserId === currentUser?.id || d.author?.id === currentUser?.id;
-      const authorRole = (isCurrentUser && currentUser?.role === "ADMIN") 
-        ? "admin" 
+      const authorRole = (isCurrentUser && currentUser?.role === "ADMIN")
+        ? "admin"
         : (d.author?.role ? d.author.role.toLowerCase() : (d.author?.teacher ? "teacher" : "student"));
-      const authorName = (isCurrentUser && currentUser?.fullName) 
-        ? currentUser.fullName 
+      const authorName = (isCurrentUser && currentUser?.fullName)
+        ? currentUser.fullName
         : d.author?.teacher?.fullName ?? d.author?.student?.fullName ?? d.author?.fullName ?? (authorRole === "admin" ? "Admin" : "Pengguna");
 
       return {
@@ -249,23 +249,23 @@ export default function ClassForumPageTemplate({
       classTitle={classTitle}
     >
       <section className="space-y-5">
-        <header className="rounded-[32px] border border-[#E2E8F0] bg-white p-6 shadow-[0px_16px_32px_rgba(148,163,184,0.12)] sm:p-7">
+        <header className="rounded-3xl border border-lottie-mist bg-white p-6 shadow-xs sm:p-7">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div>
-              <p className="inline-flex rounded-full border border-[#1F2375]/40 bg-[#1F2375]/10 text-[#1F2375] px-3 py-1 text-xs font-semibold ">
+              <p className="inline-flex rounded-full border border-lottie-teal/20 bg-lottie-teal/5 text-lottie-teal px-3 py-1 text-xs font-semibold ">
                 Forum Kelas
               </p>
-              <h1 className="mt-3 text-xl font-bold text-[#0F172A]">
+              <h1 className="mt-3 font-semibold text-2xl  mantap font-normal text-lottie-midnight">
                 Forum Diskusi
               </h1>
               {isApiLoading ? (
-                <p className="mt-2 text-sm text-[#94A3B8]">Memuat diskusi...</p>
+                <p className="mt-2 text-sm text-lottie-zinc-400 font-medium">Memuat diskusi...</p>
               ) : isApiError ? (
-                <p className="mt-2 text-sm text-[#DC2626]">
+                <p className="mt-2 text-sm text-rose-600 font-medium">
                   Gagal memuat diskusi. {apiErrorObj?.message}
                 </p>
               ) : (
-                <p className="mt-2 text-sm text-[#64748B]">
+                <p className="mt-2 text-sm text-lottie-zinc-500 font-medium">
                   {activeDiscussions} diskusi aktif . {totalDiscussions} total
                 </p>
               )}
@@ -275,7 +275,7 @@ export default function ClassForumPageTemplate({
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
               disabled={isApiLoading}
-              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#1F2375] px-6 text-base font-semibold text-white duration-300 hover:shadow-[0px_18px_30px_rgba(31, 35, 117,0.5)] transition hover:bg-[#1F2375]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-lottie-teal px-6 text-base font-semibold text-white shadow-[0_8px_24px_rgba(31,35,117,0.12)] transition duration-300 hover:bg-lottie-teal/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <PlusIcon className="h-5 w-5" />
               Buat Diskusi
@@ -300,7 +300,7 @@ export default function ClassForumPageTemplate({
                 onClick={() =>
                   setShowAdvancedFilters((currentValue) => !currentValue)
                 }
-                className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-[#1F2375]/40 bg-[#1F2375]/10 text-[#1F2375] px-5 text-sm font-semibold transition hover:bg-[#1F2375]/20"
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-lottie-teal/20 bg-lottie-teal/5 text-lottie-teal px-5 text-sm font-semibold transition hover:bg-lottie-teal/10"
               >
                 <FilterIcon />
                 Filter & Urutkan
@@ -310,7 +310,7 @@ export default function ClassForumPageTemplate({
                 <button
                   type="button"
                   onClick={() => setFilters(DEFAULT_FORUM_FILTERS)}
-                  className="inline-flex h-14 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-5 text-sm font-semibold text-[#64748B] transition hover:bg-[#F8FAFC]"
+                  className="inline-flex h-14 items-center justify-center rounded-2xl border border-lottie-mist bg-white px-5 text-sm font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl"
                 >
                   Reset Filter
                 </button>
@@ -319,10 +319,10 @@ export default function ClassForumPageTemplate({
           </div>
 
           {showAdvancedFilters ? (
-            <div className="mt-4 rounded-[28px] border border-[#E2E8F0] bg-[#F8FAFC] p-5">
+            <div className="mt-4 rounded-2xl border border-lottie-mist bg-lottie-pearl/50 p-5">
               <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1.6fr)]">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-lottie-zinc-400">
                     Filter Diskusi
                   </p>
 
@@ -371,7 +371,7 @@ export default function ClassForumPageTemplate({
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-lottie-zinc-400">
                     Materi Terkait
                   </p>
 
@@ -389,7 +389,7 @@ export default function ClassForumPageTemplate({
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-lottie-zinc-400">
                     Urutkan
                   </p>
 
@@ -416,9 +416,9 @@ export default function ClassForumPageTemplate({
 
         <section>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-[#64748B]">
+            <p className="text-sm text-lottie-zinc-500">
               Menampilkan{" "}
-              <span className="font-semibold text-[#0F172A]">
+              <span className="font-semibold text-lottie-midnight">
                 {filteredDiscussions.length}
               </span>{" "}
               diskusi
@@ -448,7 +448,7 @@ export default function ClassForumPageTemplate({
                   <button
                     type="button"
                     onClick={() => setFilters(DEFAULT_FORUM_FILTERS)}
-                    className="rounded-xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                    className="rounded-xl bg-lottie-teal px-5 py-3 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
                   >
                     Tampilkan Semua Diskusi
                   </button>
@@ -478,20 +478,20 @@ export default function ClassForumPageTemplate({
         size="sm"
       >
         <div className="space-y-4">
-          <p className="text-sm text-[#475569]">
+          <p className="text-sm text-lottie-zinc-600">
             Apakah Anda yakin ingin menghapus diskusi ini? Tindakan ini tidak dapat dibatalkan.
           </p>
           <div className="flex justify-end gap-3">
             <button
               onClick={() => setDeleteTargetId(null)}
-              className="rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#475569] hover:bg-[#F8FAFC]"
+              className="rounded-xl border border-lottie-mist bg-white px-4 py-2 text-sm font-semibold text-lottie-zinc-600 hover:bg-lottie-pearl"
             >
               Batal
             </button>
             <button
               onClick={confirmDelete}
               disabled={deleteDiscussionMutation.isPending}
-              className="rounded-xl bg-[#EF4444] px-4 py-2 text-sm font-semibold text-white hover:bg-[#DC2626] disabled:opacity-50"
+              className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
             >
               {deleteDiscussionMutation.isPending ? "Menghapus..." : "Hapus"}
             </button>

@@ -23,11 +23,11 @@ export const SubmitButton: React.FC<ButtonProps> = ({
 
   const variants: Record<ButtonVariant, string> = {
     primary:
-      "bg-charcoal-green text-white-mineral hover:bg-charcoal-green-dark hover:text-white",
+      "bg-lottie-teal text-white-mineral hover:bg-lottie-teal-dark hover:text-white",
     secondary:
-      "bg-transparent text-white border-[1px] border-white-mineral hover:border-charcoal-green-dark hover:bg-charcoal-green-dark hover:text-white-mineral",
+      "bg-transparent text-white border-[1px] border-white-mineral hover:border-lottie-teal-dark hover:bg-lottie-teal-dark hover:text-white-mineral",
     outline:
-      "border border-charcoal-green-dark text-charcoal-green-dark hover:bg-charcoal-green-dark hover:text-white-mineral",
+      "border border-lottie-teal-dark text-lottie-teal-dark hover:bg-lottie-teal-dark hover:text-white-mineral",
     ghost:
       "bg-transparent text-charcoal-green-dark hover:bg-charcoal-green-lighter hover:text-white",
   };

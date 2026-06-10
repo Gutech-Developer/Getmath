@@ -21,7 +21,7 @@ export const TeacherStatCard: React.FC<TeacherStatCardProps> = ({
   return (
     <div
       className={cn(
-        "bg-white border border-grey-stroke rounded-2xl px-5 py-4 flex items-center gap-4 relative",
+        "getmath-card px-5 py-4 flex items-center gap-4 relative",
         className,
       )}
     >
@@ -29,6 +29,11 @@ export const TeacherStatCard: React.FC<TeacherStatCardProps> = ({
         <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-red-500" />
       )}
       {/* Icon */}
+      {icon && (
+        <div className="w-10 h-10 rounded-xl bg-lottie-teal/5 text-lottie-teal flex items-center justify-center shrink-0">
+          {icon}
+        </div>
+      )}
       {/* Text */}
       <div className="flex flex-col">
         <span className="text-2xl font-bold text-neutral-02 leading-tight">

@@ -46,7 +46,7 @@ function ProfileCard({
   return (
     <article
       className={cn(
-        "rounded-[28px] border border-[rgba(148,163,184,0.14)]  p-5  sm:p-7",
+        "getmath-card p-5 sm:p-7",
         className,
       )}
     >
@@ -78,7 +78,7 @@ export default function UserProfileContent({
     <section className="relative isolate mx-auto w-full max-w-[920px] overflow-hidden px-1 pb-8 pt-3">
       <div className="relative space-y-6">
         <header>
-          <h1 className="text-2xl font-bold tracking-[-0.02em] text-[#1E293B]">
+          <h1 className=" text-3xl font-normal tracking-[-0.02em] text-lottie-teal">
             {pageTitle}
           </h1>
         </header>
@@ -86,11 +86,11 @@ export default function UserProfileContent({
         <ProfileCard>
           {isLoading ? (
             <div className="flex animate-pulse flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="h-24 w-24 rounded-[24px] bg-[#E2E8F0]" />
+              <div className="h-24 w-24 rounded-[24px] bg-lottie-pearl" />
               <div className="flex-1 space-y-3">
-                <div className="h-7 w-52 rounded-full bg-[#E2E8F0]" />
-                <div className="h-4 w-44 rounded-full bg-[#E2E8F0]" />
-                <div className="h-4 w-56 rounded-full bg-[#E2E8F0]" />
+                <div className="h-7 w-52 rounded-full bg-lottie-pearl" />
+                <div className="h-4 w-44 rounded-full bg-lottie-pearl" />
+                <div className="h-4 w-56 rounded-full bg-lottie-pearl" />
               </div>
             </div>
           ) : (
@@ -104,20 +104,20 @@ export default function UserProfileContent({
                   type="button"
                   onClick={onChangePhoto}
                   aria-label="Ubah foto profil"
-                  className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-white bg-[#2563EB] text-white shadow-[0px_10px_24px_rgba(37,99,235,0.32)] transition hover:bg-[#1D4ED8]"
+                  className="absolute -bottom-2 -right-2 inline-flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-white bg-lottie-teal text-white shadow-[rgba(31,35,117,0.3)_0px_8px_16px_0px] transition hover:bg-lottie-teal/90"
                 >
                   <CameraIcon className="h-4 w-4" />
                 </button>
               </div>
 
               <div className="min-w-0">
-                <h2 className="truncate text-2xl font-extrabold leading-tight tracking-[-0.03em] text-[#1E293B]">
+                <h2 className="truncate font-semibold text-2xl  mantap font-normal leading-tight tracking-[-0.03em] text-lottie-midnight">
                   {fullName}
                 </h2>
-                <p className="mt-1 truncate text-base text-[#64748B]">
+                <p className="mt-1 truncate text-base text-lottie-zinc-500">
                   {email}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#94A3B8]">
+                <p className="mt-1 text-sm font-medium text-lottie-fog">
                   {roleDescription}
                 </p>
               </div>
@@ -128,10 +128,10 @@ export default function UserProfileContent({
         <ProfileCard>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-bold tracking-[-0.02em] text-[#1E293B]">
+              <h2 className=" text-xl font-normal tracking-[-0.02em] text-lottie-teal">
                 Informasi Profil
               </h2>
-              <p className="mt-1 text-sm text-[#94A3B8]">
+              <p className="mt-1 text-sm text-lottie-zinc-500">
                 Data utama akun yang tersimpan di platform.
               </p>
             </div>
@@ -151,8 +151,8 @@ export default function UserProfileContent({
                   key={index}
                   className={cn("space-y-2", index === 6 && "sm:col-span-2")}
                 >
-                  <div className="h-4 w-32 animate-pulse rounded-full bg-[#E2E8F0]" />
-                  <div className="h-12 animate-pulse rounded-[16px] bg-[#E2E8F0]" />
+                  <div className="h-4 w-32 animate-pulse rounded-full bg-lottie-pearl" />
+                  <div className="h-12 animate-pulse rounded-[16px] bg-lottie-pearl" />
                 </div>
               ))}
             </div>
@@ -170,8 +170,8 @@ export default function UserProfileContent({
           )}
 
           {infoHint ? (
-            <div className="mt-5 flex items-start gap-2 rounded-[18px] bg-[#F8FAFC] px-4 py-3 text-sm text-[#64748B]">
-              <InfoCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#94A3B8]" />
+            <div className="mt-5 flex items-start gap-2 rounded-[18px] bg-lottie-pearl border border-lottie-mist px-4 py-3 text-sm text-lottie-zinc-500">
+              <InfoCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-lottie-fog" />
               <p>{infoHint}</p>
             </div>
           ) : null}
@@ -180,10 +180,10 @@ export default function UserProfileContent({
         <ProfileCard>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-bold tracking-[-0.02em] text-[#1E293B]">
+              <h2 className=" text-xl font-normal tracking-[-0.02em] text-lottie-teal">
                 Keamanan Akun
               </h2>
-              <p className="mt-1 text-sm text-[#94A3B8]">
+              <p className="mt-1 text-sm text-lottie-zinc-500">
                 {securityDescription}
               </p>
             </div>
@@ -202,7 +202,7 @@ export default function UserProfileContent({
           type="button"
           onClick={onLogout}
           disabled={isLogoutLoading}
-          className="flex min-h-16 w-full items-center justify-center gap-3 rounded-[24px] border border-[rgba(239,68,68,0.18)] bg-[rgba(254,242,242,0.95)] px-6 py-4 text-base font-semibold text-[#DC2626]  transition hover:bg-[#FEE2E2] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl border border-red-200 bg-red-50/70 px-6 py-4 text-base font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.99]"
         >
           <LogoutIcon className="h-5 w-5" />
           <span>{isLogoutLoading ? "Memproses..." : logoutLabel}</span>

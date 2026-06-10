@@ -127,7 +127,7 @@ function UserFormModal({
         onClick={onClose}
         aria-label="Tutup popup"
       />
-      <div className="relative w-full max-w-[500px] max-h-[90vh] overflow-y-auto rounded-[28px] border border-[#E5E7EB] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)]">
+      <div className="relative w-full max-w-[500px] max-h-[90vh] overflow-y-auto rounded-[28px] border border-lottie-teal/16 bg-white shadow-[0_24px_70px_rgba(31,35,117,0.15)]">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E5E7EB] bg-white px-6 py-5 rounded-t-[28px]">
           <h2 className="text-xl font-semibold leading-tight text-[#111827]">
             {initialData ? "Edit" : "Tambah"} {role === "siswa" ? "Siswa" : "Guru"}
@@ -152,7 +152,7 @@ function UserFormModal({
               value={form.fullName}
               onChange={(e) => setForm({ ...form, fullName: e.target.value })}
               placeholder="Contoh: Budi Santoso"
-              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
 
@@ -165,7 +165,7 @@ function UserFormModal({
               value={form.identityNumber}
               onChange={(e) => setForm({ ...form, identityNumber: e.target.value })}
               placeholder={role === "siswa" ? "Nomor Induk Siswa" : "Nomor Induk Pegawai"}
-              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
 
@@ -176,7 +176,7 @@ function UserFormModal({
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="email@example.com"
-              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
 
@@ -187,7 +187,7 @@ function UserFormModal({
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder={initialData ? "Kosongkan jika tidak ingin mengubah password" : "Minimal 8 karakter"}
-              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
 
@@ -198,7 +198,7 @@ function UserFormModal({
               value={form.phoneNumber}
               onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
               placeholder="Contoh: 08123456789"
-              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+              className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
 
@@ -208,7 +208,7 @@ function UserFormModal({
               <select
                 value={form.isActive ? "true" : "false"}
                 onChange={(e) => setForm({ ...form, isActive: e.target.value === "true" })}
-                className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none focus:border-[#93C5FD] focus:ring-2 focus:ring-[#DBEAFE]"
+                className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
               >
                 <option value="true">Aktif</option>
                 <option value="false">Nonaktif</option>
@@ -243,10 +243,10 @@ function UserFormModal({
             type="submit"
             disabled={isSubmitDisabled}
             className={cn(
-              "mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition",
+              "mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition cursor-pointer",
               isSubmitDisabled
-                ? "cursor-not-allowed bg-[#E5E7EB] text-white"
-                : "bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+                ? "cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]"
+                : "bg-lottie-teal mantaps text-white  text-white"
             )}
           >
             {initialData ? (
@@ -383,31 +383,31 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
 
       {statsData && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <div className="getmath-card p-4">
             <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Total Guru</p>
             <p className="mt-2 text-2xl font-bold text-[#111827]">
               {statsData.totalTeachers || 0}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <div className="getmath-card p-4">
             <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Total Siswa</p>
             <p className="mt-2 text-2xl font-bold text-[#111827]">
               {statsData.totalStudents || 0}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <div className="getmath-card p-4">
             <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Total Orang Tua</p>
             <p className="mt-2 text-2xl font-bold text-[#111827]">
               {statsData.totalParents || 0}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <div className="getmath-card p-4">
             <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Akun Aktif</p>
             <p className="mt-2 text-2xl font-bold text-[#059669]">
               {statsData.activeUsers || 0}
             </p>
           </div>
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+          <div className="getmath-card p-4">
             <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wider">Akun Nonaktif</p>
             <p className="mt-2 text-2xl font-bold text-[#DC2626]">
               {statsData.inactiveUsers || 0}
@@ -424,7 +424,7 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
           <button
             type="button"
             onClick={() => setIsAddOpen(true)}
-            className="inline-flex items-center gap-2.5 rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+            className="inline-flex items-center gap-2.5 rounded-2xl bg-lottie-teal mantaps text-white  px-5 py-3 text-sm font-semibold text-white transition cursor-pointer"
           >
             <PlusIcon className="h-4 w-4" />
             <span>Tambah {role === "siswa" ? "Siswa" : "Guru"}</span>
@@ -437,12 +437,12 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder={`Cari nama, email, atau asal sekolah...`}
-            className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE]"
+            className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal/20 focus:ring-2 focus:ring-lottie-mint-glow/20"
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="h-12 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition focus:border-[#BFDBFE] focus:ring-2 focus:ring-[#DBEAFE] min-w-[140px]"
+            className="h-12 rounded-2xl border border-lottie-teal/20 bg-white px-4 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 min-w-[140px] cursor-pointer"
           >
             <option value="ALL">Semua Status</option>
             <option value="ACTIVE">Aktif</option>
@@ -458,10 +458,8 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
               <li
                 key={user.userId}
                 className={cn(
-                  "rounded-3xl border p-5 md:p-6 transition",
-                  user.isActive
-                    ? "border-[#E5E7EB] bg-white hover:border-[#BFDBFE]"
-                    : "border-[#FECACA] bg-[#FEF2F2] opacity-80"
+                  "getmath-card p-5 md:p-6 transition",
+                  !user.isActive && "border-red-200 bg-red-50/50 opacity-80"
                 )}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -475,20 +473,20 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
                       )}
                     </h3>
                     <div className="mt-2 flex flex-col gap-1 text-sm text-[#6B7280]">
-                      <span>Email: <strong className="text-[#374151]">{user.email}</strong></span>
-                      <span>Sekolah: <strong className="text-[#374151]">{user.schoolName || "-"}</strong></span>
+                      <span>Email: <strong className="text-lottie-teal">{user.email}</strong></span>
+                      <span>Sekolah: <strong className="text-lottie-teal">{user.schoolName || "-"}</strong></span>
                       {role === "siswa" && user.role === "STUDENT" && user.student?.NIS && (
-                        <span>NIS: <strong className="text-[#374151]">{user.student.NIS}</strong></span>
+                        <span>NIS: <strong className="text-lottie-teal">{user.student.NIS}</strong></span>
                       )}
                       {role === "guru" && user.role === "TEACHER" && user.teacher?.NIP && (
-                        <span>NIP: <strong className="text-[#374151]">{user.teacher.NIP}</strong></span>
+                        <span>NIP: <strong className="text-lottie-teal">{user.teacher.NIP}</strong></span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/admin/dashboard/manage-users/${rolePath}/${user.userId}`}
-                      className="p-2 border border-[#BFDBFE] rounded-xl bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] transition"
+                      className="p-2 border border-lottie-teal/20 rounded-xl bg-lottie-teal/5 text-lottie-teal hover:bg-lottie-teal/10 transition cursor-pointer"
                       title={`Detail ${role}`}
                     >
                       <EyeIcon className="h-4 w-4" />
@@ -496,7 +494,7 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
                     <button
                       type="button"
                       onClick={() => setEditingUser(user)}
-                      className="p-2 border border-[#FEF08A] rounded-xl bg-[#FEF9C3] text-[#A16207] hover:bg-[#FEF08A] transition"
+                      className="p-2 border border-amber-200 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-100 transition cursor-pointer"
                       title={`Edit ${role}`}
                     >
                       <EditIcon className="h-4 w-4" />
@@ -504,7 +502,7 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
                     <button
                       type="button"
                       onClick={() => setDeletingUser(user)}
-                      className="p-2 border border-[#FECACA] rounded-xl bg-[#FEF2F2] text-[#DC2626] hover:bg-[#FEE2E2] transition"
+                      className="p-2 border border-red-200 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition cursor-pointer"
                       title={`Hapus ${role}`}
                     >
                       <TrashIcon className="h-4 w-4" />

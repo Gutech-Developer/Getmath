@@ -50,7 +50,7 @@ export default function AdminUserDetailTemplate({ role }: IAdminUserDetailTempla
           <div className="mb-2">
             <Link
               href={`/admin/dashboard/manage-users/${rolePath}`}
-              className="text-sm text-blue-600 hover:underline"
+              className="text-sm text-lottie-teal hover:opacity-80 transition font-semibold"
             >
               &larr; Kembali ke Daftar {role === "siswa" ? "Siswa" : "Guru"}
             </Link>
@@ -64,7 +64,7 @@ export default function AdminUserDetailTemplate({ role }: IAdminUserDetailTempla
         </div>
       </div>
 
-      <div className="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+      <div className="getmath-card p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
@@ -88,7 +88,7 @@ export default function AdminUserDetailTemplate({ role }: IAdminUserDetailTempla
           <div className="space-y-4">
             <div>
               <p className="text-sm font-medium text-gray-500">Asal Sekolah</p>
-              <p className="mt-1 text-base text-gray-900">{user.schoolName || "-"}</p>
+              <p className="mt-1 text-base text-lottie-teal font-semibold">{user.schoolName || "-"}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Provinsi / Kota</p>
@@ -105,7 +105,7 @@ export default function AdminUserDetailTemplate({ role }: IAdminUserDetailTempla
             <div>
               <p className="text-sm font-medium text-gray-500">Status Akun</p>
               <p className="mt-1">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${user.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                   {user.isActive ? "Aktif" : "Tidak Aktif"}
                 </span>
               </p>
