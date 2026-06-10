@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import CameraIcon from "@/components/atoms/icons/CameraIcon";
 import EditIcon from "@/components/atoms/icons/EditIcon";
 import InfoCircleIcon from "@/components/atoms/icons/InfoCircleIcon";
@@ -7,6 +8,9 @@ import LogoutIcon from "@/components/atoms/icons/LogoutIcon";
 import ShieldIcon from "@/components/atoms/icons/ShieldIcon";
 import ProfileActionButton from "@/components/molecules/profile/ProfileActionButton";
 import ProfileReadOnlyField from "@/components/molecules/profile/ProfileReadOnlyField";
+import { Modal } from "@/components/molecules/Modal";
+import { useGsUpdateProfile } from "@/services/hooks/useGsAuth";
+import { showToast } from "@/libs/toast";
 import { cn } from "@/libs/utils";
 import type { ReactNode } from "react";
 
@@ -20,6 +24,7 @@ interface IUserProfileContentProps {
   isLoading: boolean;
   fullName: string;
   email: string;
+  phone: string;
   avatarInitial: string;
   roleDescription: string;
   fields: IUserProfileField[];
@@ -31,7 +36,7 @@ interface IUserProfileContentProps {
   logoutLabel?: string;
   isLogoutLoading?: boolean;
   onChangePhoto: () => void;
-  onEditProfile: () => void;
+  onEditProfile?: () => void;
   onChangePassword: () => void;
   onLogout: () => void;
 }
@@ -59,6 +64,7 @@ export default function UserProfileContent({
   isLoading,
   fullName,
   email,
+  phone,
   avatarInitial,
   roleDescription,
   fields,
@@ -74,6 +80,48 @@ export default function UserProfileContent({
   onChangePassword,
   onLogout,
 }: IUserProfileContentProps) {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [formFullName, setFormFullName] = useState(fullName);
+  const [formPhone, setFormPhone] = useState(phone);
+
+  const updateProfileMutation = useGsUpdateProfile();
+
+  useEffect(() => {
+    setFormFullName(fullName);
+  }, [fullName]);
+
+  useEffect(() => {
+    setFormPhone(phone);
+  }, [phone]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formFullName.trim()) {
+      showToast.error("Nama lengkap tidak boleh kosong");
+      return;
+    }
+    if (!formPhone.trim()) {
+      showToast.error("Nomor HP/WhatsApp tidak boleh kosong");
+      return;
+    }
+
+    updateProfileMutation.mutate(
+      {
+        fullName: formFullName,
+        phoneNumber: formPhone,
+      },
+      {
+        onSuccess: () => {
+          showToast.success("Profil berhasil diperbarui");
+          setIsEditModalOpen(false);
+        },
+        onError: (err) => {
+          showToast.error(err.message || "Gagal memperbarui profil");
+        },
+      }
+    );
+  };
+
   return (
     <section className="relative isolate mx-auto w-full max-w-[920px] overflow-hidden px-1 pb-8 pt-3">
       <div className="relative space-y-6">
@@ -137,7 +185,7 @@ export default function UserProfileContent({
             </div>
 
             <ProfileActionButton
-              onClick={onEditProfile}
+              onClick={onEditProfile || (() => setIsEditModalOpen(true))}
               icon={<EditIcon className="h-4 w-4" />}
             >
               {editLabel}
@@ -208,6 +256,61 @@ export default function UserProfileContent({
           <span>{isLogoutLoading ? "Memproses..." : logoutLabel}</span>
         </button>
       </div>
+
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Profil"
+        size="md"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-[#4B5563]">
+              Nama Lengkap
+            </label>
+            <input
+              type="text"
+              value={formFullName}
+              onChange={(e) => setFormFullName(e.target.value)}
+              placeholder="Masukkan nama lengkap"
+              className="h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm text-[#1F2937] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#C7D2FE] placeholder:text-[#9CA3AF]"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-[#4B5563]">
+              Nomor HP/WhatsApp
+            </label>
+            <input
+              type="text"
+              value={formPhone}
+              onChange={(e) => setFormPhone(e.target.value.replace(/\D/g, ""))}
+              placeholder="Masukkan nomor HP/WhatsApp"
+              className="h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm text-[#1F2937] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#C7D2FE] placeholder:text-[#9CA3AF]"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#E5E7EB] mt-6">
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(false)}
+              className="px-5 py-2.5 rounded-xl border border-[#D1D5DB] text-sm font-medium text-[#4B5563] hover:bg-[#F9FAFB] transition"
+              disabled={updateProfileMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2.5 rounded-xl bg-[#1F2375] text-white text-sm font-semibold hover:bg-[#171B5A] transition disabled:opacity-50"
+              disabled={updateProfileMutation.isPending}
+            >
+              {updateProfileMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </section>
   );
 }
