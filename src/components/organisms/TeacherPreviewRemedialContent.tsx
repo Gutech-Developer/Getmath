@@ -36,7 +36,7 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-wrap items-center gap-6 rounded-3xl border border-[#E5E7EB] bg-white px-6 py-5">
+      <section className="flex flex-wrap items-center gap-6 getmath-card px-6 py-5">
         <div>
           <p className="text-xs uppercase text-[#9CA3AF]">KKM</p>
           <p className="mt-1 text-base font-semibold text-[#F97316]">
@@ -61,8 +61,8 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
 
       {/* Tabs */}
       {packageLabels.length > 0 && (
-        <section className="overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white">
-          <div className="flex items-center gap-0 overflow-x-auto border-b border-[#E5E7EB] bg-[#F9FAFB]">
+        <section className="overflow-hidden getmath-card">
+          <div className="flex items-center gap-0 overflow-x-auto border-b border-[#E5E7EB] bg-lottie-teal/5">
             {packageLabels.map((label) => {
               const isActive = activePackage === label;
               return (
@@ -71,9 +71,9 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                   type="button"
                   onClick={() => setActivePackage(label)}
                   className={cn(
-                    "relative px-5 py-3 text-sm font-semibold transition whitespace-nowrap",
+                    "relative px-5 py-3 text-sm font-semibold transition whitespace-nowrap cursor-pointer",
                     isActive
-                      ? "border-b-2 border-[#2563EB] bg-white text-[#2563EB]"
+                      ? "border-b-2 border-lottie-teal bg-white text-lottie-teal"
                       : "text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#374151]",
                   )}
                 >
@@ -97,7 +97,7 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
               return (
                 <div key={question.id || i} className="p-5 sm:p-6 space-y-4">
                   <div className="flex gap-4">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EFF6FF] text-sm font-semibold text-[#2563EB]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lottie-teal/10 text-sm font-semibold text-lottie-teal">
                       {question.questionNumber || i + 1}
                     </span>
                     <div className="min-w-0 flex-1 space-y-4">
@@ -231,7 +231,7 @@ export default function TeacherPreviewRemedialContent({ id, role = "teacher" }: 
         <button
           type="button"
           onClick={() => router.push(`${basePath}/manage-remedial`)}
-          className="rounded-2xl bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white"
+          className="rounded-2xl bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-5 py-2 text-sm font-semibold text-white cursor-pointer"
         >
           Kembali ke Daftar
         </button>
@@ -248,7 +248,7 @@ export default function TeacherPreviewRemedialContent({ id, role = "teacher" }: 
           <button
             type="button"
             onClick={() => router.push(`${basePath}/manage-remedial`)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:bg-[#F3F4F6]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-lottie-teal/10 bg-white text-lottie-teal hover:bg-lottie-teal/5 transition cursor-pointer"
             aria-label="Kembali"
           >
             <ChevronLeftIcon className="h-5 w-5" />
@@ -271,7 +271,7 @@ export default function TeacherPreviewRemedialContent({ id, role = "teacher" }: 
           onClick={() =>
             router.push(`${basePath}/manage-remedial/${id}/edit`)
           }
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#EFF6FF] px-4 py-2.5 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+          className="inline-flex items-center gap-2 rounded-2xl bg-lottie-teal/5 px-4 py-2.5 text-sm font-semibold text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
         >
           <EditIcon className="h-4 w-4" />
           Edit

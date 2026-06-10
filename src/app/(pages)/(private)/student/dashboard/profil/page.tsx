@@ -15,10 +15,6 @@ export default function StudentDashboardProfilPage() {
     setIsPhotoLoading(false);
   };
 
-  const handleEditProfile = () => {
-    showToast.info("Fitur edit profil akan segera tersedia");
-  };
-
   const handleChangePassword = () => {
     showToast.info("Fitur ubah password akan segera tersedia");
   };
@@ -47,7 +43,6 @@ export default function StudentDashboardProfilPage() {
         .charAt(0)
         .toUpperCase()}
       onChangePhoto={handleChangePhoto}
-      onEditProfile={handleEditProfile}
       onChangePassword={handleChangePassword}
       onLogout={handleLogout}
       isLogoutLoading={logoutMutation.isPending}

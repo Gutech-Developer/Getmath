@@ -11,7 +11,7 @@ import PDFIcon from "@/components/atoms/icons/PDFIcon";
 import SearchIcon from "@/components/atoms/icons/SearchIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import { cn } from "@/libs/utils";
-import { useGsCourseBySlug, useGsModulesByCourse } from "@/services";
+import { useGsCourseBySlug, useGsModulesByCourse, useGsStudentDashboard } from "@/services";
 import type { GsCourseModule, GsCourseModuleSubject } from "@/types/gs-course";
 
 /* ------------------------------------------------------------------ */
@@ -75,13 +75,13 @@ function mapModuleToMaterial(
     const steps: IMaterialStep[] = [
       {
         id: diagnosticTestId || `${moduleId}-diagnostic`,
-        typeLabel: "Test Diagnosis",
+        typeLabel: "Tes Diagnostik",
         title,
-        status: flat.completed ? "completed" : "in-progress",
+        status: flat.diagnosticCompleted || flat.completed ? "completed" : "in-progress",
       },
     ];
 
-    if (remedialTestId) {
+    if (remedialTestId && flat.diagnosticCompleted && !flat.isPassed) {
       steps.push({
         id: remedialTestId,
         typeLabel: "Tes Remedial",
@@ -92,7 +92,7 @@ function mapModuleToMaterial(
     }
 
     const completedSteps =
-      (flat.completed ? 1 : 0) + (flat.remedialCompleted ? 1 : 0);
+      (flat.diagnosticCompleted || flat.completed ? 1 : 0) + (flat.remedialCompleted ? 1 : 0);
 
     return {
       id: moduleId,
@@ -104,10 +104,7 @@ function mapModuleToMaterial(
         steps.length > 0
           ? Math.round((completedSteps / steps.length) * 100)
           : 0,
-      status:
-        flat.completed && (!remedialTestId || flat.remedialCompleted)
-          ? "completed"
-          : "in-progress",
+      status: flat.completed ? "completed" : "in-progress",
       steps,
     };
   }
@@ -176,18 +173,18 @@ const STATUS_CONFIG: Record<
 > = {
   completed: {
     label: "Selesai",
-    badgeClass: "border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]",
-    dotClass: "bg-[#22C55E]",
+    badgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    dotClass: "bg-emerald-500",
   },
   "in-progress": {
     label: "Sedang Dipelajari",
-    badgeClass: "border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]",
-    dotClass: "bg-[#3B82F6]",
+    badgeClass: "border-lottie-teal/20 bg-lottie-teal/5 text-lottie-teal",
+    dotClass: "bg-lottie-teal",
   },
   locked: {
     label: "Terkunci",
-    badgeClass: "border-[#E2E8F0] bg-[#F8FAFC] text-[#94A3B8]",
-    dotClass: "bg-[#CBD5E1]",
+    badgeClass: "border-lottie-mist bg-lottie-pearl text-lottie-zinc-500",
+    dotClass: "bg-lottie-fog",
   },
 };
 
@@ -195,7 +192,7 @@ function getStepIcon(typeLabel: string) {
   if (typeLabel === "Video") return VideoIcon;
   if (typeLabel === "E-LKPD") return DocumentIcon;
   if (
-    typeLabel === "Test Diagnosis" ||
+    typeLabel === "Tes Diagnostik" ||
     typeLabel === "Tes" ||
     typeLabel === "Tes Remedial"
   )
@@ -205,14 +202,14 @@ function getStepIcon(typeLabel: string) {
 
 function getStepIconTone(typeLabel: string): { bg: string; fg: string } {
   if (typeLabel === "Video")
-    return { bg: "bg-[#FEF3C7]", fg: "text-[#D97706]" };
+    return { bg: "bg-amber-50", fg: "text-amber-600" };
   if (typeLabel === "E-LKPD")
-    return { bg: "bg-[#D1FAE5]", fg: "text-[#059669]" };
-  if (typeLabel === "Test Diagnosis" || typeLabel === "Tes")
-    return { bg: "bg-[#FEE2E2]", fg: "text-[#DC2626]" };
+    return { bg: "bg-emerald-50", fg: "text-emerald-600" };
+  if (typeLabel === "Tes Diagnostik" || typeLabel === "Tes")
+    return { bg: "bg-rose-50", fg: "text-rose-600" };
   if (typeLabel === "Tes Remedial")
-    return { bg: "bg-[#F5F3FF]", fg: "text-[#7C3AED]" };
-  return { bg: "bg-[#DBEAFE]", fg: "text-[#2563EB]" };
+    return { bg: "bg-violet-50", fg: "text-violet-600" };
+  return { bg: "bg-blue-50", fg: "text-blue-600" };
 }
 
 /* ------------------------------------------------------------------ */
@@ -222,6 +219,7 @@ export default function ClassMaterialListPageTemplate({
   slug,
 }: IClassMaterialListPageTemplateProps) {
   const { data: course } = useGsCourseBySlug(slug);
+  const { data: studentDashboard } = useGsStudentDashboard(course?.id ?? "");
   const { data: courseModules, isLoading } = useGsModulesByCourse(
     course?.id ?? "",
   );
@@ -253,8 +251,8 @@ export default function ClassMaterialListPageTemplate({
   const overallProgress =
     totalModules > 0
       ? Math.round(
-          modules.reduce((sum, m) => sum + m.progressPercent, 0) / totalModules,
-        )
+        modules.reduce((sum, m) => sum + m.progressPercent, 0) / totalModules,
+      )
       : 0;
   const totalStepsAll = modules.reduce((sum, m) => sum + m.totalSteps, 0);
   const completedStepsAll = modules.reduce(
@@ -262,12 +260,18 @@ export default function ClassMaterialListPageTemplate({
     0,
   );
 
+  const displayCompletedModules = studentDashboard ? studentDashboard.subjectModuleRead : completedModules;
+  // Memakai asumsi modul diagnostik belum tercatat sebagai 'read', namun subjectModuleTotal bisa digunakan.
+  // Jika diagnostic dihitung ke total:
+  const displayTotalModules = studentDashboard ? studentDashboard.subjectModuleTotal + studentDashboard.diagnosticTestTotal : totalModules;
+  const displayProgress = studentDashboard ? studentDashboard.progressPercent : overallProgress;
+
   const filteredModules = searchQuery.trim()
     ? modules.filter(
-        (m) =>
-          m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          m.description.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
+      (m) =>
+        m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.description.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
     : modules;
 
   console.log("Module: ", modules);
@@ -280,21 +284,25 @@ export default function ClassMaterialListPageTemplate({
       {/* ---- Back Link ---- */}
       <Link
         href={`/student/dashboard/class/${encodeURIComponent(slug)}`}
-        className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-[#475569] transition hover:text-[#3F76EC]"
+        className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-lottie-zinc-500 transition hover:text-lottie-teal"
       >
         <ChevronLeftIcon className="h-4 w-4" />
         Kembali ke Beranda Kelas
       </Link>
 
       {/* ---- Hero Header ---- */}
-      <header className="overflow-hidden rounded-3xl bg-[#1F2375] p-6 text-white shadow-[0px_20px_40px_rgba(39,48,132,0.28)]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      <header className="relative overflow-hidden rounded-3xl bg-lottie-teal p-6 text-white shadow-[0px_20px_40px_rgba(39,48,132,0.28)]">
+        {/* decorative circles */}
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5" />
+        <div className="pointer-events-none absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-white/5" />
+
+        <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90">
               <BookIcon className="h-3.5 w-3.5" />
               Materi Pembelajaran
             </p>
-            <h1 className="mt-3 text-2xl font-bold">Daftar Materi Kelas</h1>
+            <h1 className="mt-3  text-3xl font-normal text-white">Daftar Materi Kelas</h1>
             <p className="mt-1 text-sm text-white/70">
               Pelajari semua modul secara berurutan untuk menguasai materi.
             </p>
@@ -302,7 +310,7 @@ export default function ClassMaterialListPageTemplate({
 
           <div className="flex items-center gap-2">
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/90">
-              {completedModules}/{totalModules} Modul Selesai
+              {displayCompletedModules}/{displayTotalModules} Modul Selesai
             </span>
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/90">
               {completedStepsAll}/{totalStepsAll} Langkah
@@ -311,15 +319,15 @@ export default function ClassMaterialListPageTemplate({
         </div>
 
         {/* Overall progress */}
-        <div className="mt-5">
+        <div className="relative z-10 mt-5">
           <div className="flex items-center justify-between text-xs font-medium text-white/85">
             <span>Progres keseluruhan materi</span>
-            <span>{overallProgress}%</span>
+            <span>{displayProgress}%</span>
           </div>
           <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/20">
             <div
-              className="h-full rounded-full bg-[#DCE3FF] transition-all duration-500"
-              style={{ width: `${overallProgress}%` }}
+              className="h-full rounded-full bg-lottie-mint-glow transition-all duration-500"
+              style={{ width: `${displayProgress}%` }}
             />
           </div>
         </div>
@@ -330,41 +338,41 @@ export default function ClassMaterialListPageTemplate({
         {[
           {
             icon: CheckCircleIcon,
-            iconBg: "bg-[#D1FAE5]",
-            iconFg: "text-[#059669]",
+            iconBg: "bg-emerald-50",
+            iconFg: "text-emerald-600",
             value: `${completedModules}`,
             label: "Modul Selesai",
           },
           {
             icon: ClockIcon,
-            iconBg: "bg-[#DBEAFE]",
-            iconFg: "text-[#2563EB]",
+            iconBg: "bg-lottie-teal/10",
+            iconFg: "text-lottie-teal",
             value: `${modules.filter((m) => m.status === "in-progress").length}`,
             label: "Sedang Dipelajari",
           },
           {
             icon: BookIcon,
-            iconBg: "bg-[#F3E8FF]",
-            iconFg: "text-[#7C3AED]",
+            iconBg: "bg-violet-50",
+            iconFg: "text-violet-600",
             value: `${totalModules}`,
             label: "Total Modul",
           },
         ].map((card) => (
           <article
             key={card.label}
-            className="flex items-center gap-3 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0px_8px_24px_rgba(148,163,184,0.1)]"
+            className="flex items-center gap-4 getmath-card p-4"
           >
             <div
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
                 card.iconBg,
               )}
             >
-              <card.icon className={cn("h-4.5 w-4.5", card.iconFg)} />
+              <card.icon className={cn("h-5 w-5", card.iconFg)} />
             </div>
             <div>
-              <p className="text-lg font-bold text-[#0F172A]">{card.value}</p>
-              <p className="text-xs text-[#64748B]">{card.label}</p>
+              <p className=" text-2xl font-normal text-lottie-midnight leading-tight">{card.value}</p>
+              <p className="text-xs text-lottie-zinc-500 mt-0.5">{card.label}</p>
             </div>
           </article>
         ))}
@@ -373,13 +381,13 @@ export default function ClassMaterialListPageTemplate({
       {/* ---- Search Bar ---- */}
       <div className="mt-5 flex items-center gap-3">
         <div className="relative flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+          <SearchIcon className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-lottie-zinc-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari modul materi..."
-            className="h-11 w-full rounded-xl border border-[#E2E8F0] bg-white pl-10 pr-4 text-sm text-[#0F172A] placeholder:text-[#94A3B8] outline-none transition focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+            className="h-11 w-full rounded-xl border border-transparent bg-lottie-teal/5 pl-10 pr-4 text-sm text-lottie-midnight placeholder:text-lottie-zinc-500 outline-none transition-all duration-200 focus:border-lottie-teal/30 focus:bg-white focus:ring-2 focus:ring-lottie-teal/10"
           />
         </div>
       </div>
@@ -415,28 +423,26 @@ export default function ClassMaterialListPageTemplate({
             <article
               key={module.id}
               className={cn(
-                "overflow-hidden rounded-2xl border bg-white shadow-[0px_8px_24px_rgba(148,163,184,0.08)] transition",
-                isExpanded
-                  ? "border-[#BFDBFE] shadow-[0px_12px_32px_rgba(59,130,246,0.1)]"
-                  : "border-[#E2E8F0]",
-                isLocked && "opacity-70",
+                "overflow-hidden getmath-card",
+                isExpanded && "border-lottie-mint-glow/30 ring-2 ring-lottie-mint-glow/5",
+                isLocked && "opacity-60 pointer-events-none",
               )}
             >
               {/* Module Header */}
               <button
                 type="button"
                 onClick={() => toggleExpand(module.id)}
-                className="flex w-full items-center gap-4 p-5 text-left transition hover:bg-[#F8FAFC]"
+                className="flex w-full items-center gap-4 p-5 text-left transition hover:bg-lottie-teal/5"
               >
                 {/* Number circle */}
                 <div
                   className={cn(
                     "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-bold",
                     module.status === "completed"
-                      ? "bg-[#D1FAE5] text-[#059669]"
+                      ? "bg-emerald-50 text-emerald-600"
                       : module.status === "in-progress"
-                        ? "bg-[#DBEAFE] text-[#2563EB]"
-                        : "bg-[#F1F5F9] text-[#94A3B8]",
+                        ? "bg-lottie-teal/10 text-lottie-teal"
+                        : "bg-lottie-pearl text-lottie-zinc-500",
                   )}
                 >
                   {module.status === "completed" ? (
@@ -453,7 +459,7 @@ export default function ClassMaterialListPageTemplate({
                       onClick={(e) => e.stopPropagation()}
                       className="group/title"
                     >
-                      <h3 className="text-base font-bold text-[#0F172A] transition group-hover/title:text-[#2563EB]">
+                      <h3 className=" text-lg font-medium text-lottie-midnight transition group-hover/title:text-lottie-mint-glow">
                         {module.title}
                       </h3>
                     </Link>
@@ -472,26 +478,26 @@ export default function ClassMaterialListPageTemplate({
                       {statusConfig.label}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-sm text-[#64748B]">
+                  <p className="mt-0.5 text-sm text-lottie-zinc-500">
                     {module.description}
                   </p>
 
                   {/* Progress bar */}
                   <div className="mt-2.5 flex items-center gap-3">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#E2E8F0]">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-lottie-mist">
                       <div
                         className={cn(
                           "h-full rounded-full transition-all duration-500",
                           module.status === "completed"
-                            ? "bg-[#22C55E]"
+                            ? "bg-emerald-500"
                             : module.status === "in-progress"
-                              ? "bg-[#3B82F6]"
-                              : "bg-[#CBD5E1]",
+                              ? "bg-lottie-teal"
+                              : "bg-lottie-fog",
                         )}
                         style={{ width: `${module.progressPercent}%` }}
                       />
                     </div>
-                    <span className="shrink-0 text-xs font-semibold text-[#475569]">
+                    <span className="shrink-0 text-xs font-semibold text-lottie-zinc-500">
                       {module.completedSteps}/{module.totalSteps} Langkah
                     </span>
                   </div>
@@ -500,7 +506,7 @@ export default function ClassMaterialListPageTemplate({
                 {/* Chevron */}
                 <ChevronLeftIcon
                   className={cn(
-                    "h-5 w-5 shrink-0 text-[#94A3B8] transition-transform duration-200",
+                    "h-5 w-5 shrink-0 text-lottie-zinc-500 transition-transform duration-200",
                     isExpanded ? "-rotate-90" : "rotate-90",
                   )}
                 />
@@ -508,8 +514,8 @@ export default function ClassMaterialListPageTemplate({
 
               {/* Expanded Steps */}
               {isExpanded && (
-                <div className="border-t border-[#E2E8F0] bg-[#FAFBFD] px-5 py-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#94A3B8]">
+                <div className="border-t border-lottie-mist/50 bg-lottie-teal/[0.02] px-5 py-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-lottie-zinc-500">
                     Langkah Pembelajaran
                   </p>
 
@@ -523,7 +529,7 @@ export default function ClassMaterialListPageTemplate({
                       return (
                         <li key={step.id}>
                           {stepIsLocked ? (
-                            <div className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 opacity-50">
+                            <div className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 opacity-40">
                               <div
                                 className={cn(
                                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
@@ -533,32 +539,31 @@ export default function ClassMaterialListPageTemplate({
                                 <StepIcon className={cn("h-4 w-4", tone.fg)} />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-[#94A3B8]">
+                                <p className="text-sm font-medium text-lottie-zinc-500">
                                   {step.title}
                                 </p>
-                                <p className="text-xs text-[#CBD5E1]">
+                                <p className="text-xs text-lottie-fog">
                                   {step.typeLabel} · Terkunci
                                 </p>
                               </div>
-                              <span className="text-xs text-[#CBD5E1]">🔒</span>
+                              <span className="text-xs text-lottie-fog">🔒</span>
                             </div>
                           ) : (
                             <Link
-                              href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${module.id}${
-                                step.typeLabel === "Test Diagnosis" ||
+                              href={`/student/dashboard/class/${encodeURIComponent(slug)}/materi/${module.id}${step.typeLabel === "Tes Diagnostik" ||
                                 step.typeLabel === "Tes"
-                                  ? `/${step.id}`
-                                  : step.typeLabel === "Tes Remedial"
-                                    ? stepIsCompleted
-                                      ? `/${step.diagnosticTestId}`
-                                      : `/remedia/${step.id}`
-                                    : ""
-                              }`}
+                                ? `/${step.id}`
+                                : step.typeLabel === "Tes Remedial"
+                                  ? stepIsCompleted
+                                    ? `/${step.diagnosticTestId}`
+                                    : `/remedia/${step.id}`
+                                  : ""
+                                }`}
                               className={cn(
                                 "flex items-center gap-3 rounded-xl border px-3 py-2.5 transition",
                                 step.status === "in-progress"
-                                  ? "border-[#BFDBFE] bg-[#EFF6FF] shadow-sm"
-                                  : "border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-sm",
+                                  ? "border-lottie-teal/30 bg-lottie-teal/5 shadow-xs text-lottie-teal"
+                                  : "border-lottie-mist bg-white hover:border-lottie-teal/20 hover:shadow-xs text-lottie-midnight",
                               )}
                             >
                               <div
@@ -574,23 +579,23 @@ export default function ClassMaterialListPageTemplate({
                                   className={cn(
                                     "text-sm font-medium",
                                     stepIsCompleted
-                                      ? "text-[#0F172A]"
+                                      ? "text-lottie-midnight"
                                       : step.status === "in-progress"
-                                        ? "text-[#1D4ED8]"
-                                        : "text-[#475569]",
+                                        ? "text-lottie-teal"
+                                        : "text-lottie-zinc-600",
                                   )}
                                 >
                                   {step.title}
                                 </p>
-                                <p className="text-xs text-[#64748B]">
+                                <p className="text-xs text-lottie-zinc-500">
                                   {step.typeLabel} · Langkah {stepIndex + 1}
                                 </p>
                               </div>
                               {stepIsCompleted && (
-                                <CheckCircleIcon className="h-5 w-5 shrink-0 text-[#22C55E]" />
+                                <CheckCircleIcon className="h-5 w-5 shrink-0 text-emerald-500" />
                               )}
                               {step.status === "in-progress" && (
-                                <span className="shrink-0 rounded-full bg-[#2563EB] px-2.5 py-0.5 text-[10px] font-semibold text-white">
+                                <span className="shrink-0 rounded-full bg-lottie-teal px-2.5 py-0.5 text-[10px] font-semibold text-white hover:bg-lottie-teal/95 transition-all">
                                   Lanjutkan
                                 </span>
                               )}

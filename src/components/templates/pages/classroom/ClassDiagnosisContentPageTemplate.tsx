@@ -1,7 +1,7 @@
 "use client";
 
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
 import AlertIcon from "@/components/atoms/icons/AlertIcon";
 import BookIcon from "@/components/atoms/icons/BookIcon";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
@@ -49,6 +49,89 @@ import { isEmotionSupported } from "@/libs/emotion";
 import CameraRequiredScreen from "@/components/molecules/classroom/CameraRequiredScreen";
 import EmotionNotification from "@/components/molecules/classroom/EmotionNotification";
 
+interface YoutubePlayerProps {
+  iframeId: string;
+  url: string;
+  title: string;
+  onEnded: () => void;
+  className?: string;
+  frameBorder?: string;
+}
+
+const YoutubePlayer = React.memo(
+  ({ iframeId, url, title, onEnded, className, frameBorder }: YoutubePlayerProps) => {
+    const onEndedRef = useRef(onEnded);
+
+    useEffect(() => {
+      onEndedRef.current = onEnded;
+    }, [onEnded]);
+
+    useEffect(() => {
+      const tagId = "yt-iframe-api";
+      if (!document.getElementById(tagId)) {
+        const tag = document.createElement("script");
+        tag.id = tagId;
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName("script")[0];
+        if (firstScriptTag && firstScriptTag.parentNode) {
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+      }
+
+      let player: any;
+
+      const initPlayer = () => {
+        if (!document.getElementById(iframeId)) return;
+        player = new (window as any).YT.Player(iframeId, {
+          events: {
+            onStateChange: (event: any) => {
+              if (event.data === (window as any).YT.PlayerState.ENDED) {
+                onEndedRef.current();
+              }
+            },
+          },
+        });
+      };
+
+      if ((window as any).YT && (window as any).YT.Player) {
+        initPlayer();
+      } else {
+        const prevCallback = (window as any).onYouTubeIframeAPIReady;
+        (window as any).onYouTubeIframeAPIReady = () => {
+          if (prevCallback) {
+            try {
+              prevCallback();
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          initPlayer();
+        };
+      }
+
+      return () => {
+        if (player && player.destroy) {
+          player.destroy();
+        }
+      };
+    }, [iframeId, url]);
+
+    return (
+      <iframe
+        id={iframeId}
+        src={url}
+        title={title}
+        className={className}
+        frameBorder={frameBorder}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+      />
+    );
+  },
+);
+
+YoutubePlayer.displayName = "YoutubePlayer";
+
 export default function ClassDiagnosisContentPageTemplate({
   slug,
   contentId,
@@ -90,7 +173,7 @@ export default function ClassDiagnosisContentPageTemplate({
     courseModules?.findIndex((m) => m.id === contentId) ?? -1;
   const nextModule =
     currentModuleIndex >= 0 &&
-    currentModuleIndex < (courseModules?.length ?? 0) - 1
+      currentModuleIndex < (courseModules?.length ?? 0) - 1
       ? courseModules![currentModuleIndex + 1]
       : null;
 
@@ -293,6 +376,9 @@ export default function ClassDiagnosisContentPageTemplate({
   const [emotionFeedbackMsg, setEmotionFeedbackMsg] = useState<string | null>(
     null,
   );
+  const [emotionFeedbackLabel, setEmotionFeedbackLabel] = useState<string | null>(
+    null,
+  );
   // Evaluasi sekali (lazy init) agar tidak dijalankan tiap render.
   const [emotionSupported] = useState(() => isEmotionSupported());
 
@@ -378,51 +464,12 @@ export default function ClassDiagnosisContentPageTemplate({
     }
   }, [isRemedial, remedialReviewData, diagnosticReviewData, flowStep]);
 
-  useEffect(() => {
-    if (!discussionShow || !discussionData?.videoUrl) return;
-
-    const tagId = "yt-iframe-api";
-    if (!document.getElementById(tagId)) {
-      const tag = document.createElement("script");
-      tag.id = tagId;
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      if (firstScriptTag && firstScriptTag.parentNode) {
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      }
-    }
-
-    let player: any;
-    const iframeId = `youtube-remedial-player`;
-
-    const initPlayer = () => {
-      if (!document.getElementById(iframeId)) return;
-      player = new (window as any).YT.Player(iframeId, {
-        events: {
-          onStateChange: (event: any) => {
-            if (event.data === (window as any).YT.PlayerState.ENDED) {
-              setDiscussionVideoWatched(true);
-              showToast.success(
-                "Video selesai ditonton! Anda dapat melanjutkan.",
-              );
-            }
-          },
-        },
-      });
-    };
-
-    if (!(window as any).YT) {
-      (window as any).onYouTubeIframeAPIReady = initPlayer;
-    } else if ((window as any).YT.Player) {
-      setTimeout(initPlayer, 500);
-    }
-
-    return () => {
-      if (player && player.destroy) {
-        player.destroy();
-      }
-    };
-  }, [discussionShow, discussionData?.videoUrl]);
+  const handleVideoEnded = useCallback(() => {
+    setDiscussionVideoWatched(true);
+    showToast.success(
+      "Video selesai ditonton! Anda dapat melanjutkan.",
+    );
+  }, []);
   // ─── Auto-advance to completed when student already has a past attempt ────
   // If apiModule loads and reveals an existing attempt, skip the camera/rules
   // screen entirely and go straight to the result view. This prevents the
@@ -433,7 +480,9 @@ export default function ClassDiagnosisContentPageTemplate({
       !isRemedial &&
       flowStep === "camera" &&
       !isModuleLoading &&
-      latestDiagnosticAttempt !== null
+      latestDiagnosticAttempt !== null &&
+      latestDiagnosticAttempt.completedAt !== undefined &&
+      latestDiagnosticAttempt.completedAt !== null
     ) {
       // Hydrate submitResult so scores display correctly before the review
       // API query fires. DiagnosticAttemptItem has score + isPassed; other
@@ -857,7 +906,9 @@ export default function ClassDiagnosisContentPageTemplate({
 
           // Tampilkan feedback emosi saat jawaban salah
           if (!data.isCorrect) {
-            setEmotionFeedbackMsg(pickFeedback(emotionResult.mode));
+            const detectedMode = emotionResult.mode;
+            setEmotionFeedbackLabel(translateEmotion(detectedMode));
+            setEmotionFeedbackMsg(pickFeedback(detectedMode));
           }
 
           if (data.isCompleted) {
@@ -941,9 +992,9 @@ export default function ClassDiagnosisContentPageTemplate({
       if (isAttemptsLoading || isModuleLoading) {
         return (
           <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
-            <div className="mx-auto max-w-md rounded-3xl border border-[#E2E8F0] bg-white p-6 text-center shadow-sm">
-              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#DBEAFE] border-t-[#2563EB]" />
-              <p className="mt-4 text-sm text-[#64748B]">Memuat data tes...</p>
+            <div className="mx-auto max-w-md rounded-3xl border border-lottie-mist bg-white p-6 text-center shadow-xs">
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-lottie-mist border-t-lottie-teal" />
+              <p className="mt-4 text-sm font-medium text-lottie-zinc-500">Memuat data tes...</p>
             </div>
           </section>
         );
@@ -955,30 +1006,30 @@ export default function ClassDiagnosisContentPageTemplate({
       if (!hasTakenDiag) {
         return (
           <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
-            <div className="mx-auto max-w-md rounded-3xl border border-[#FECACA] bg-[#FEF2F2] p-6 text-center shadow-[0_18px_45px_rgba(220,38,38,0.12)]">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#FEE2E2]">
-                <AlertIcon className="h-7 w-7 text-[#B91C1C]" />
+            <div className="mx-auto max-w-md rounded-3xl border border-rose-200 bg-rose-50 p-6 text-center shadow-xs">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-100/80">
+                <AlertIcon className="h-7 w-7 text-rose-600" />
               </div>
-              <h2 className="mt-4 text-lg font-bold text-[#0F172A]">
+              <h2 className="mt-4  text-xl font-normal text-lottie-midnight">
                 Tes Remedial Terkunci
               </h2>
-              <p className="mt-2 text-sm text-[#64748B]">
+              <p className="mt-2 text-sm text-lottie-zinc-500 leading-6">
                 Anda belum mengerjakan Tes Diagnostik. Silakan selesaikan Tes
                 Diagnostik terlebih dahulu sebelum mengambil Tes Remedial.
               </p>
               {canReviewLatestDiagnosticAttempt ? (
-                <div className="mt-4 space-y-2 rounded-2xl border border-[#E2E8F0] bg-white p-3 text-left shadow-sm">
-                  <p className="text-sm font-semibold text-[#0F172A]">
+                <div className="mt-4 space-y-2 rounded-2xl border border-lottie-mist bg-white p-3 text-left shadow-xs">
+                  <p className="text-sm font-semibold text-lottie-midnight">
                     Review jawaban sebelumnya
                   </p>
-                  <p className="text-xs leading-5 text-[#64748B]">
+                  <p className="text-xs leading-5 text-lottie-zinc-500">
                     Kamu bisa membuka review jawaban dari percobaan terakhir
                     yang sudah selesai.
                   </p>
                   <button
                     type="button"
                     onClick={handleOpenDiagnosticReview}
-                    className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                    className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-lottie-teal px-4 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
                   >
                     Lihat Review Jawaban Diagnostic
                   </button>
@@ -986,7 +1037,7 @@ export default function ClassDiagnosisContentPageTemplate({
               ) : null}
               <Link
                 href={materialHref}
-                className="mt-6 inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                className="mt-6 inline-flex h-10 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
               >
                 Kembali ke Materi
               </Link>
@@ -998,14 +1049,14 @@ export default function ClassDiagnosisContentPageTemplate({
       if (hasPassedDiag) {
         return (
           <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
-            <div className="mx-auto max-w-md rounded-3xl border border-[#BFDBFE] bg-[#EFF6FF] p-6 text-center shadow-[0_18px_45px_rgba(37,99,235,0.12)]">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#DCFCE7]">
-                <CheckCircleIcon className="h-7 w-7 text-[#166534]" />
+            <div className="mx-auto max-w-md rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-xs">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+                <CheckCircleIcon className="h-7 w-7 text-emerald-600" />
               </div>
-              <h2 className="mt-4 text-lg font-bold text-[#0F172A]">
+              <h2 className="mt-4  text-xl font-normal text-lottie-midnight">
                 Akses Remedial Tidak Diperlukan
               </h2>
-              <p className="mt-2 text-sm text-[#64748B]">
+              <p className="mt-2 text-sm text-lottie-zinc-500 leading-6">
                 Anda telah lulus Tes Diagnostik dengan nilai di atas KKM. Anda
                 tidak perlu mengambil Tes Remedial.
               </p>
@@ -1013,14 +1064,14 @@ export default function ClassDiagnosisContentPageTemplate({
                 <button
                   type="button"
                   onClick={handleOpenDiagnosticReview}
-                  className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                  className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
                 >
                   Lihat Review Jawaban Diagnostic
                 </button>
               ) : null}
               <Link
                 href={materialHref}
-                className="mt-6 inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                className="mt-6 inline-flex h-10 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
               >
                 Kembali ke Materi
               </Link>
@@ -1037,32 +1088,32 @@ export default function ClassDiagnosisContentPageTemplate({
     ) {
       return (
         <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
-          <div className="mx-auto max-w-md rounded-3xl border border-[#E2E8F0] bg-white p-6 text-center shadow-[0_18px_45px_rgba(37,99,235,0.12)]">
+          <div className="mx-auto max-w-md rounded-3xl border border-rose-200 bg-rose-50 p-6 text-center shadow-xs">
             <div
               className={cn(
                 "mx-auto flex h-14 w-14 items-center justify-center rounded-full",
-                hasPassedAnyAttempt ? "bg-[#DCFCE7]" : "bg-[#FEE2E2]",
+                hasPassedAnyAttempt ? "bg-emerald-100" : "bg-rose-100",
               )}
             >
               {hasPassedAnyAttempt ? (
-                <CheckCircleIcon className="h-7 w-7 text-[#166534]" />
+                <CheckCircleIcon className="h-7 w-7 text-emerald-600" />
               ) : (
-                <AlertIcon className="h-7 w-7 text-[#B91C1C]" />
+                <AlertIcon className="h-7 w-7 text-rose-600" />
               )}
             </div>
-            <h2 className="mt-4 text-lg font-bold text-[#0F172A]">
+            <h2 className="mt-4  text-xl font-normal text-lottie-midnight">
               {hasPassedAnyAttempt
                 ? "Kamu Sudah Lulus Tes Ini"
                 : "Batas Percobaan Habis"}
             </h2>
-            <p className="mt-2 text-sm text-[#64748B]">
+            <p className="mt-2 text-sm text-lottie-zinc-500 leading-6">
               {hasPassedAnyAttempt
                 ? "Kamu telah menyelesaikan tes diagnostik ini dengan tuntas."
                 : `Kamu sudah menggunakan 3 dari 3 kesempatan. Hubungi guru untuk mendapat bantuan lebih lanjut.`}
             </p>
             <Link
               href={materialHref}
-              className="mt-6 inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+              className="mt-6 inline-flex h-10 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
             >
               Kembali ke Materi
             </Link>
@@ -1073,29 +1124,29 @@ export default function ClassDiagnosisContentPageTemplate({
 
     return (
       <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
-        <div className="mx-auto max-w-md rounded-3xl border border-[#E2E8F0] bg-white p-4 shadow-[0_18px_45px_rgba(37,99,235,0.12)] sm:p-5">
-          <div className="rounded-2xl bg-[#2563EB] p-4 text-white">
+        <div className="mx-auto max-w-md rounded-3xl border border-lottie-mist bg-white p-4 shadow-xs sm:p-5">
+          <div className="rounded-2xl bg-gradient-to-r from-lottie-teal to-lottie-teal/90 p-4 text-white shadow-[0_8px_24px_rgba(31,35,117,0.12)]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">
               Step 1 dari 2
             </p>
-            <h1 className="mt-2 flex items-center gap-2 text-lg font-semibold">
+            <h1 className="mt-2 flex items-center gap-2  text-lg font-normal">
               <VideoIcon className="h-4 w-4" />
               Izin Akses Kamera
             </h1>
           </div>
 
           <div className="mt-4 space-y-3">
-            <p className="text-sm leading-6 text-[#475569]">
+            <p className="text-sm leading-6 text-lottie-zinc-500">
               Sebelum tes dimulai, aktifkan kamera untuk memastikan proses
               pengerjaan berjalan tertib.
             </p>
 
             {diagnosticReviewData || remedialReviewData ? (
-              <div className="rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-3">
-                <p className="text-sm font-semibold text-[#1E3A8A]">
+              <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-3">
+                <p className="text-sm font-semibold text-blue-800">
                   Sudah ada hasil tes sebelumnya.
                 </p>
-                <p className="mt-1 text-xs leading-5 text-[#475569]">
+                <p className="mt-1 text-xs leading-5 text-lottie-zinc-500">
                   Kamu bisa membuka review jawaban dari percobaan terakhir
                   sebelum memulai tes lagi.
                 </p>
@@ -1104,7 +1155,7 @@ export default function ClassDiagnosisContentPageTemplate({
                     <button
                       type="button"
                       onClick={handleOpenDiagnosticReview}
-                      className="inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                      className="inline-flex h-10 items-center justify-center rounded-xl bg-lottie-teal px-4 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
                     >
                       Review Diagnostic
                     </button>
@@ -1113,7 +1164,7 @@ export default function ClassDiagnosisContentPageTemplate({
                     <button
                       type="button"
                       onClick={handleOpenRemedialReview}
-                      className="inline-flex h-10 items-center justify-center rounded-xl border border-[#BFDBFE] bg-white px-4 text-sm font-semibold text-[#1E3A8A] transition hover:bg-[#EFF6FF]"
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-lottie-mist bg-white px-4 text-sm font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl"
                     >
                       Review Remedial
                     </button>
@@ -1126,17 +1177,17 @@ export default function ClassDiagnosisContentPageTemplate({
               {CAMERA_REQUIREMENTS.map((requirement) => (
                 <li
                   key={requirement}
-                  className="flex items-start gap-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-sm text-[#334155]"
+                  className="flex items-start gap-2 rounded-xl border border-lottie-mist bg-lottie-pearl/50 px-3 py-2 text-sm text-lottie-zinc-600"
                 >
-                  <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#2563EB]" />
+                  <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-lottie-teal" />
                   <span>{requirement}</span>
                 </li>
               ))}
             </ul>
 
             {cameraError ? (
-              <div className="flex items-start gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-sm text-[#B91C1C]">
-                <AlertIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#DC2626]" />
+              <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                <AlertIcon className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
                 <p>{cameraError}</p>
               </div>
             ) : null}
@@ -1145,7 +1196,7 @@ export default function ClassDiagnosisContentPageTemplate({
               type="button"
               onClick={handleRequestCamera}
               disabled={cameraState === "requesting"}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-lottie-teal px-4 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {cameraState === "requesting"
                 ? "Meminta akses kamera..."
@@ -1159,17 +1210,17 @@ export default function ClassDiagnosisContentPageTemplate({
 
   if (flowStep === "briefing") {
     const totalQCount = isRemedial
-      ? (remedialTestData?.questions?.length ?? 0)
-      : apiModule?.nextPackage?.totalQuestions;
+      ? (apiModule?.remedialTest?.totalQuestions ?? remedialTestData?.questions?.length ?? 0)
+      : (apiModule?.totalQuestions ?? apiModule?.nextPackage?.totalQuestions ?? 0);
 
     return (
       <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
         <div className="mx-auto max-w-[760px] space-y-4">
-          <div className="rounded-3xl bg-[#2563EB] p-5 text-white shadow-[0_16px_40px_rgba(37,99,235,0.28)]">
+          <div className="rounded-3xl bg-gradient-to-r from-lottie-teal to-lottie-teal/90 p-5 text-white shadow-[0_16px_40px_rgba(31,35,117,0.18)]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/80">
               Step 2 dari 2
             </p>
-            <h1 className="mt-2 text-xl font-semibold">
+            <h1 className="mt-2  text-xl font-normal">
               {isRemedial ? "Tes Remedial" : "Tes Diagnostik"}
             </h1>
 
@@ -1213,32 +1264,32 @@ export default function ClassDiagnosisContentPageTemplate({
           </div>
 
           {latestDiagnosticAttempt && (
-            <div className="mt-4 rounded-2xl border border-[#BFDBFE] bg-white p-4 text-[#1E3A8A] shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#2563EB]">
+            <div className="mt-4 rounded-2xl border border-lottie-mist bg-white p-4 shadow-xs">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-lottie-teal">
                 Riwayat Tes Diagnostik
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-3">
-                  <p className="text-[11px] text-[#64748B]">Percobaan</p>
-                  <p className="mt-1 text-sm font-semibold text-[#1E3A8A]">
+                <div className="rounded-xl border border-lottie-mist bg-lottie-pearl/50 px-3 py-3">
+                  <p className="text-[11px] text-lottie-zinc-500">Percobaan</p>
+                  <p className="mt-1 text-sm font-semibold text-lottie-midnight">
                     {latestAttemptLabel}
                   </p>
                 </div>
-                <div className="rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-3">
-                  <p className="text-[11px] text-[#64748B]">Skor Terakhir</p>
-                  <p className="mt-1 text-sm font-semibold text-[#1E3A8A]">
+                <div className="rounded-xl border border-lottie-mist bg-lottie-pearl/50 px-3 py-3">
+                  <p className="text-[11px] text-lottie-zinc-500">Skor Terakhir</p>
+                  <p className="mt-1 text-sm font-semibold text-lottie-midnight">
                     {latestAttemptScore ?? 0}
                   </p>
                 </div>
-                <div className="rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-3">
-                  <p className="text-[11px] text-[#64748B]">Status</p>
-                  <p className="mt-1 text-sm font-semibold text-[#1E3A8A]">
+                <div className="rounded-xl border border-lottie-mist bg-lottie-pearl/50 px-3 py-3">
+                  <p className="text-[11px] text-lottie-zinc-500">Status</p>
+                  <p className="mt-1 text-sm font-semibold text-lottie-midnight">
                     {latestAttemptPassed ? "Lulus KKM" : "Belum Lulus KKM"}
                   </p>
                 </div>
               </div>
 
-              <p className="mt-3 text-sm leading-6 text-[#475569]">
+              <p className="mt-3 text-sm leading-6 text-lottie-zinc-500">
                 {latestAttemptPassed
                   ? "Hasil diagnostik menunjukkan nilai di atas KKM, jadi remedial tidak diperlukan."
                   : "Hasil diagnostik menunjukkan nilai di bawah KKM, sehingga sesi remedial dapat dimulai dari data ini."}
@@ -1246,8 +1297,8 @@ export default function ClassDiagnosisContentPageTemplate({
             </div>
           )}
 
-          <div className="rounded-3xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="text-sm font-semibold text-[#0F172A]">Aturan Tes</h2>
+          <div className="rounded-3xl border border-lottie-mist bg-white p-4 shadow-xs sm:p-5">
+            <h2 className=" text-base font-normal text-lottie-midnight">Aturan Tes</h2>
 
             <ul className="mt-3 space-y-2">
               {DIAGNOSTIC_RULES.map((rule, index) => {
@@ -1261,16 +1312,16 @@ export default function ClassDiagnosisContentPageTemplate({
                       className={cn(
                         "flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition",
                         checked
-                          ? "border-[#BFDBFE] bg-[#EFF6FF]"
-                          : "border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]",
+                          ? "border-lottie-teal/40 bg-lottie-teal/5"
+                          : "border-lottie-mist bg-white hover:bg-lottie-pearl",
                       )}
                     >
                       <span
                         className={cn(
                           "mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold",
                           checked
-                            ? "border-[#2563EB] bg-[#2563EB] text-white"
-                            : "border-[#CBD5E1] bg-white text-[#94A3B8]",
+                            ? "border-lottie-teal bg-lottie-teal text-white"
+                            : "border-lottie-mist bg-white text-lottie-zinc-400",
                         )}
                       >
                         {checked ? (
@@ -1279,7 +1330,7 @@ export default function ClassDiagnosisContentPageTemplate({
                           index + 1
                         )}
                       </span>
-                      <p className="text-sm leading-6 text-[#334155]">{rule}</p>
+                      <p className="text-sm leading-6 text-lottie-zinc-600">{rule}</p>
                     </button>
                   </li>
                 );
@@ -1290,16 +1341,18 @@ export default function ClassDiagnosisContentPageTemplate({
               type="button"
               onClick={isRemedial ? handleStartRemedial : handleStartDiagnostic}
               disabled={!allRulesConfirmed || cameraState !== "granted"}
-              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-lottie-teal px-4 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Mulai Tes Sekarang
+              {latestDiagnosticAttempt && !latestDiagnosticAttempt.completedAt
+                ? "Lanjutkan Tes Sekarang"
+                : "Mulai Tes Sekarang"}
             </button>
 
-            <div className="mt-4 rounded-2xl border border-[#DBEAFE] bg-[#EFF6FF] p-3">
-              <h3 className="text-sm font-semibold text-[#1E3A8A]">
+            <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50/50 p-3">
+              <h3 className="text-sm font-semibold text-blue-800">
                 Rule Passing KKM
               </h3>
-              <ul className="mt-2 space-y-1.5 text-sm text-[#1E3A8A]">
+              <ul className="mt-2 space-y-1.5 text-sm text-blue-800/95">
                 <li>Nilai dihitung dari jumlah jawaban benar.</li>
                 {isRemedial ? (
                   <li>Siswa harus menuntaskan seluruh paket soal remedial.</li>
@@ -1349,7 +1402,7 @@ export default function ClassDiagnosisContentPageTemplate({
     const renderDiagnosticReview = () => {
       if (!diagnosticReviewData) {
         return (
-          <p className="text-sm text-[#64748B]">Memuat review jawaban...</p>
+          <p className="text-sm text-lottie-zinc-500">Memuat review jawaban...</p>
         );
       }
 
@@ -1366,14 +1419,14 @@ export default function ClassDiagnosisContentPageTemplate({
             return (
               <article
                 key={question.id}
-                className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white"
+                className="overflow-hidden rounded-2xl border border-lottie-mist bg-white shadow-xs"
               >
-                <div className="flex items-start justify-between gap-3 border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+                <div className="flex items-start justify-between gap-3 border-b border-lottie-mist bg-lottie-pearl/50 px-4 py-3">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-lottie-zinc-400">
                       Soal {index + 1}
                     </p>
-                    <p className="mt-1 text-sm font-medium text-[#0F172A]">
+                    <p className="mt-1 text-sm font-medium text-lottie-midnight">
                       <MathText text={question.textQuestion ?? ""} />
                     </p>
                     {question.imageQuestionUrl ? (
@@ -1389,8 +1442,8 @@ export default function ClassDiagnosisContentPageTemplate({
                     className={cn(
                       "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold",
                       question.isCorrect
-                        ? "bg-[#DCFCE7] text-[#166534]"
-                        : "bg-[#FEE2E2] text-[#B91C1C]",
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-rose-50 text-rose-700",
                     )}
                   >
                     {question.isCorrect ? "Benar" : "Salah"}
@@ -1399,11 +1452,11 @@ export default function ClassDiagnosisContentPageTemplate({
 
                 <div className="space-y-3 px-4 py-4">
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] p-3">
-                      <p className="text-[11px] text-[#64748B]">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                      <p className="text-[11px] text-emerald-700 font-medium">
                         Jawaban benar
                       </p>
-                      <p className="mt-1 text-sm font-semibold text-[#1E3A8A]">
+                      <p className="mt-1 text-sm font-semibold text-emerald-800">
                         {correctOption ? (
                           <>
                             {correctOption.option}.{" "}
@@ -1436,16 +1489,16 @@ export default function ClassDiagnosisContentPageTemplate({
                           className={cn(
                             "rounded-xl border p-3 text-sm",
                             isCorrect
-                              ? "border-[#86EFAC] bg-[#F0FDF4]"
+                              ? "border-emerald-200 bg-emerald-50"
                               : isSelected
-                                ? "border-[#FECACA] bg-[#FEF2F2]"
-                                : "border-[#E2E8F0] bg-white",
+                                ? "border-rose-200 bg-rose-50"
+                                : "border-lottie-mist bg-white",
                           )}
                         >
-                          <p className="font-semibold text-[#0F172A]">
+                          <p className="font-semibold text-lottie-midnight">
                             {option.option}
                           </p>
-                          <p className="mt-1 text-[#475569]">
+                          <p className="mt-1 text-lottie-zinc-600">
                             <MathText text={option.textAnswer ?? ""} />
                           </p>
                           {option.imageAnswerUrl ? (
@@ -1458,12 +1511,12 @@ export default function ClassDiagnosisContentPageTemplate({
                           ) : null}
                           <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
                             {isCorrect ? (
-                              <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[#166534]">
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">
                                 Benar
                               </span>
                             ) : null}
                             {isSelected ? (
-                              <span className="rounded-full bg-[#DBEAFE] px-2 py-0.5 text-[#1D4ED8]">
+                              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-700">
                                 Dipilih
                               </span>
                             ) : null}
@@ -1483,7 +1536,7 @@ export default function ClassDiagnosisContentPageTemplate({
     const renderRemedialReview = () => {
       if (!remedialReviewData) {
         return (
-          <p className="text-sm text-[#64748B]">Memuat review jawaban...</p>
+          <p className="text-sm text-lottie-zinc-500">Memuat review jawaban...</p>
         );
       }
 
@@ -1492,14 +1545,14 @@ export default function ClassDiagnosisContentPageTemplate({
           {remedialReviewQuestions.map((question, index) => (
             <article
               key={question.id}
-              className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white"
+              className="overflow-hidden rounded-2xl border border-lottie-mist bg-white shadow-xs"
             >
-              <div className="flex items-start justify-between gap-3 border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+              <div className="flex items-start justify-between gap-3 border-b border-lottie-mist bg-lottie-pearl/50 px-4 py-3">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-lottie-zinc-400">
                     Soal {index + 1}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#0F172A]">
+                  <p className="mt-1 text-sm font-medium text-lottie-midnight">
                     <MathText text={question.discussionText ?? ""} />
                   </p>
                   {question.discussionImageUrl ? (
@@ -1511,7 +1564,7 @@ export default function ClassDiagnosisContentPageTemplate({
                     </div>
                   ) : null}
                 </div>
-                <span className="shrink-0 rounded-full bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-semibold text-[#1D4ED8]">
+                <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
                   {question.variants.length} paket
                 </span>
               </div>
@@ -1538,25 +1591,25 @@ export default function ClassDiagnosisContentPageTemplate({
                     return (
                       <div
                         key={variant.id}
-                        className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3"
+                        className="rounded-xl border border-lottie-mist bg-lottie-pearl/50 p-3"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-[#0F172A]">
+                          <p className="text-sm font-semibold text-lottie-midnight">
                             Paket {variant.packageLabel}
                           </p>
                           <span
                             className={cn(
                               "rounded-full px-2.5 py-1 text-[11px] font-semibold",
                               variant.isCorrect
-                                ? "bg-[#DCFCE7] text-[#166534]"
-                                : "bg-[#FEE2E2] text-[#B91C1C]",
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-rose-50 text-rose-700",
                             )}
                           >
                             {variant.isCorrect ? "Benar" : "Salah"}
                           </span>
                         </div>
 
-                        <p className="mt-2 text-sm text-[#334155]">
+                        <p className="mt-2 text-sm text-lottie-zinc-600">
                           <MathText text={variant.textQuestion ?? ""} />
                         </p>
                         {variant.imageQuestionUrl ? (
@@ -1569,11 +1622,11 @@ export default function ClassDiagnosisContentPageTemplate({
                         ) : null}
 
                         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                          <div className="rounded-xl border border-[#E2E8F0] bg-white p-3">
-                            <p className="text-[11px] text-[#64748B]">
+                          <div className="rounded-xl border border-lottie-mist bg-white p-3">
+                            <p className="text-[11px] text-lottie-zinc-500">
                               Jawaban kamu
                             </p>
-                            <p className="mt-1 text-sm font-semibold text-[#0F172A]">
+                            <p className="mt-1 text-sm font-semibold text-lottie-midnight">
                               {selectedOption ? (
                                 <>
                                   {selectedOption.option}.{" "}
@@ -1594,11 +1647,11 @@ export default function ClassDiagnosisContentPageTemplate({
                               </div>
                             ) : null}
                           </div>
-                          <div className="rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] p-3">
-                            <p className="text-[11px] text-[#64748B]">
+                          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                            <p className="text-[11px] text-emerald-700 font-medium">
                               Jawaban benar
                             </p>
-                            <p className="mt-1 text-sm font-semibold text-[#1E3A8A]">
+                            <p className="mt-1 text-sm font-semibold text-emerald-800">
                               {correctOption ? (
                                 <>
                                   {correctOption.option}.{" "}
@@ -1635,24 +1688,24 @@ export default function ClassDiagnosisContentPageTemplate({
       <section className="mx-auto w-full max-w-[1100px] py-2 sm:py-4">
         <div
           className={cn(
-            "mx-auto max-w-xl rounded-3xl border p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]",
+            "mx-auto max-w-xl rounded-3xl border p-6 shadow-xs",
             isPassedKKMResolved
-              ? "border-[#BFDBFE] bg-[#EFF6FF]"
-              : "border-[#FECACA] bg-[#FEF2F2]",
+              ? "border-emerald-200 bg-emerald-50"
+              : "border-rose-200 bg-rose-50",
           )}
         >
           <div
             className={cn(
               "inline-flex h-12 w-12 items-center justify-center rounded-2xl",
               isPassedKKMResolved
-                ? "bg-[#DBEAFE] text-[#2563EB]"
-                : "bg-[#FECACA] text-[#DC2626]",
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-rose-100 text-rose-700",
             )}
           >
             <CheckCircleIcon className="h-6 w-6" />
           </div>
 
-          <h1 className="mt-4 text-xl font-bold text-[#0F172A] sm:text-2xl">
+          <h1 className="mt-4 font-semibold text-2xl  mantap font-normal text-lottie-midnight sm:text-3xl">
             {isReviewRemedial
               ? (remedialReviewData?.testName ??
                 remedialTestInfo?.testName ??
@@ -1664,7 +1717,7 @@ export default function ClassDiagnosisContentPageTemplate({
           <p
             className={cn(
               "mt-2 text-sm leading-6",
-              isPassedKKMResolved ? "text-[#1E3A8A]" : "text-[#B91C1C]",
+              isPassedKKMResolved ? "text-emerald-800" : "text-rose-800",
             )}
           >
             {isPassedKKMResolved
@@ -1674,26 +1727,26 @@ export default function ClassDiagnosisContentPageTemplate({
 
           <div
             className={cn(
-              "mt-5 rounded-2xl border p-4",
+              "mt-5 rounded-2xl border p-4 bg-white",
               isPassedKKMResolved
-                ? "border-[#BFDBFE] bg-white"
-                : "border-[#FECACA] bg-white",
+                ? "border-emerald-100"
+                : "border-rose-100",
             )}
           >
-            <p className="text-sm text-[#475569]">Ringkasan Hasil</p>
-            <p className="mt-1 text-xl font-semibold text-[#0F172A]">
+            <p className="text-sm text-lottie-zinc-500">Ringkasan Hasil</p>
+            <p className="mt-1 text-xl font-semibold text-lottie-midnight">
               {isReviewRemedial ? totalQuestionsResolved : answeredCount}/
               {totalQuestionsResolved} soal terjawab
             </p>
-            <p className="mt-1 text-sm text-[#334155]">
+            <p className="mt-1 text-sm text-lottie-zinc-600">
               Benar: {correctCountResolved} soal • Nilai: {scorePercentResolved}
             </p>
             <p
               className={cn(
                 "mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
                 isPassedKKMResolved
-                  ? "bg-[#DBEAFE] text-[#1E40AF]"
-                  : "bg-[#FEE2E2] text-[#B91C1C]",
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-rose-100 text-rose-800",
               )}
             >
               {isPassedKKMResolved
@@ -1702,8 +1755,8 @@ export default function ClassDiagnosisContentPageTemplate({
             </p>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-[#E2E8F0] bg-white p-4">
-            <h2 className="text-sm font-semibold text-[#0F172A]">
+          <div className="mt-5 rounded-2xl border border-lottie-mist bg-white p-4 shadow-xs">
+            <h2 className=" text-lg font-normal text-lottie-midnight">
               {isReviewRemedial
                 ? "Review Jawaban Remedial"
                 : "Review Jawaban Diagnostik"}
@@ -1718,22 +1771,18 @@ export default function ClassDiagnosisContentPageTemplate({
 
           <div className="mt-6 flex flex-wrap gap-3">
             {/* Tombol primer: "Mulai Remedial" kalau belum lulus,
-                "Kembali ke Materi" kalau sudah lulus.
-                CATATAN: remediaId di URL = contentId — nilai URL hanya dipakai
-                sebagai flag isRemedial, semua API call tetap pakai contentId.
-                Tidak memakai gate apiModule?.remedialTestId karena
-                GET /course-modules/:id tidak selalu mengembalikan field itu. */}
+                "Kembali ke Materi" kalau sudah lulus. */}
             {!isReviewRemedial && !isPassedKKMResolved ? (
               <Link
                 href={`${materialHref}/remedia/${encodeURIComponent(contentId)}`}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
               >
                 Mulai Remedial
               </Link>
             ) : (
               <Link
                 href={materialHref}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
               >
                 Kembali ke Materi
               </Link>
@@ -1742,7 +1791,7 @@ export default function ClassDiagnosisContentPageTemplate({
             {!isReviewRemedial && !isPassedKKMResolved && (
               <Link
                 href={materialHref}
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-5 text-sm font-semibold text-[#334155] transition hover:bg-[#F8FAFC]"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-lottie-mist bg-white px-5 text-sm font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl"
               >
                 Kembali ke Materi
               </Link>
@@ -1752,7 +1801,7 @@ export default function ClassDiagnosisContentPageTemplate({
                 href={`/student/dashboard/class/${encodedSlug}/materi/${encodeURIComponent(
                   nextModule.id,
                 )}`}
-                className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90"
               >
                 Materi Selanjutnya
               </Link>
@@ -1785,15 +1834,19 @@ export default function ClassDiagnosisContentPageTemplate({
         {emotionFeedbackMsg && (
           <EmotionNotification
             questionIndex={activeQuestionIndex}
+            emotionLabel={emotionFeedbackLabel ?? undefined}
             emotionDescription={emotionFeedbackMsg}
-            onDismiss={() => setEmotionFeedbackMsg(null)}
+            onDismiss={() => {
+              setEmotionFeedbackMsg(null);
+              setEmotionFeedbackLabel(null);
+            }}
           />
         )}
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
           <div className="space-y-4">
             {/* Header Card */}
-            <div className="rounded-2xl bg-[#2563EB] p-4 text-white shadow-[0_16px_35px_rgba(37,99,235,0.26)] sm:p-5">
+            <div className="rounded-2xl bg-gradient-to-r from-lottie-teal to-lottie-teal/90 p-4 text-white shadow-[0_8px_24px_rgba(31,35,117,0.12)] sm:p-5">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-semibold uppercase tracking-wider text-white/85">
                   Soal Remedial
@@ -1815,20 +1868,20 @@ export default function ClassDiagnosisContentPageTemplate({
             </div>
 
             {/* Question Card */}
-            <div className="rounded-3xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-5">
+            <div className="rounded-3xl border border-lottie-mist bg-white p-4 shadow-xs sm:p-5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
+                <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
                   Remedial
                 </span>
-                <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#475569]">
+                <span className="rounded-full border border-lottie-mist bg-lottie-pearl/50 px-3 py-1 text-xs font-semibold text-lottie-zinc-600">
                   Paket {currentVariant?.packageLabel ?? "A"}
                 </span>
-                <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#475569]">
+                <span className="rounded-full border border-lottie-mist bg-lottie-pearl/50 px-3 py-1 text-xs font-semibold text-lottie-zinc-600">
                   Soal {currentVariant?.questionNumber ?? 1}
                 </span>
               </div>
 
-              <h2 className="mt-4 text-lg font-semibold leading-7 text-[#0F172A]">
+              <h2 className="mt-4  text-xl font-normal leading-7 text-lottie-midnight">
                 <MathText text={currentVariant?.textQuestion ?? ""} />
               </h2>
               {currentVariant?.imageQuestionUrl ? (
@@ -1853,8 +1906,8 @@ export default function ClassDiagnosisContentPageTemplate({
                       className={cn(
                         "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition",
                         isSelected
-                          ? "border-[#93C5FD] bg-[#EFF6FF]"
-                          : "border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]",
+                          ? "border-lottie-teal/40 bg-lottie-teal/5"
+                          : "border-lottie-mist bg-white hover:bg-lottie-pearl",
                         discussionShow && "cursor-not-allowed opacity-60",
                       )}
                     >
@@ -1862,14 +1915,14 @@ export default function ClassDiagnosisContentPageTemplate({
                         className={cn(
                           "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
                           isSelected
-                            ? "border-[#2563EB] bg-[#2563EB] text-white"
-                            : "border-[#CBD5E1] bg-white text-[#64748B]",
+                            ? "border-lottie-teal bg-lottie-teal text-white"
+                            : "border-lottie-mist bg-white text-lottie-zinc-500",
                         )}
                       >
                         {option.option}
                       </span>
                       <div className="flex flex-col">
-                        <span className="text-sm text-[#334155]">
+                        <span className="text-sm text-lottie-zinc-600">
                           <MathText text={option.textAnswer ?? ""} />
                         </span>
                         {option.imageAnswerUrl ? (
@@ -1907,14 +1960,14 @@ export default function ClassDiagnosisContentPageTemplate({
                         Video Pembahasan Pendukung
                       </p>
                       <div className="rounded-2xl overflow-hidden border border-red-200/50 bg-black shadow-md">
-                        <iframe
-                          id="youtube-remedial-player"
-                          src={`https://www.youtube.com/embed/${getYouTubeId(discussionData.videoUrl)}?enablejsapi=1&controls=1&rel=0`}
+                        <YoutubePlayer
+                          key={discussionData.videoUrl}
+                          iframeId="youtube-remedial-player"
+                          url={`https://www.youtube.com/embed/${getYouTubeId(discussionData.videoUrl)}?enablejsapi=1&controls=1&rel=0`}
                           title="Video Pembahasan"
                           frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
                           className="w-full aspect-video"
+                          onEnded={handleVideoEnded}
                         />
                       </div>
                       {!discussionVideoWatched && (
@@ -1936,7 +1989,7 @@ export default function ClassDiagnosisContentPageTemplate({
                   type="button"
                   onClick={handleNextRemedialStep}
                   disabled={!discussionVideoWatched}
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-lottie-teal px-6 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Lanjut ke Langkah Berikutnya
                 </button>
@@ -1950,7 +2003,7 @@ export default function ClassDiagnosisContentPageTemplate({
                     emotion.noFaceWarning ||
                     submitRemedialVariantMutation.isPending
                   }
-                  className="inline-flex h-11 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-lottie-teal px-6 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitRemedialVariantMutation.isPending
                     ? "Mengoreksi..."
@@ -1967,11 +2020,11 @@ export default function ClassDiagnosisContentPageTemplate({
           </div>
 
           {/* Sidebar */}
-          <aside className="h-fit rounded-3xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
-            <div className="rounded-2xl border border-[#E2E8F0] bg-[#0F172A] p-2">
+          <aside className="h-fit getmath-card p-3">
+            <div className="rounded-2xl border border-lottie-mist bg-lottie-midnight p-2">
               {/* Camera feed — videoRef lives here; always mounted so the
                   sampler's opts.video reference never becomes stale */}
-              <div className="relative h-28 w-full overflow-hidden rounded-xl bg-[#0B1120]">
+              <div className="relative h-28 w-full overflow-hidden rounded-xl bg-lottie-midnight">
                 <video
                   ref={emotion.videoRef}
                   autoPlay
@@ -1991,8 +2044,8 @@ export default function ClassDiagnosisContentPageTemplate({
                 </div>
               </div>
             </div>
-            <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+            <div className="mt-3 rounded-2xl border border-lottie-mist bg-lottie-pearl/50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-lottie-zinc-400">
                 Riwayat Remedial
               </p>
               {remedialAnswers.length > 0 ? (
@@ -2015,17 +2068,17 @@ export default function ClassDiagnosisContentPageTemplate({
                   ))}
                 </div>
               ) : (
-                <p className="mt-2 text-xs text-[#64748B] italic">
+                <p className="mt-2 text-xs text-lottie-zinc-500 italic">
                   Mulai kirim jawaban untuk melihat riwayat.
                 </p>
               )}
             </div>
 
-            <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+            <div className="mt-3 rounded-2xl border border-lottie-mist bg-lottie-pearl/50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-lottie-zinc-400">
                 Kamera
               </p>
-              <p className="mt-1 text-sm font-medium text-[#0F172A]">
+              <p className="mt-1 text-sm font-medium text-lottie-midnight">
                 {cameraState === "granted" ? "Aktif" : "Belum aktif"}
               </p>
             </div>
@@ -2039,7 +2092,7 @@ export default function ClassDiagnosisContentPageTemplate({
     <section className="mx-auto w-full max-w-[1200px] py-2 sm:py-4">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px]">
         <div className="space-y-4">
-          <div className="rounded-2xl bg-[#2563EB] p-4 text-white shadow-[0_16px_35px_rgba(37,99,235,0.26)] sm:p-5">
+          <div className="rounded-2xl bg-gradient-to-r from-lottie-teal to-lottie-teal/90 p-4 text-white shadow-[0_8px_24px_rgba(31,35,117,0.12)] sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-medium text-white/80">
                 Soal Diagnostik
@@ -2056,20 +2109,20 @@ export default function ClassDiagnosisContentPageTemplate({
               </span>
             </div>
           </div>
-          <div className="rounded-3xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-5">
+          <div className="rounded-3xl border border-lottie-mist bg-white p-4 shadow-xs sm:p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
+              <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
                 {activeQuestion?.topic ?? "Diagnostik"}
               </span>
-              <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#475569]">
+              <span className="rounded-full border border-lottie-mist bg-lottie-pearl/50 px-3 py-1 text-xs font-semibold text-lottie-zinc-600">
                 {activeQuestion?.typeLabel ?? "Pilihan Ganda"}
               </span>
-              <span className="rounded-full border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#475569]">
+              <span className="rounded-full border border-lottie-mist bg-lottie-pearl/50 px-3 py-1 text-xs font-semibold text-lottie-zinc-600">
                 Soal {activeQuestionIndex + 1}
               </span>
             </div>
 
-            <h2 className="mt-4 text-lg font-semibold leading-7 text-[#0F172A]">
+            <h2 className="mt-4  text-xl font-normal leading-7 text-lottie-midnight">
               <MathText text={activeQuestion?.prompt ?? ""} />
             </h2>
             {activeQuestion?.imageQuestionUrl ? (
@@ -2096,22 +2149,22 @@ export default function ClassDiagnosisContentPageTemplate({
                     className={cn(
                       "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition",
                       isSelected
-                        ? "border-[#93C5FD] bg-[#EFF6FF]"
-                        : "border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]",
+                        ? "border-lottie-teal/40 bg-lottie-teal/5"
+                        : "border-lottie-mist bg-white hover:bg-lottie-pearl",
                     )}
                   >
                     <span
                       className={cn(
                         "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold",
                         isSelected
-                          ? "border-[#2563EB] bg-[#2563EB] text-white"
-                          : "border-[#CBD5E1] bg-white text-[#64748B]",
+                          ? "border-lottie-teal bg-lottie-teal text-white"
+                          : "border-lottie-mist bg-white text-lottie-zinc-500",
                       )}
                     >
                       {option.label}
                     </span>
                     <div className="flex flex-col">
-                      <span className="text-sm text-[#334155]">
+                      <span className="text-sm text-lottie-zinc-600">
                         <MathText text={option.text} />
                       </span>
                       {option.imageAnswerUrl ? (
@@ -2130,7 +2183,7 @@ export default function ClassDiagnosisContentPageTemplate({
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-[#64748B]">
+            <p className="text-sm text-lottie-zinc-500">
               Jawaban terisi {answeredCount}/{diagnosticQuestions.length} soal
             </p>
 
@@ -2141,7 +2194,7 @@ export default function ClassDiagnosisContentPageTemplate({
                   setActiveQuestionIndex((current) => Math.max(0, current - 1))
                 }
                 disabled={activeQuestionIndex === 0}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#CBD5E1] bg-white px-4 text-sm font-semibold text-[#475569] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-lottie-mist bg-white px-4 text-sm font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Sebelumnya
               </button>
@@ -2153,7 +2206,7 @@ export default function ClassDiagnosisContentPageTemplate({
                   (activeQuestionIndex === diagnosticQuestions.length - 1 &&
                     !allQuestionsAnswered)
                 }
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-lottie-teal px-5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {activeQuestionIndex === diagnosticQuestions.length - 1
                   ? allQuestionsAnswered
@@ -2165,19 +2218,19 @@ export default function ClassDiagnosisContentPageTemplate({
           </div>
         </div>
 
-        <aside className="h-fit rounded-3xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
-          <div className="rounded-2xl border border-[#E2E8F0] bg-[#0F172A] p-2">
+        <aside className="h-fit getmath-card p-3">
+          <div className="rounded-2xl border border-lottie-mist bg-lottie-midnight p-2">
             <video
               ref={previewRef}
               autoPlay
               playsInline
               muted
-              className="h-28 w-full rounded-xl bg-[#0B1120] object-cover"
+              className="h-28 w-full rounded-xl bg-lottie-midnight object-cover"
             />
           </div>
 
-          <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+          <div className="mt-3 rounded-2xl border border-lottie-mist bg-lottie-pearl/50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-lottie-zinc-400">
               Soal
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -2193,10 +2246,10 @@ export default function ClassDiagnosisContentPageTemplate({
                     className={cn(
                       "inline-flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-semibold transition",
                       isActive
-                        ? "border-white bg-[#2563EB] text-white"
+                        ? "border-lottie-teal bg-lottie-teal text-white"
                         : isAnswered
-                          ? "border-[#86EFAC] bg-[#DCFCE7] text-[#166534]"
-                          : "border-white bg-slate-300 text-black",
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-lottie-mist bg-white text-lottie-zinc-600",
                     )}
                   >
                     {index + 1}
@@ -2206,28 +2259,28 @@ export default function ClassDiagnosisContentPageTemplate({
             </div>
           </div>
 
-          <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+          <div className="mt-3 rounded-2xl border border-lottie-mist bg-lottie-pearl/50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-lottie-zinc-400">
               Kamera
             </p>
-            <p className="mt-1 text-sm font-medium text-[#0F172A]">
+            <p className="mt-1 text-sm font-medium text-lottie-midnight">
               {cameraState === "granted" ? "Aktif" : "Belum aktif"}
             </p>
-            <p className="mt-2 text-xs text-[#64748B]">
+            <p className="mt-2 text-xs text-lottie-zinc-500">
               Tetap berada dalam frame selama tes berlangsung.
             </p>
           </div>
 
-          <div className="mt-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">
+          <div className="mt-3 rounded-2xl border border-lottie-mist bg-lottie-pearl/50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-lottie-zinc-400">
               Progress
             </p>
-            <p className="mt-1 text-sm font-medium text-[#0F172A]">
+            <p className="mt-1 text-sm font-medium text-lottie-midnight">
               {completionPercent}% selesai
             </p>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-lottie-mist">
               <div
-                className="h-full rounded-full bg-[#2563EB] transition-all"
+                className="h-full rounded-full bg-lottie-teal transition-all"
                 style={{ width: `${completionPercent}%` }}
               />
             </div>
@@ -2236,4 +2289,25 @@ export default function ClassDiagnosisContentPageTemplate({
       </div>
     </section>
   );
+}
+
+function translateEmotion(emotion: string): string {
+  switch (emotion) {
+    case "happy":
+      return "Senang";
+    case "sad":
+      return "Sedih";
+    case "angry":
+      return "Marah / Frustrasi";
+    case "fearful":
+      return "Khawatir";
+    case "disgusted":
+      return "Jenuh / Bosan";
+    case "surprised":
+      return "Terkejut";
+    case "neutral":
+      return "Fokus";
+    default:
+      return "Fokus";
+  }
 }

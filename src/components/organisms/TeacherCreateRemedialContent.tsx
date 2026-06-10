@@ -344,7 +344,7 @@ export default function TeacherCreateRemedialContent({
       urlsToDelete.forEach(async (url) => {
         try {
           await deleteMutation.mutateAsync(url);
-        } catch (e) {}
+        } catch (e) { }
       });
     }
 
@@ -537,7 +537,7 @@ export default function TeacherCreateRemedialContent({
         <button
           type="button"
           onClick={() => router.push(`${basePath}/manage-remedial`)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:bg-[#F3F4F6]"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-lottie-teal/10 bg-white text-lottie-teal hover:bg-lottie-teal/5 transition cursor-pointer"
           aria-label="Kembali"
         >
           <ChevronLeftIcon className="h-5 w-5" />
@@ -555,7 +555,7 @@ export default function TeacherCreateRemedialContent({
       </div>
 
       {/* Info Tes */}
-      <section className="space-y-4 rounded-3xl border border-[#E5E7EB] bg-white px-6 py-5">
+      <section className="space-y-4 getmath-card px-6 py-5">
         <p className="text-sm font-semibold text-[#374151]">Informasi Tes</p>
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-[#374151]">
@@ -566,7 +566,7 @@ export default function TeacherCreateRemedialContent({
             value={testTitle}
             onChange={(e) => setTestTitle(e.target.value)}
             placeholder="Misal: Remedial Aljabar Dasar"
-            className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+            className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
           />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -579,7 +579,7 @@ export default function TeacherCreateRemedialContent({
               min={1}
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
-              className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
           <div className="space-y-1.5">
@@ -592,7 +592,7 @@ export default function TeacherCreateRemedialContent({
               max={100}
               value={kkm}
               onChange={(e) => setKkm(Number(e.target.value))}
-              className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
             />
           </div>
         </div>
@@ -605,7 +605,7 @@ export default function TeacherCreateRemedialContent({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Deskripsi singkat..."
             rows={2}
-            className="w-full resize-none rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+            className="w-full resize-none rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
           />
         </div>
 
@@ -633,9 +633,9 @@ export default function TeacherCreateRemedialContent({
       </section>
 
       {/* Paket Soal */}
-      <section className="overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white">
+      <section className="overflow-hidden getmath-card">
         {/* Tab bar */}
-        <div className="flex items-center gap-0 overflow-x-auto border-b border-[#E5E7EB] bg-[#F9FAFB]">
+        <div className="flex items-center gap-0 overflow-x-auto border-b border-[#E5E7EB] bg-lottie-teal/5">
           {VARIANT_LABELS.map((label) => {
             const isActive = activePackage === label;
             return (
@@ -644,9 +644,9 @@ export default function TeacherCreateRemedialContent({
                 type="button"
                 onClick={() => setActivePackage(label)}
                 className={cn(
-                  "relative flex-1 px-5 py-3 text-sm font-semibold transition whitespace-nowrap",
+                  "relative flex-1 px-5 py-3 text-sm font-semibold transition whitespace-nowrap cursor-pointer",
                   isActive
-                    ? "border-b-2 border-[#2563EB] bg-white text-[#2563EB]"
+                    ? "border-b-2 border-lottie-teal bg-white text-lottie-teal"
                     : "text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#374151]",
                 )}
               >
@@ -673,7 +673,7 @@ export default function TeacherCreateRemedialContent({
                   className="flex w-full justify-between items-center gap-3 bg-[#F9FAFB] px-4 py-3 text-left"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-sm font-semibold text-white">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lottie-teal text-sm font-semibold text-white">
                       {qi + 1}
                     </span>
                     <div className="max-w-md truncate text-sm">
@@ -681,7 +681,7 @@ export default function TeacherCreateRemedialContent({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="shrink-0 rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8]">
+                    <span className="shrink-0 rounded-full border border-lottie-teal/20 bg-lottie-teal/5 px-3 py-1 text-xs font-semibold text-lottie-teal">
                       Benar: {variant.correctAnswer}
                     </span>
                     <ChevronLeftIcon
@@ -720,7 +720,7 @@ export default function TeacherCreateRemedialContent({
                         onImageDelete={async (url) => {
                           try {
                             await deleteMutation.mutateAsync(url);
-                          } catch {}
+                          } catch { }
                         }}
                       />
                     </div>
@@ -738,7 +738,7 @@ export default function TeacherCreateRemedialContent({
                               className={cn(
                                 "flex items-start gap-3 rounded-2xl border p-3 transition-colors",
                                 isCorrect
-                                  ? "border-[#3B82F6] bg-[#EFF6FF]"
+                                  ? "border-lottie-teal bg-lottie-teal/5"
                                   : "border-[#E5E7EB] bg-white",
                               )}
                             >
@@ -753,7 +753,7 @@ export default function TeacherCreateRemedialContent({
                                 className={cn(
                                   "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition",
                                   isCorrect
-                                    ? "border-[#3B82F6] bg-[#3B82F6] text-white"
+                                    ? "border-lottie-teal bg-lottie-teal text-white"
                                     : "border-[#D1D5DB] text-[#9CA3AF] hover:border-[#9CA3AF]",
                                 )}
                               >
@@ -791,7 +791,7 @@ export default function TeacherCreateRemedialContent({
                                   onImageDelete={async (url) => {
                                     try {
                                       await deleteMutation.mutateAsync(url);
-                                    } catch {}
+                                    } catch { }
                                   }}
                                 />
                               </div>
@@ -823,7 +823,7 @@ export default function TeacherCreateRemedialContent({
                         onImageDelete={async (url) => {
                           try {
                             await deleteMutation.mutateAsync(url);
-                          } catch {}
+                          } catch { }
                         }}
                       />
                     </div>
@@ -842,7 +842,7 @@ export default function TeacherCreateRemedialContent({
                           }))
                         }
                         placeholder="https://youtube.com/watch?v=..."
-                        className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-[#93C5FD] focus:ring-2 focus:ring-[#BFDBFE]"
+                        className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
                       />
                       {(() => {
                         const embed = getYouTubeEmbedUrl(question.videoUrl);
@@ -880,7 +880,7 @@ export default function TeacherCreateRemedialContent({
           <button
             type="button"
             onClick={addQuestion}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#93C5FD] bg-[#F0F9FF] py-3 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-lottie-teal/30 bg-lottie-teal/5 py-3 text-sm font-semibold text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
           >
             <PlusIcon className="h-4 w-4" /> Tambah Soal Baru
           </button>
@@ -888,11 +888,11 @@ export default function TeacherCreateRemedialContent({
       </section>
 
       {/* Footer */}
-      <div className="flex flex-wrap items-center justify-end gap-3 rounded-3xl border border-[#E5E7EB] bg-white px-6 py-4">
+      <div className="flex flex-wrap items-center justify-end gap-3 getmath-card px-6 py-4">
         <button
           type="button"
           onClick={() => router.push(`${basePath}/manage-remedial`)}
-          className="rounded-2xl border border-[#D1D5DB] bg-[#F9FAFB] px-8 py-2.5 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F3F4F6]"
+          className="rounded-2xl px-8 py-2.5 text-sm font-semibold btn-secondary-subtle cursor-pointer"
         >
           Batal
         </button>
@@ -900,7 +900,7 @@ export default function TeacherCreateRemedialContent({
           type="button"
           onClick={handleSave}
           disabled={isSaving}
-          className="rounded-2xl bg-[#2563EB] px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60"
+          className="rounded-2xl px-8 py-2.5 text-sm font-semibold bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold disabled:opacity-60 cursor-pointer"
         >
           {isSaving
             ? "Menyimpan…"

@@ -127,20 +127,23 @@ export default function ParentDashboardTemplate() {
 
   const testResults: TestResult[] = useMemo(() => {
     if (!dashboard) return [];
-    return dashboard.recentDiagnostics.map((d) => ({
-      id: d.attemptId,
-      title: d.testName,
-      date: new Date(d.completedAt).toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }),
-      score: d.score,
-      status: d.isRemedial ? "Remedial" : "Lulus",
-      type: "diagnostic",
-      remedialNote: d.isRemedial ? "Wajib menonton video remedial!" : undefined,
-      subject: d.courseName,
-    }));
+    return dashboard.recentDiagnostics.map((d) => {
+      const isRemedial = d.score < d.passingScore;
+      return {
+        id: d.attemptId,
+        title: d.testName,
+        date: new Date(d.completedAt).toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+        score: d.score,
+        status: isRemedial ? "Remedial" : "Lulus",
+        type: "diagnostic",
+        remedialNote: isRemedial ? "Wajib menonton video remedial!" : undefined,
+        subject: d.courseName,
+      };
+    });
   }, [dashboard]);
 
   const managedChildren: IManagedChild[] = useMemo(() => {

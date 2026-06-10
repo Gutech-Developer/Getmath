@@ -61,6 +61,7 @@ export default function TeacherClassListTemplate() {
         testCount: c.diagnosticTestCount ?? 0,
         code: c.courseCode,
         status: c.isArchived ? "Nonaktif" : "Aktif",
+        progress: c.averageProgressPercent ?? 0,
       })),
     [coursesData],
   );

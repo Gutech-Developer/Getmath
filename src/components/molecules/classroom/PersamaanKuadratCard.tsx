@@ -118,7 +118,7 @@ export default function PersamaanKuadratCard({
                     ) : step.typeLabel === "E-LKPD" ? (
                       <DocumentIcon className="h-4 w-4 text-[#16A34A]" />
                     ) : step.typeLabel === "Tes" ||
-                      step.typeLabel === "Test Diagnosis" ? (
+                      step.typeLabel === "Tes Diagnostik" ? (
                       <CheckCircleIcon className="h-4 w-4 text-[#2563EB]" />
                     ) : (
                       <NotebookIcon className="h-4 w-4 text-[#334155]" />

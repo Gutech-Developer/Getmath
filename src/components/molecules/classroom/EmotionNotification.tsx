@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface EmotionNotificationProps {
   questionIndex: number;
@@ -19,6 +20,11 @@ export default function EmotionNotification({
 }: EmotionNotificationProps) {
   const [visible, setVisible] = useState(true);
   const [progress, setProgress] = useState(100);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const step = 100 / (autoDismissMs / 100);
@@ -38,16 +44,16 @@ export default function EmotionNotification({
     return () => window.clearInterval(interval);
   }, [autoDismissMs, onDismiss]);
 
-  if (!visible) return null;
+  if (!visible || !mounted) return null;
 
   const handleClose = () => {
     setVisible(false);
     onDismiss?.();
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed right-6 top-6 z-50 w-[280px] overflow-hidden rounded-2xl border border-[#86EFAC] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
+      className="fixed right-6 top-6 z-[99999] w-[280px] overflow-hidden rounded-2xl border border-[#86EFAC] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
       role="status"
       aria-live="polite"
       aria-label="Notifikasi deteksi emosi"
@@ -108,6 +114,7 @@ export default function EmotionNotification({
           style={{ width: `${progress}%` }}
         />
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

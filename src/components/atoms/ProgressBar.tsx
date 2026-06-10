@@ -12,7 +12,7 @@ interface ProgressBarProps {
 }
 
 const variantStyles: Record<ProgressBarVariant, string> = {
-  primary: "bg-indigo-500",
+  primary: "bg-lottie-teal",
   success: "bg-emerald-500",
   warning: "bg-amber-500",
   info: "bg-sky-500",

@@ -26,14 +26,15 @@ import type {
   IStudentAnalyticsItem,
 } from "@/types/learningAnalytics";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export type { IClassLearningAnalyticsDetail, IStudentAnalyticsItem };
 
 interface AdminLearningAnalyticsClassContentProps {
   classDetail: IClassLearningAnalyticsDetail;
   initialViewType?: ClassAnalyticsViewType;
-  buildStudentDetailHref?: (studentId: string) => string;
+  buildStudentDetailHref?: (studentId: string, studentName: string) => string;
 }
 
 function buildDefaultScoreBuckets(
@@ -153,9 +154,30 @@ export default function AdminLearningAnalyticsClassContent({
   initialViewType,
   buildStudentDetailHref,
 }: AdminLearningAnalyticsClassContentProps) {
+  const searchParams = useSearchParams();
+  const viewQuery = searchParams.get("view");
+
   const [activeViewType, setActiveViewType] = useState<ClassAnalyticsViewType>(
     initialViewType ?? classDetail.defaultViewType ?? "Laporan",
   );
+
+  useEffect(() => {
+    if (
+      viewQuery &&
+      [
+        "Beranda",
+        "Siswa",
+        "Materi",
+        "Nilai E-LKPD",
+        "Nilai Test",
+        "Laporan",
+        "Forum",
+      ].includes(viewQuery)
+    ) {
+      setActiveViewType(viewQuery as ClassAnalyticsViewType);
+    }
+  }, [viewQuery]);
+
   const { mutate: kickStudent, isPending: isKickingStudent } =
     useGsKickStudentFromCourse();
 
@@ -204,6 +226,12 @@ export default function AdminLearningAnalyticsClassContent({
     classDetail.emotionSegments ??
     buildDefaultEmotionSegments(classDetail.students);
 
+  const testCount = useMemo(() => {
+    return materials.filter(
+      (m) => m.type.includes("Tes") || m.type.includes("Test")
+    ).length;
+  }, [materials]);
+
   const headerData: ILearningAnalyticsHeaderCardData = {
     className: classDetail.className,
     classCode: classDetail.classCode ?? "MATH-X-001",
@@ -217,8 +245,8 @@ export default function AdminLearningAnalyticsClassContent({
 
   const studentDetailHrefBuilder =
     buildStudentDetailHref ??
-    ((studentId: string) =>
-      `/admin/dashboard/learning-analytics/${classDetail.slug}/${studentId}`);
+    ((studentId: string, studentName: string) =>
+      `/admin/dashboard/learning-analytics/${classDetail.slug}/${studentId}?studentName=${encodeURIComponent(studentName)}`);
   const elkpdScoreHrefBuilder = (elkpdId: string) =>
     `/admin/dashboard/learning-analytics/${classDetail.slug}/elkpd/${elkpdId}`;
   const handleKickStudent = (studentId: string) => {
@@ -261,6 +289,7 @@ export default function AdminLearningAnalyticsClassContent({
         scoreBuckets={scoreBuckets}
         emotionSegments={emotionSegments}
         students={classDetail.students}
+        classId={classDetail.id ?? ""}
         buildStudentDetailHref={studentDetailHrefBuilder}
       />
     ),
@@ -289,8 +318,7 @@ export default function AdminLearningAnalyticsClassContent({
               Siswa: classDetail.studentCount,
               Materi: materials.length,
               "Nilai E-LKPD": elkpdItems.length,
-              "Nilai Test": 0,
-            
+              "Nilai Test": testCount,
             }}
           />
         </div>

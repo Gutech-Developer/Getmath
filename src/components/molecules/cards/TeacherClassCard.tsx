@@ -33,7 +33,7 @@ export const TeacherClassCard: React.FC<TeacherClassCardProps> = ({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 py-4 border-b border-grey-stroke last:border-b-0 cursor-pointer group",
+        "flex flex-col gap-3 py-4 border-b border-grey-stroke last:border-b-0 cursor-pointer group px-5 md:px-6 hover:bg-[#BFDBFE]/10 duration-200",
         className,
       )}
       onClick={onManage}

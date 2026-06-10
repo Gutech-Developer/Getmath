@@ -82,6 +82,21 @@ export interface GsPaginatedCourses {
   pagination: GsPaginationMeta;
 }
 
+export interface GsStudentDashboardResponse {
+  courseId: string;
+  courseName: string;
+  courseCode: string;
+  progressPercent: number;
+  enrolledCount: number;
+  subjectModuleTotal: number;
+  subjectModuleRead: number;
+  diagnosticTestTotal: number;
+  enrolledStudentNames: Array<{
+    id: string;
+    fullName: string;
+  }>;
+}
+
 // ── Course Module ─────────────────────────────────────────────────────────────
 
 /** Subset subject yang di-embed dalam modul */
@@ -104,6 +119,7 @@ export interface GsCourseModuleDiagnosticTest {
   description: string | null;
   durationMinutes: number;
   passingScore: number;
+  totalQuestions?: number;
 }
 
 export type GsModuleType = "SUBJECT" | "DIAGNOSTIC_TEST" | "REMEDIAL";
@@ -180,6 +196,7 @@ export interface GsCourseModule {
   description?: string | null;
   durationMinutes?: number;
   passingScore?: number;
+  totalQuestions?: number;
   canAttempt?: boolean;
   attemptsUsed?: number;
   maxAttempts?: number;
@@ -281,6 +298,7 @@ export interface GsCourseEnrollment {
   courseId: string;
   enrolledAt: string;
   isActive?: boolean;
+  progressPercent?: number;
   /** Tersedia di GET /course-enrollments/my (student endpoint) */
   course?: GsEnrollmentCourse;
   /** Tersedia di GET /course-enrollments/course/:courseId (teacher/admin endpoint) */

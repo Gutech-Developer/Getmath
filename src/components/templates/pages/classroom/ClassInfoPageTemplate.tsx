@@ -45,11 +45,11 @@ export default function ClassInfoPageTemplate({
       classTitle={classTitle}
     >
       <section className="space-y-5">
-        <header className="overflow-hidden rounded-[32px] bg-[#1F2375] p-6 text-white  sm:px-8 sm:py-10">
+        <header className="overflow-hidden rounded-3xl bg-gradient-to-r from-lottie-teal to-lottie-teal/90 p-6 text-white shadow-[0_8px_24px_rgba(31,35,117,0.12)] sm:px-8 sm:py-10">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-5">
               <div>
-                <h1 className="text-lg font-semibold sm:text-3xl">
+                <h1 className=" text-xl font-normal sm:text-3xl">
                   {classTitle}
                 </h1>
                 <p className="mt-2 text-lg text-white/75">{teacherName}</p>
@@ -67,9 +67,9 @@ export default function ClassInfoPageTemplate({
         </header>
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-6 shadow-[0px_16px_32px_rgba(148,163,184,0.12)] sm:p-8">
+          <section className="rounded-3xl border border-lottie-mist bg-white p-6 shadow-xs sm:p-8">
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-[#1E293B]">
+              <h2 className=" text-lg font-normal text-lottie-midnight">
                 Informasi Kelas
               </h2>
             </div>
@@ -86,24 +86,24 @@ export default function ClassInfoPageTemplate({
             </div>
           </section>
 
-          <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-6 shadow-[0px_16px_32px_rgba(148,163,184,0.12)] sm:p-8">
+          <section className="rounded-3xl border border-lottie-mist bg-white p-6 shadow-xs sm:p-8">
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-[#1E293B]">
+              <h2 className=" text-lg font-normal text-lottie-midnight">
                 Progres Belajar
               </h2>
             </div>
 
             <div className="mt-8">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-base text-[#64748B]">Progress Keseluruhan</p>
-                <p className="text-lg font-bold text-[#232B89]">
+                <p className="text-base text-lottie-zinc-500">Progress Keseluruhan</p>
+                <p className="text-lg font-bold text-lottie-teal">
                   {course?.progressPercent}%
                 </p>
               </div>
 
-              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E5E7EB]">
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-lottie-mist">
                 <div
-                  className="h-full rounded-full bg-[linear-gradient(90deg,#232B89_0%,#3943A8_100%)]"
+                  className="h-full rounded-full bg-gradient-to-r from-lottie-teal to-lottie-teal/80"
                   style={{ width: `${course?.progressPercent}%` }}
                 />
               </div>
@@ -128,10 +128,10 @@ export default function ClassInfoPageTemplate({
           </section>
         </div>
 
-        <section className="rounded-[32px] border border-[#E2E8F0] bg-white p-6 shadow-[0px_16px_32px_rgba(148,163,184,0.12)] sm:p-8">
+        <section className="rounded-3xl border border-lottie-mist bg-white p-6 shadow-xs sm:p-8">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-[#1E293B]">Daftar Siswa</h2>
+              <h2 className=" text-lg font-normal text-lottie-midnight">Daftar Siswa</h2>
             </div>
           </div>
 
@@ -141,17 +141,17 @@ export default function ClassInfoPageTemplate({
               studentList.map((student, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#F8FAFC] transition-colors"
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-lottie-pearl transition-colors"
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0F172A] text-sm font-semibold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lottie-teal/10 text-lottie-teal border border-lottie-teal/20 text-sm font-semibold">
                     {student.fullName?.charAt(0).toUpperCase()}
                   </div>
 
                   <div className="flex flex-col">
-                    <p className="text-sm font-medium text-[#0F172A]">
+                    <p className="text-sm font-medium text-lottie-midnight">
                       {student.fullName}
                     </p>
-                    <p className="text-xs text-[#94A3B8]">Siswa</p>
+                    <p className="text-xs text-lottie-zinc-400">Siswa</p>
                   </div>
                 </div>
               ))}

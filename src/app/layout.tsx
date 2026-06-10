@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
-import { SidebarProvider } from "@/providers/SidebarProvider";
 import NextTopLoader from "nextjs-toploader";
-import MainLayout from "@/components/templates/layouts/MainLayout";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "GetMath",
-  description: "GetMath Adaptive Learning Platform",
+  title: "GetSmart",
+  description: "GetSmart Adaptive Learning Platform",
 };
 
 export default function RootLayout({
@@ -19,7 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`font-parkinsans antialiased bg-grey-lightest overflow-x-hidden overflow-y-auto thin-scrollbar`}
+        className={`font-inter antialiased bg-grey-lightest overflow-x-hidden overflow-y-auto thin-scrollbar`}
       >
         <NextTopLoader
           color="#1F2375"

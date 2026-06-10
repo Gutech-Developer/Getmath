@@ -15,6 +15,7 @@ export interface ILearningAnalyticsStudentListItem {
   nis: string;
   score: number;
   status: LearningAnalyticsStudentStatus;
+  progress?: number;
 }
 
 export interface ILearningAnalyticsMaterialItem {

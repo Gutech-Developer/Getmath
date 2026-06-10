@@ -40,7 +40,7 @@ export default function TeacherPreviewDiagnosticContent({ id, role = "teacher" }
         <button
           type="button"
           onClick={() => router.push(`${basePath}/manage-diagnostics`)}
-          className="rounded-2xl bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white"
+          className="rounded-2xl bg-lottie-teal hover:bg-lottie-teal/90 duration-200 text-white font-semibold px-5 py-2 text-sm font-semibold text-white cursor-pointer"
         >
           Kembali ke Daftar
         </button>
@@ -57,7 +57,7 @@ export default function TeacherPreviewDiagnosticContent({ id, role = "teacher" }
           <button
             type="button"
             onClick={() => router.push(`${basePath}/manage-diagnostics`)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white text-[#6B7280] transition hover:bg-[#F3F4F6]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-lottie-teal/10 bg-white text-lottie-teal hover:bg-lottie-teal/5 transition cursor-pointer"
             aria-label="Kembali"
           >
             <ChevronLeftIcon className="h-5 w-5" />
@@ -80,7 +80,7 @@ export default function TeacherPreviewDiagnosticContent({ id, role = "teacher" }
           onClick={() =>
             router.push(`${basePath}/manage-diagnostics/${id}/edit`)
           }
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#EFF6FF] px-4 py-2.5 text-sm font-semibold text-[#2563EB] transition hover:bg-[#DBEAFE]"
+          className="inline-flex items-center gap-2 rounded-2xl bg-lottie-teal/5 px-4 py-2.5 text-sm font-semibold text-lottie-teal transition hover:bg-lottie-teal/10 cursor-pointer"
         >
           <EditIcon className="h-4 w-4" />
           Edit

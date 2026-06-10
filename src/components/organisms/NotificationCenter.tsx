@@ -187,26 +187,26 @@ export default function NotificationCenter() {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <section className="rounded-[30px] border border-[#D9E5FF] bg-[linear-gradient(180deg,#FFFFFF_0%,#F7FAFF_100%)] p-6 shadow-[0px_20px_45px_rgba(148,163,184,0.12)] sm:p-7">
+      <section className="rounded-3xl border border-lottie-mist bg-white p-6 shadow-xs sm:p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-[2rem] font-semibold tracking-[-0.02em] text-[#0F172A]">
+              <h1 className=" text-3xl font-normal tracking-[-0.02em] text-lottie-midnight">
                 Notifikasi
               </h1>
               <Badge
                 variant={unreadCount > 0 ? "primary" : "info"}
                 className={cn(
                   unreadCount > 0
-                    ? "bg-[#E8F0FF] text-[#2563EB]"
-                    : "bg-[#EEF2F7] text-[#64748B]",
+                    ? "bg-lottie-teal/10 text-lottie-teal border border-lottie-teal/20"
+                    : "bg-lottie-pearl text-lottie-zinc-500 border border-lottie-mist",
                 )}
               >
                 {unreadCount > 0 ? `${unreadCount} baru` : "Semua terbaca"}
               </Badge>
             </div>
 
-            <p className="mt-2 text-sm text-[#64748B]">
+            <p className="mt-2 text-sm text-lottie-zinc-500">
               {getNotificationSummaryText(unreadCount)}
             </p>
           </div>
@@ -216,7 +216,7 @@ export default function NotificationCenter() {
               type="button"
               onClick={handleRefresh}
               disabled={isBusy}
-              className="inline-flex items-center gap-2 rounded-2xl border border-[#D8E1F5] bg-white px-4 py-2.5 text-sm font-medium text-[#334155] transition hover:border-[#C1D4FF] hover:bg-[#F8FBFF]"
+              className="inline-flex items-center gap-2 rounded-2xl border border-lottie-mist bg-white px-4 py-2.5 text-sm font-medium text-lottie-zinc-600 transition hover:bg-lottie-pearl"
             >
               <RefreshIcon
                 className={cn("h-4 w-4", isFetching && "animate-spin")}
@@ -228,7 +228,7 @@ export default function NotificationCenter() {
               type="button"
               onClick={handleMarkAllAsRead}
               disabled={unreadCount === 0 || isBusy}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:bg-[#BFD1F7]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-lottie-teal px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 disabled:cursor-not-allowed disabled:bg-lottie-teal/50"
             >
               <CheckCircleIcon className="h-4 w-4" />
               {markAllAsRead.isPending ? "Memproses..." : "Tandai semua dibaca"}
@@ -238,7 +238,7 @@ export default function NotificationCenter() {
               type="button"
               onClick={() => setIsDeleteAllModalOpen(true)}
               disabled={totalItems === 0 || isBusy}
-              className="inline-flex items-center gap-2 rounded-2xl border border-[#F3D6D2] bg-white px-4 py-2.5 text-sm font-semibold text-[#D14343] transition hover:bg-[#FFF5F3] disabled:cursor-not-allowed disabled:border-[#E5E7EB] disabled:text-[#94A3B8]"
+              className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-lottie-mist disabled:text-lottie-zinc-400"
             >
               <TrashIcon className="h-4 w-4" />
               {deleteAllNotifications.isPending
@@ -250,29 +250,29 @@ export default function NotificationCenter() {
 
         <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#D8E1F5] bg-white text-[#2563EB]">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-lottie-mist bg-white text-lottie-teal">
               <FilterIcon className="h-4 w-4" />
             </span>
             <FilterTabs
               tabs={NOTIFICATION_FILTER_TABS}
               activeTab={filterKey}
               onTabChange={handleFilterChange}
-              className="rounded-2xl bg-[#EAF1FF] p-1.5"
+              className="rounded-2xl bg-lottie-pearl border border-lottie-mist p-1.5"
             />
           </div>
         </div>
       </section>
 
       {error ? (
-        <section className="rounded-[26px] border border-[#F1C4BF] bg-white p-6">
-          <p className="text-base font-semibold text-[#7F1D1D]">
+        <section className="rounded-2xl border border-red-200 bg-red-50/50 p-6">
+          <p className="text-base font-semibold text-red-800">
             Gagal memuat notifikasi
           </p>
-          <p className="mt-2 text-sm text-[#7C6A6A]">{error.message}</p>
+          <p className="mt-2 text-sm text-red-700">{error.message}</p>
           <button
             type="button"
             onClick={handleRefresh}
-            className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-[#F1C4BF] px-4 py-2.5 text-sm font-medium text-[#B91C1C] transition hover:bg-[#FEF2F2]"
+            className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-100"
           >
             Coba lagi
           </button>
@@ -282,16 +282,16 @@ export default function NotificationCenter() {
       <section className="flex flex-col gap-3">
         {isLoading
           ? Array.from({ length: 4 }, (_, index) => (
-              <NotificationSkeletonCard key={index} />
-            ))
+            <NotificationSkeletonCard key={index} />
+          ))
           : null}
 
         {!isLoading && notifications.length === 0 ? (
-          <div className="rounded-[26px] border border-dashed border-[#CBD5E1] bg-white px-6 py-10 text-center">
-            <p className="text-lg font-semibold text-[#0F172A]">
+          <div className="rounded-3xl border border-dashed border-lottie-mist bg-white px-6 py-10 text-center">
+            <p className=" text-xl font-normal text-lottie-midnight">
               Belum ada yang perlu ditampilkan
             </p>
-            <p className="mt-2 text-sm text-[#64748B]">
+            <p className="mt-2 text-sm text-lottie-zinc-500">
               {EMPTY_STATE_MESSAGE[filterKey]}
             </p>
           </div>
@@ -299,33 +299,33 @@ export default function NotificationCenter() {
 
         {!isLoading
           ? notifications.map((notification) => (
-              <NotificationListItem
-                key={notification.id}
-                notification={notification}
-                disabled={
-                  markAllAsRead.isPending ||
-                  deleteNotification.isPending ||
-                  deleteAllNotifications.isPending ||
-                  (markAsRead.isPending && markAsReadTarget === notification.id)
-                }
-                isDeleting={
-                  deleteNotification.isPending &&
-                  deleteNotification.variables === notification.id
-                }
-                onOpen={handleOpenNotification}
-                onDelete={handleDeleteNotificationRequest}
-              />
-            ))
+            <NotificationListItem
+              key={notification.id}
+              notification={notification}
+              disabled={
+                markAllAsRead.isPending ||
+                deleteNotification.isPending ||
+                deleteAllNotifications.isPending ||
+                (markAsRead.isPending && markAsReadTarget === notification.id)
+              }
+              isDeleting={
+                deleteNotification.isPending &&
+                deleteNotification.variables === notification.id
+              }
+              onOpen={handleOpenNotification}
+              onDelete={handleDeleteNotificationRequest}
+            />
+          ))
           : null}
       </section>
 
       {!isLoading && totalPages > 1 ? (
-        <section className="flex flex-col gap-3 rounded-[24px] border border-grey-stroke bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <section className="flex flex-col gap-3 rounded-3xl border border-lottie-mist bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-[#0F172A]">
+            <p className="text-sm font-semibold text-lottie-midnight">
               Halaman {pagination?.currentPage} dari {totalPages}
             </p>
-            <p className="mt-1 text-sm text-[#64748B]">
+            <p className="mt-1 text-sm text-lottie-zinc-500">
               Total {totalItems} notifikasi tersedia.
             </p>
           </div>
@@ -337,7 +337,7 @@ export default function NotificationCenter() {
                 setPage((currentPage) => Math.max(1, currentPage - 1))
               }
               disabled={!pagination?.hasPrevPage}
-              className="rounded-2xl border border-[#D8E1F5] px-4 py-2 text-sm font-medium text-[#334155] transition hover:bg-[#F8FBFF] disabled:cursor-not-allowed disabled:border-[#E5E7EB] disabled:text-[#94A3B8]"
+              className="rounded-2xl border border-lottie-mist px-4 py-2 text-sm font-medium text-lottie-zinc-600 transition hover:bg-lottie-pearl disabled:cursor-not-allowed disabled:opacity-50"
             >
               Sebelumnya
             </button>
@@ -347,7 +347,7 @@ export default function NotificationCenter() {
                 setPage((currentPage) => Math.min(totalPages, currentPage + 1))
               }
               disabled={!pagination?.hasNextPage}
-              className="rounded-2xl bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:bg-[#BFD1F7]"
+              className="rounded-2xl bg-lottie-teal px-4 py-2 text-sm font-semibold text-white transition hover:bg-lottie-teal/90 disabled:cursor-not-allowed disabled:bg-lottie-teal/50"
             >
               Berikutnya
             </button>
@@ -363,16 +363,16 @@ export default function NotificationCenter() {
       >
         <div className="flex flex-col gap-5">
           <div className="space-y-2">
-            <p className="text-sm leading-6 text-[#475569]">
+            <p className="text-sm leading-6 text-lottie-zinc-600">
               Notifikasi ini akan dihapus permanen dari akun Anda.
             </p>
             {deleteTarget ? (
-              <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
-                <p className="text-sm font-semibold text-[#0F172A]">
+              <div className="rounded-2xl border border-lottie-mist bg-lottie-pearl/50 px-4 py-3">
+                <p className="text-sm font-semibold text-lottie-midnight">
                   {deleteTarget.title?.trim() || "Notifikasi tanpa judul"}
                 </p>
                 {deleteTarget.description?.trim() ? (
-                  <p className="mt-1 text-sm text-[#64748B]">
+                  <p className="mt-1 text-sm text-lottie-zinc-500">
                     {deleteTarget.description.trim()}
                   </p>
                 ) : null}
@@ -385,7 +385,7 @@ export default function NotificationCenter() {
               type="button"
               onClick={() => setDeleteTarget(null)}
               disabled={deleteNotification.isPending}
-              className="rounded-2xl border border-[#D8E1F5] px-4 py-2.5 text-sm font-medium text-[#334155] transition hover:bg-[#F8FBFF] disabled:cursor-not-allowed disabled:text-[#94A3B8]"
+              className="rounded-2xl border border-lottie-mist px-4 py-2.5 text-sm font-medium text-lottie-zinc-600 transition hover:bg-lottie-pearl disabled:cursor-not-allowed disabled:opacity-50"
             >
               Batal
             </button>
@@ -393,7 +393,7 @@ export default function NotificationCenter() {
               type="button"
               onClick={handleDeleteNotificationConfirm}
               disabled={deleteNotification.isPending}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#D14343] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#B62F2F] disabled:cursor-not-allowed disabled:bg-[#E9A6A6]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <TrashIcon className="h-4 w-4" />
               {deleteNotification.isPending ? "Menghapus..." : "Hapus"}
@@ -410,11 +410,11 @@ export default function NotificationCenter() {
       >
         <div className="flex flex-col gap-5">
           <div className="space-y-2">
-            <p className="text-sm leading-6 text-[#475569]">
+            <p className="text-sm leading-6 text-lottie-zinc-600">
               Semua notifikasi akan dihapus permanen untuk akun yang sedang
               login.
             </p>
-            <div className="rounded-2xl border border-[#FBE2DD] bg-[#FFF7F5] px-4 py-3 text-sm text-[#9F3A2C]">
+            <div className="rounded-2xl border border-red-200 bg-red-50/50 px-4 py-3 text-sm text-red-600">
               Tindakan ini tidak dapat dibatalkan.
             </div>
           </div>
@@ -424,7 +424,7 @@ export default function NotificationCenter() {
               type="button"
               onClick={() => setIsDeleteAllModalOpen(false)}
               disabled={deleteAllNotifications.isPending}
-              className="rounded-2xl border border-[#D8E1F5] px-4 py-2.5 text-sm font-medium text-[#334155] transition hover:bg-[#F8FBFF] disabled:cursor-not-allowed disabled:text-[#94A3B8]"
+              className="rounded-2xl border border-lottie-mist px-4 py-2.5 text-sm font-medium text-lottie-zinc-600 transition hover:bg-lottie-pearl disabled:cursor-not-allowed disabled:opacity-50"
             >
               Batal
             </button>
@@ -432,7 +432,7 @@ export default function NotificationCenter() {
               type="button"
               onClick={handleDeleteAllConfirm}
               disabled={deleteAllNotifications.isPending}
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#D14343] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#B62F2F] disabled:cursor-not-allowed disabled:bg-[#E9A6A6]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <TrashIcon className="h-4 w-4" />
               {deleteAllNotifications.isPending

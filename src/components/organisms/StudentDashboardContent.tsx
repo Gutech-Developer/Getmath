@@ -143,8 +143,8 @@ export const StudentDashboardContent: React.FC<
             ))}
           </div>
         ) : (
-          <div className="bg-white border border-grey-stroke rounded-2xl p-8 text-center">
-            <p className="text-grey text-sm">Belum ada kelas yang diikuti.</p>
+          <div className="getmath-card p-8 text-center">
+            <p className="text-lottie-zinc-500 text-sm">Belum ada kelas yang diikuti.</p>
           </div>
         )}
       </section>

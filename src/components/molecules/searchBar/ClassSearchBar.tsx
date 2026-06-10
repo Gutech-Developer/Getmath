@@ -21,7 +21,7 @@ export const ClassSearchBar: React.FC<ClassSearchBarProps> = ({
 }) => {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className="relative flex-1">
+      <div className="relative flex-1 border border-lottie-teal/15 rounded-xl">
         <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-grey" />
         <input
           type="text"

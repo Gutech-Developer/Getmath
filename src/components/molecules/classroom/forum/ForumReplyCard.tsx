@@ -5,7 +5,7 @@ import HeartIcon from "@/components/atoms/icons/HeartIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import type { IForumReply } from "@/types";
 import { formatForumRelativeTime } from "@/utils/classForum";
-import { useListRepliesByComment, useLikeComment, useDeleteComment, useCreateComment } from "@/services";
+import { useListRepliesByComment, useLikeComment, useDeleteComment, useCreateComment, useGsCurrentUser } from "@/services";
 import ForumAvatar from "./ForumAvatar";
 import ForumBadge from "./ForumBadge";
 
@@ -24,6 +24,7 @@ export default function ForumReplyCard({
 }: IForumReplyCardProps) {
   const [showReplies, setShowReplies] = useState(false);
   const [localLikes, setLocalLikes] = useState<Record<string, { isLiked: boolean; count: number }>>({});
+  const { data: currentUser } = useGsCurrentUser();
 
   const { data: repliesData, isLoading: isRepliesLoading } = useListRepliesByComment(
     discussionId,
@@ -56,8 +57,15 @@ export default function ForumReplyCard({
 
   const nestedReplies = useMemo(() => {
     return (repliesData?.comments ?? []).map((c) => {
-      const authorName = c.author?.teacher?.fullName ?? c.author?.student?.fullName ?? c.author?.fullName ?? "Pengguna";
-      const authorRole = c.author?.teacher ? "teacher" : "student";
+      const isCurrentUser = c.authorUserId === currentUser?.id || c.author?.id === currentUser?.id;
+      const authorRole = (isCurrentUser && currentUser?.role === "ADMIN") 
+        ? "admin" 
+        : c.author?.role 
+          ? c.author.role.toLowerCase() 
+          : (c.author?.teacher ? "teacher" : "student");
+      const authorName = (isCurrentUser && currentUser?.fullName) 
+        ? currentUser.fullName 
+        : c.author?.teacher?.fullName ?? c.author?.student?.fullName ?? c.author?.fullName ?? (authorRole === "admin" ? "Admin" : "Pengguna");
       
       return {
         id: c.id,
@@ -67,7 +75,7 @@ export default function ForumReplyCard({
           name: authorName,
           role: authorRole as any,
           tone: "slate" as const,
-          isCurrentUser: false,
+          isCurrentUser: isCurrentUser,
         },
         createdAt: new Date(c.createdAt).getTime(),
         likesCount: localLikes[c.id]?.count ?? c.totalLikes ?? 0,
@@ -111,9 +119,9 @@ export default function ForumReplyCard({
                   {reply.author.name}
                 </h3>
                 <ForumBadge
-                  tone={reply.author.role === "teacher" ? "teacher" : "student"}
+                  tone={reply.author.role === "teacher" ? "teacher" : reply.author.role === "admin" ? "admin" : "student"}
                 >
-                  {reply.author.role === "teacher" ? "Guru" : "Siswa"}
+                  {reply.author.role === "teacher" ? "Guru" : reply.author.role === "admin" ? "Admin" : "Siswa"}
                 </ForumBadge>
                 {reply.author.isCurrentUser ? (
                   <ForumBadge tone="mine">Kamu</ForumBadge>

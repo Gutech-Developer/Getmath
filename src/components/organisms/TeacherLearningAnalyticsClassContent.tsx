@@ -41,7 +41,7 @@ export type {
 
 interface ITeacherLearningAnalyticsClassContentProps {
   classDetail: ITeacherClassLearningAnalyticsDetail;
-  buildStudentDetailHref?: (studentId: string) => string;
+  buildStudentDetailHref?: (studentId: string, studentName: string) => string;
   materiSectionProps?: Omit<IBaseMateriSectionProps, "materials">;
 }
 
@@ -183,6 +183,7 @@ export default function TeacherLearningAnalyticsClassContent({
     classDetail.defaultViewType ??
     "Beranda";
 
+
   const defaultSummaryCards: IClassAnalyticsReportSummaryCard[] =
     useMemo(() => {
       const finishedTests = classDetail.students.length;
@@ -240,8 +241,8 @@ export default function TeacherLearningAnalyticsClassContent({
 
   const studentDetailHrefBuilder =
     buildStudentDetailHref ??
-    ((studentId: string) =>
-      `/teacher/dashboard/class-list/${classDetail.slug}/${studentId}`);
+    ((studentId: string, studentName: string) =>
+      `/teacher/dashboard/class-list/${classDetail.slug}/${studentId}?studentName=${encodeURIComponent(studentName)}`);
   const elkpdScoreHrefBuilder = (elkpdId: string) =>
     `/teacher/dashboard/class-list/${classDetail.slug}/elkpd/${elkpdId}`;
   const handleKickStudent = (studentId: string) => {
@@ -284,6 +285,7 @@ export default function TeacherLearningAnalyticsClassContent({
         scoreBuckets={scoreBuckets}
         emotionSegments={emotionSegments}
         buildStudentDetailHref={studentDetailHrefBuilder}
+        classId={classDetail.id?? ""}
         students={classDetail.students}
       />
     ),

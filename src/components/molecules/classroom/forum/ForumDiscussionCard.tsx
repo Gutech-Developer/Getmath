@@ -26,7 +26,9 @@ interface IForumDiscussionCardProps {
 }
 
 function getRoleLabel(role: IForumDiscussion["author"]["role"]): string {
-  return role === "teacher" ? "Guru" : "Siswa";
+  if (role === "teacher") return "Guru";
+  if (role === "admin") return "Admin";
+  return "Siswa";
 }
 
 function getCurrentUserLabel(variant: ForumDiscussionCardVariant): string {
@@ -76,7 +78,7 @@ export default function ForumDiscussionCard({
                 </h2>
                 <ForumBadge
                   tone={
-                    discussion.author.role === "teacher" ? "teacher" : "student"
+                    discussion.author.role === "teacher" ? "teacher" : discussion.author.role === "admin" ? "admin" : "student"
                   }
                 >
                   {getRoleLabel(discussion.author.role)}
@@ -112,7 +114,7 @@ export default function ForumDiscussionCard({
                 href={detailHref}
                 className="text-sm font-semibold text-[#2563EB] transition hover:text-[#1D4ED8]"
               >
-                Lihat detail
+                Lihat detail 
               </Link>
             ) : null}
           </div>
