@@ -38,7 +38,7 @@ export function useEmotionDetectorBucketed(
     if (!detector.ready || !enabled) return;
 
     const tick = () => {
-      const result = flushRef.current();
+      const { result } = flushRef.current();
       if (result && result.sampleCount > 0) {
         mutateRef.current({
           context: "MODULE_LEARNING",
@@ -57,7 +57,7 @@ export function useEmotionDetectorBucketed(
         flushTimer.current = null;
       }
       // Flush final saat unmount (best-effort, jangan await)
-      const final = flushRef.current();
+      const { result: final } = flushRef.current();
       if (final && final.sampleCount > 0) {
         mutateRef.current({
           context: "MODULE_LEARNING",

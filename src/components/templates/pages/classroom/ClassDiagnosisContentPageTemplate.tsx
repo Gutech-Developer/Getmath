@@ -854,13 +854,14 @@ export default function ClassDiagnosisContentPageTemplate({
     }
 
     // Spec §12.2: flush atomik via flushOrUnknown() — satu panggilan, window timestamp utuh.
-    const emotionResult = emotion.flushOrUnknown();
+    const { result: emotionResult, imageBase64 } = emotion.flushOrUnknown();
     console.log("[Emotion] flush →", {
       mode: emotionResult.mode,
       sampleCount: emotionResult.sampleCount,
       distribution: emotionResult.distribution,
       durationMs: emotionResult.durationMs,
     });
+    console.log("[RemedialSnapshot] Best frame Base64 size (chars):", imageBase64?.length ?? 0);
     const emotionInput = toEmotionInput(emotionResult);
     // Spec §4.3 & §12.5: startedAt/completedAt di level input, diambil dari window emosi.
     const startedAt = new Date(emotionResult.startedAtMs).toISOString();
@@ -875,6 +876,7 @@ export default function ClassDiagnosisContentPageTemplate({
           startedAt,
           completedAt,
           emotion: emotionInput,
+          imageBase64,
         },
       },
       {

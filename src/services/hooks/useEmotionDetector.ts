@@ -11,6 +11,7 @@ import { EmotionSampler } from "@/libs/emotion/EmotionSampler";
 import { EmotionAggregator } from "@/libs/emotion/EmotionAggregator";
 import type { EmotionResult, EmotionSample } from "@/libs/emotion/types";
 import { showToast } from "@/libs/toast";
+import { captureVideoSnapshot } from "@/libs/emotion/snapshot";
 
 export interface UseEmotionDetectorOptions {
   enabled: boolean;
@@ -26,9 +27,9 @@ export interface UseEmotionDetectorResult {
   noFaceWarning: boolean;
   error: string | null;
   /** Flush hasil agregat + reset buffer. Kembalikan null kalau belum ada sampel. */
-  flushAndReset: () => EmotionResult | null;
+  flushAndReset: () => { result: EmotionResult | null; imageBase64?: string };
   /** Flush + reset, garansi non-null: kalau buffer kosong, kembalikan EmotionResult "unknown" (fallback fatal-error). */
-  flushOrUnknown: () => EmotionResult;
+  flushOrUnknown: () => { result: EmotionResult; imageBase64?: string };
   start: () => Promise<void>;
   stop: () => void;
 }
@@ -58,6 +59,11 @@ export function useEmotionDetector(
   // watchdog below. Stored in a ref so updating it never causes a re-render.
   const lastSampleAtRef = useRef<number>(0);
 
+  // Cache gambar terbaik berdasarkan tingkat confidence emosi di setiap sampel (Best Frame Cache Map)
+  const bestImagesRef = useRef<
+    Record<string, { imageBase64: string; confidence: number }>
+  >({});
+
   const stop = useCallback(() => {
     startingRef.current = false; // abort any pending start() continuation
     samplerRef.current?.stop();
@@ -65,6 +71,7 @@ export function useEmotionDetector(
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
+    bestImagesRef.current = {}; // Bersihkan cache gambar
     setReady(false);
   }, []);
 
@@ -89,6 +96,21 @@ export function useEmotionDetector(
           setCurrentEmotion(s);
           aggregatorRef.current.push(s);
           setHasSample(true);
+
+          // KANONIK: Ambil frame saat ini dan simpan jika confidence-nya lebih tinggi
+          // dari gambar terbaik emosi ini yang pernah dicatat selama variant ini berlangsung
+          if (videoRef.current) {
+            const base64 = captureVideoSnapshot(videoRef.current);
+            if (base64) {
+              const prevBest = bestImagesRef.current[s.label];
+              if (!prevBest || s.confidence > prevBest.confidence) {
+                bestImagesRef.current[s.label] = {
+                  imageBase64: base64,
+                  confidence: s.confidence,
+                };
+              }
+            }
+          }
         },
         onError: (err) => setError(err.message),
       });
@@ -116,20 +138,99 @@ export function useEmotionDetector(
     }
   }, [enabled, intervalMs]);
 
-  const flushAndReset = useCallback((): EmotionResult | null => {
+  // Perbarui fungsi flush untuk mengambil gambar terbaik dari modus emosi dominan
+  const flushAndReset = useCallback((): {
+    result: EmotionResult | null;
+    imageBase64?: string;
+  } => {
     const result = aggregatorRef.current.computeResult();
+    let imageBase64: string | undefined = result
+      ? bestImagesRef.current[result.mode]?.imageBase64
+      : undefined;
+
+    // Fallback #1: Jika gambar modus kosong, ambil dari emosi non-neutral dengan confidence tertinggi yang tersedia
+    if (result && !imageBase64) {
+      const nonNeutral = [
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised",
+      ];
+      let maxConf = -1;
+      let fallbackLabel = "";
+      for (const label of nonNeutral) {
+        const cached = bestImagesRef.current[label];
+        if (cached && cached.confidence > maxConf) {
+          maxConf = cached.confidence;
+          fallbackLabel = label;
+        }
+      }
+      if (fallbackLabel) {
+        imageBase64 = bestImagesRef.current[fallbackLabel]?.imageBase64;
+      }
+    }
+
+    // Fallback #2: Jika masih kosong sama sekali, ambil frame real-time saat tombol diklik
+    if (!imageBase64 && videoRef.current) {
+      imageBase64 = captureVideoSnapshot(videoRef.current);
+    }
+
+    // Reset cache aggregator dan gambar
     aggregatorRef.current.reset();
+    bestImagesRef.current = {};
     setHasSample(false);
-    return result;
+
+    return { result, imageBase64 };
   }, []);
 
-  const flushOrUnknown = useCallback((): EmotionResult => {
+  const flushOrUnknown = useCallback((): {
+    result: EmotionResult;
+    imageBase64?: string;
+  } => {
     const result =
       aggregatorRef.current.computeResult() ??
       aggregatorRef.current.buildUnknownResult();
+
+    // 1. Ambil gambar dari modus dominan
+    let imageBase64: string | undefined = bestImagesRef.current[result.mode]?.imageBase64;
+
+    // 2. Fallback #1: Jika gambar modus kosong, ambil dari emosi non-neutral dengan confidence tertinggi yang tersedia
+    if (!imageBase64) {
+      const nonNeutral = [
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised",
+      ];
+      let maxConf = -1;
+      let fallbackLabel = "";
+      for (const label of nonNeutral) {
+        const cached = bestImagesRef.current[label];
+        if (cached && cached.confidence > maxConf) {
+          maxConf = cached.confidence;
+          fallbackLabel = label;
+        }
+      }
+      if (fallbackLabel) {
+        imageBase64 = bestImagesRef.current[fallbackLabel]?.imageBase64;
+      }
+    }
+
+    // 3. Fallback #2: Jika masih kosong sama sekali, ambil frame real-time saat tombol diklik
+    if (!imageBase64 && videoRef.current) {
+      imageBase64 = captureVideoSnapshot(videoRef.current);
+    }
+
+    // Reset cache aggregator dan gambar
     aggregatorRef.current.reset();
+    bestImagesRef.current = {};
     setHasSample(false);
-    return result;
+
+    return { result, imageBase64 };
   }, []);
 
   // Auto-stop saat error fatal: lepas kamera & worker agar tidak buang resource.
