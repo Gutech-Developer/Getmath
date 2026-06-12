@@ -142,6 +142,7 @@ export interface SubmitRemedialVariantInput {
   startedAt?: string;
   completedAt?: string;
   emotion?: EmotionInput;
+  imageBase64?: string;
 }
 
 export interface SubmitRemedialVariantResult {
