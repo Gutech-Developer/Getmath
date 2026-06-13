@@ -47,7 +47,7 @@ export default function AdminLearningAnalyticsTemplate() {
   const classAnalytics: IClassAnalytics[] = useMemo(() => {
     return courses.map((course, idx) => {
       const dashboardData = dashboardQueries[idx]?.data;
-      // Calculate realistic dummy data based on progress and enrolledCount
+      // Calculate realistic dummy data based on progress and enrolledCount -
       const progress =
         dashboardData?.averageProgress ??
         course.progressPercent ??
@@ -59,7 +59,7 @@ export default function AdminLearningAnalyticsTemplate() {
         (course as any).progress_percent ??
         0;
       const studentCount = course.enrolledCount ?? 0;
-      
+
       const averageScore =
         (course as any).averageScore ??
         (course as any).average_score ??
@@ -70,7 +70,9 @@ export default function AdminLearningAnalyticsTemplate() {
       const passedCount =
         (course as any).passedCount ??
         (course as any).passed_count ??
-        (studentCount > 0 ? Math.floor(studentCount * (averageScore / 100)) : 0);
+        (studentCount > 0
+          ? Math.floor(studentCount * (averageScore / 100))
+          : 0);
 
       const remedialCount =
         (course as any).remedialCount ??
@@ -91,11 +93,21 @@ export default function AdminLearningAnalyticsTemplate() {
   }, [coursesData, dashboardQueries]);
 
   const SUMMARY_STATS: ISummaryStat[] = useMemo(() => {
-    const totalStudents = classAnalytics.reduce((acc, c) => acc + c.studentCount, 0);
-    const avgScore = classAnalytics.length > 0 
-      ? Math.round(classAnalytics.reduce((acc, c) => acc + c.averageScore, 0) / classAnalytics.length) 
-      : 0;
-    const totalRemedial = classAnalytics.reduce((acc, c) => acc + c.remedialCount, 0);
+    const totalStudents = classAnalytics.reduce(
+      (acc, c) => acc + c.studentCount,
+      0,
+    );
+    const avgScore =
+      classAnalytics.length > 0
+        ? Math.round(
+            classAnalytics.reduce((acc, c) => acc + c.averageScore, 0) /
+              classAnalytics.length,
+          )
+        : 0;
+    const totalRemedial = classAnalytics.reduce(
+      (acc, c) => acc + c.remedialCount,
+      0,
+    );
 
     return [
       { label: "Total Kelas", value: classAnalytics.length, color: "#2563EB" },
