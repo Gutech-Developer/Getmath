@@ -30,6 +30,7 @@ export interface UseEmotionDetectorResult {
   flushAndReset: () => { result: EmotionResult | null; imageBase64?: string };
   /** Flush + reset, garansi non-null: kalau buffer kosong, kembalikan EmotionResult "unknown" (fallback fatal-error). */
   flushOrUnknown: () => { result: EmotionResult; imageBase64?: string };
+  reset: () => void;
   start: () => Promise<void>;
   stop: () => void;
 }
@@ -279,6 +280,12 @@ export function useEmotionDetector(
   // Cleanup on unmount
   useEffect(() => () => stop(), [stop]);
 
+  const reset = useCallback(() => {
+    aggregatorRef.current.reset();
+    bestImagesRef.current = {};
+    setHasSample(false);
+  }, []);
+
   return {
     videoRef,
     currentEmotion,
@@ -288,7 +295,9 @@ export function useEmotionDetector(
     error,
     flushAndReset,
     flushOrUnknown,
+    reset,
     start,
     stop,
   };
 }
+
