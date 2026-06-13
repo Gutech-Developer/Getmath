@@ -25,3 +25,5 @@ export { EmotionAggregator } from "./EmotionAggregator";
 export { EmotionSampler } from "./EmotionSampler";
 export { toEmotionInput } from "./normalize";
 export { pickFeedback } from "./feedback";
+export { captureVideoSnapshot } from "./snapshot";
+

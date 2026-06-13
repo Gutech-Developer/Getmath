@@ -84,6 +84,13 @@ export default function AdminLearningAnalyticsClassTemplate({
         nis: enrollment.student?.NIS ?? "-",
         score,
         status: score >= 75 ? "Lulus" : "Remedial",
+        progress:
+          enrollment.progressPercent ??
+          (enrollment as any).progress ??
+          (enrollment as any).progress_percent ??
+          (enrollment as any).averageProgress ??
+          (enrollment as any).average_progress ??
+          0,
       };
     });
 
@@ -144,6 +151,13 @@ export default function AdminLearningAnalyticsClassTemplate({
 
     const progress =
       dashboardData?.averageProgress ??
+      course?.progressPercent ??
+      (course as any)?.averageProgress ??
+      course?.averageProgressPercent ??
+      (course as any)?.progress ??
+      (course as any)?.average_progress ??
+      (course as any)?.average_progress_percent ??
+      (course as any)?.progress_percent ??
       (studentCount > 0 ? Math.round((passedCount / studentCount) * 100) : 0);
 
     return {

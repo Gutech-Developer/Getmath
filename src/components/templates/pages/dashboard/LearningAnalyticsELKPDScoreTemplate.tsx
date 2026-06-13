@@ -107,7 +107,15 @@ export default function LearningAnalyticsELKPDScoreTemplate({
       averageScore,
       passedCount,
       remedialCount: apiStudents.length > 0 ? apiStudents.length - passedCount : 0,
-      progress: course?.averageProgressPercent ?? 0,
+      progress:
+        course?.progressPercent ??
+        (course as any)?.averageProgress ??
+        course?.averageProgressPercent ??
+        (course as any)?.progress ??
+        (course as any)?.average_progress ??
+        (course as any)?.average_progress_percent ??
+        (course as any)?.progress_percent ??
+        0,
       classCode: fallbackClassCode,
       gradeLabel: "Umum",
       semesterLabel: "Ganjil 2024/2025",

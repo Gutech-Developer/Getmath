@@ -8,26 +8,43 @@
  * sehingga INTERNAL_API_KEY tidak pernah terekspos ke browser.
  *
  * Mekanisme token:
- *  - access_token  : disimpan di cookie (httpOnly), masa hidup pendek
- *  - refresh_token : disimpan di cookie (httpOnly, Secure), masa hidup panjang
- *  - Ketika request mengembalikan 401, secara otomatis akan:
- *      1. Ambil refresh_token dari cookie
- *      2. Panggil POST /api/auth/refresh
- *      3. Simpan access_token baru ke cookie
- *      4. Ulangi request original
- *      5. Jika refresh gagal → hapus semua token (session habis)
+ * - access_token  : disimpan di cookie (httpOnly), masa hidup pendek
+ * - refresh_token : disimpan di cookie (httpOnly, Secure), masa hidup panjang
+ * - Ketika request mengembalikan 401, secara otomatis akan:
+ * 1. Ambil refresh_token dari cookie
+ * 2. Panggil POST /api/auth/refresh
+ * 3. Simpan access_token baru ke cookie
+ * 4. Ulangi request original
+ * 5. Jika refresh gagal → hapus semua token (session habis)
  */
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { gsLogger } from "@/utils/logger";
 
+// ─── 1. IMPORT MODUL HTTP & HTTPS BAWAN NODE.JS ─────────────────────────────
+import HTTP from "http";
+import HTTPS from "https";
+
 // ─── Konfigurasi ──────────────────────────────────────────────────────────────
 
 const BASE_URL =
   process.env.GETSMART_API_URL ||
   process.env.NEXT_PUBLIC_GETSMART_API_URL ||
-  "https://api.getsmart.id/api";
+  "";
+
+// ─── 2. INISIALISASI HTTP/HTTPS KEEPALIVE AGENT (CONNECTION POOLING) ──────────
+const isHttps = BASE_URL.startsWith("https");
+const agentOptions = {
+  keepAlive: true, // Menjaga koneksi tetap terbuka setelah request selesai
+  maxSockets: 100, // Maksimal 100 koneksi simultan ke Go Fiber
+  maxFreeSockets: 10, // Menyisakan 10 koneksi stand-by dalam pool
+  timeout: 60000, // Timeout koneksi 60 detik (sinkron dengan IdleTimeout Go Fiber)
+};
+
+const globalHttpAgent = isHttps
+  ? new HTTPS.Agent(agentOptions)
+  : new HTTP.Agent(agentOptions);
 
 /** Nama key cookie yang dipakai untuk menyimpan token */
 const COOKIE_KEYS = {
@@ -193,10 +210,6 @@ function logGsApiResponse(params: {
 /**
  * Deduplication guard — jika ada refresh yang sedang berjalan, caller berikutnya
  * cukup menunggu promise yang sama, bukan membuat request baru.
- *
- * Next.js server adalah proses Node.js yang berjalan lama; module-level variable
- * ini AMAN digunakan sebagai mutex antar concurrent Server Action invocations
- * dalam satu server instance.
  */
 let _refreshInFlight: Promise<string | null> | null = null;
 
@@ -236,6 +249,8 @@ async function _doRefreshOnce(): Promise<string | null> {
       headers: buildBaseHeaders(),
       body: JSON.stringify({ refreshToken }),
       cache: "no-store",
+      // @ts-ignore - menyisipkan agent pooling agar proses refresh juga cepat
+      agent: globalHttpAgent,
     });
   } catch (err) {
     console.error("[GS Auth] doRefreshToken: network error:", err);
@@ -297,13 +312,11 @@ async function _doRefreshOnce(): Promise<string | null> {
   }
 
   // ── 3. Simpan token ke cookie ────────────────────────────────────────────
-  // Dipisah agar kegagalan save tidak memblokir return (retry tetap bisa jalan)
   try {
     if (IS_GS_API_DEBUG) {
       gsLogger.info(
         "[GS Auth] doRefreshToken: menerima tokens dari endpoint refresh. saving...",
       );
-      // Do not log actual tokens
     }
     await saveTokens(newTokens);
     if (IS_GS_API_DEBUG) {
@@ -314,8 +327,6 @@ async function _doRefreshOnce(): Promise<string | null> {
       "[GS Auth] doRefreshToken: saveTokens gagal (token baru tidak disimpan ke cookie):",
       err,
     );
-    // Tetap return accessToken baru agar retry request ini bisa sukses.
-    // Request berikutnya akan trigger refresh lagi karena cookie tidak terupdate.
   }
 
   return newTokens.accessToken;
@@ -324,13 +335,8 @@ async function _doRefreshOnce(): Promise<string | null> {
 /**
  * Panggil endpoint refresh token dan simpan token baru ke cookie.
  * Mengembalikan access token baru, atau null jika refresh gagal.
- *
- * Concurrent 401 yang terjadi bersamaan akan berbagi satu promise refresh
- * (deduplication), sehingga backend hanya menerima satu request refresh dan
- * tidak ada race condition saat rotate refresh token.
  */
 async function doRefreshToken(): Promise<string | null> {
-  // Jika sudah ada refresh yang sedang berjalan, tunggu hasilnya
   if (_refreshInFlight) {
     gsLogger.info(
       "[GS Auth] doRefreshToken: menunggu refresh yang sudah berjalan...",
@@ -338,9 +344,7 @@ async function doRefreshToken(): Promise<string | null> {
     return _refreshInFlight;
   }
 
-  // Mulai refresh baru
   _refreshInFlight = _doRefreshOnce().finally(() => {
-    // Reset flag setelah selesai (berhasil maupun gagal)
     _refreshInFlight = null;
   });
 
@@ -351,11 +355,6 @@ async function doRefreshToken(): Promise<string | null> {
 
 /**
  * Core fetch internal — dipakai oleh semua helper di bawah.
- *
- * @param path    Path relatif, mis. "/auth/me" atau "/courses"
- * @param config  Request config
- * @param withAuth Apakah perlu menyertakan Bearer token
- * @param isRetry  Internal flag — jangan di-set manual
  */
 async function coreFetch<T>(
   path: string,
@@ -385,12 +384,15 @@ async function coreFetch<T>(
     payload: body,
   });
 
+  // ── 3. SISIPKAN AGENT KE FETCH UTAMA ───────────────────────────────────────
   const res = await fetch(endpoint, {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     cache,
     next,
+    // @ts-ignore - native fetch Node.js menerima custom agent
+    agent: globalHttpAgent,
   });
 
   // ── Auto-refresh on 401 ───────────────────────────────────────────────────
@@ -398,12 +400,12 @@ async function coreFetch<T>(
     const newAccessToken = await doRefreshToken();
 
     if (!newAccessToken) {
-      // Refresh gagal → session habis → redirect (Next.js menangani khusus)
+      // Refresh gagal → session habis → redirect
       await clearTokens();
       redirect("/login");
     }
 
-    // Ulangi request dengan access token baru
+    // ── 4. SISIPKAN AGENT KE FETCH RETRY (ULANG REQUEST) ─────────────────────
     const retryRes = await fetch(`${BASE_URL}${path}`, {
       method,
       headers: {
@@ -413,6 +415,8 @@ async function coreFetch<T>(
       body: body !== undefined ? JSON.stringify(body) : undefined,
       cache,
       next,
+      // @ts-ignore
+      agent: globalHttpAgent,
     });
 
     if (!retryRes.ok) {
@@ -461,6 +465,14 @@ async function coreFetch<T>(
   }
 
   const json: GsApiResponse<T> = await res.json();
+  if (path.includes("courses")) {
+    try {
+      require("fs").appendFileSync(
+        "/home/whoami/getsmart/Getmath/api-debug.log",
+        `PATH: ${path}\nDATA: ${JSON.stringify(json.data, null, 2)}\n\n`
+      );
+    } catch (e) {}
+  }
   logGsApiResponse({
     method,
     endpoint,
@@ -472,10 +484,7 @@ async function coreFetch<T>(
 
 // ─── Public Request (tanpa Auth) ─────────────────────────────────────────────
 
-/**
- * Request publik — tidak memerlukan token sama sekali.
- * Cocok untuk: login, register, forgot-password, dll.
- */
+/** Request publik — tidak memerlukan token sama sekali */
 export async function gsPublicRequest<T>(
   path: string,
   config?: GsRequestConfig,
@@ -545,7 +554,9 @@ export async function gsPublicGet<T>(path: string): Promise<GsFetchResult<T>> {
 }
 
 /** Upload file via FormData */
-export async function gsUploadFile(formData: FormData): Promise<GsFetchResult<{ url: string }>> {
+export async function gsUploadFile(
+  formData: FormData,
+): Promise<GsFetchResult<{ url: string }>> {
   const accessToken = await getAccessToken();
   const endpoint = `${BASE_URL}/upload`;
   const headers: Record<string, string> = {
@@ -561,6 +572,8 @@ export async function gsUploadFile(formData: FormData): Promise<GsFetchResult<{ 
       headers,
       body: formData,
       cache: "no-store",
+      // @ts-ignore
+      agent: globalHttpAgent,
     });
 
     if (!res.ok) {
@@ -586,4 +599,3 @@ export async function gsDeleteFile(url: string): Promise<GsFetchResult<void>> {
     body: { url },
   });
 }
-

@@ -80,26 +80,78 @@ function createEmptyQuestion(): IRemedialQuestionDraft {
 
 function latexTextToTiptapHtml(text: string): string {
   if (!text) return "";
-  if (text.includes("<p>") || text.includes("<span data-type=")) return text;
-  return text
-    .split("\n")
-    .map((line) => {
-      const lineHtml = line
-        .split(/(\$[^$\n]+\$)/g)
-        .map((part) => {
-          if (/^\$[^$\n]+\$$/.test(part)) {
-            const latex = part.slice(1, -1).replace(/"/g, "&quot;");
-            return `<span data-type="inline-math" data-latex="${latex}"></span>`;
-          }
-          return part
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
-        })
-        .join("");
-      return `<p>${lineHtml || "<br>"}</p>`;
-    })
-    .join("");
+  
+  if (text.includes('data-type="inline-math"') || text.includes('data-type="block-math"')) {
+    return text;
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const parser = new DOMParser();
+      const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(text);
+      const parsedText = hasHtmlTags ? text : text.split("\n").map(l => `<p>${l || "<br>"}</p>`).join("");
+      
+      const doc = parser.parseFromString(parsedText, "text/html");
+      const walk = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+      let textNode = walk.nextNode();
+      const nodesToReplace: { node: Node; replacement: DocumentFragment }[] = [];
+      
+      while (textNode) {
+        const content = textNode.textContent ?? "";
+        if (content.includes("$")) {
+          const fragment = doc.createDocumentFragment();
+          const parts = content.split(/(\$\$(?:[^$]|\$[^\n$])+\$\$|\$(?:[^$\n])+\$)/g);
+          
+          parts.forEach((part) => {
+            if (/^\$\$(?:[^$]|\$[^\n$])+\$\$$/.test(part)) {
+              const latex = part.slice(2, -2);
+              const span = doc.createElement("span");
+              span.setAttribute("data-type", "block-math");
+              span.setAttribute("data-latex", latex);
+              fragment.appendChild(span);
+            } else if (/^\$(?:[^$\n])+\$$/.test(part)) {
+              const latex = part.slice(1, -1);
+              const span = doc.createElement("span");
+              span.setAttribute("data-type", "inline-math");
+              span.setAttribute("data-latex", latex);
+              fragment.appendChild(span);
+            } else if (part) {
+              fragment.appendChild(doc.createTextNode(part));
+            }
+          });
+          nodesToReplace.push({ node: textNode, replacement: fragment });
+        }
+        textNode = walk.nextNode();
+      }
+      
+      nodesToReplace.forEach(({ node, replacement }) => {
+        node.parentNode?.replaceChild(replacement, node);
+      });
+      
+      return doc.body.innerHTML;
+    } catch (e) {
+      console.error("DOMParser parsing failed:", e);
+    }
+  }
+
+  const lines = text.split("\n").map((line) => {
+    const parts = line.split(/(\$[^$\n]+\$)/g);
+    const lineHtml = parts
+      .map((part) => {
+        if (/^\$[^$\n]+\$$/.test(part)) {
+          const latex = part.slice(1, -1).replace(/"/g, "&quot;");
+          return `<span data-type="inline-math" data-latex="${latex}"></span>`;
+        }
+        return part
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      })
+      .join("");
+    return line.includes("<p>") ? lineHtml : `<p>${lineHtml || "<br>"}</p>`;
+  });
+  
+  return lines.join("");
 }
 
 function tiptapHtmlToLatexHtml(html: string): string {

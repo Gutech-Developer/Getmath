@@ -56,22 +56,36 @@ interface IFlatStep {
   status: "completed" | "in-progress" | "locked";
 }
 
+function extractYoutubeId(url: string): string | null {
+  if (!url) return null;
+  const regExp =
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+}
+
 interface YoutubePlayerProps {
-  iframeId: string;
+  iframeId?: string;
   url: string;
   title: string;
   onEnded: () => void;
+  className?: string;
 }
 
 const YoutubePlayer = React.memo(
-  ({ iframeId, url, title, onEnded }: YoutubePlayerProps) => {
+  ({ url, onEnded, className }: YoutubePlayerProps) => {
     const onEndedRef = useRef(onEnded);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const playerRef = useRef<any>(null);
 
     useEffect(() => {
       onEndedRef.current = onEnded;
     }, [onEnded]);
 
     useEffect(() => {
+      const videoId = extractYoutubeId(url);
+      if (!videoId) return;
+
       const tagId = "yt-iframe-api";
       if (!document.getElementById(tagId)) {
         const tag = document.createElement("script");
@@ -83,53 +97,72 @@ const YoutubePlayer = React.memo(
         }
       }
 
-      let player: any;
+      let timeoutId: any;
 
       const initPlayer = () => {
-        if (!document.getElementById(iframeId)) return;
-        player = new (window as any).YT.Player(iframeId, {
-          events: {
-            onStateChange: (event: any) => {
-              if (event.data === (window as any).YT.PlayerState.ENDED) {
-                onEndedRef.current();
-              }
-            },
-          },
-        });
-      };
+        if (!containerRef.current) return;
 
-      if ((window as any).YT && (window as any).YT.Player) {
-        initPlayer();
-      } else {
-        const prevCallback = (window as any).onYouTubeIframeAPIReady;
-        (window as any).onYouTubeIframeAPIReady = () => {
-          if (prevCallback) {
-            try {
-              prevCallback();
-            } catch (e) {
-              console.error(e);
-            }
+        if (playerRef.current && playerRef.current.destroy) {
+          try {
+            playerRef.current.destroy();
+          } catch (e) {
+            console.error(e);
           }
-          initPlayer();
-        };
-      }
+        }
 
-      return () => {
-        if (player && player.destroy) {
-          player.destroy();
+        try {
+          playerRef.current = new (window as any).YT.Player(containerRef.current, {
+            height: "100%",
+            width: "100%",
+            videoId: videoId,
+            playerVars: {
+              autoplay: 0,
+              controls: 1,
+              rel: 0,
+              enablejsapi: 1,
+              origin: typeof window !== "undefined" ? window.location.origin : "",
+            },
+            events: {
+              onStateChange: (event: any) => {
+                const endedState = (window as any).YT?.PlayerState?.ENDED ?? 0;
+                if (event.data === endedState || event.data === 0) {
+                  onEndedRef.current();
+                }
+              },
+            },
+          });
+        } catch (err) {
+          console.error("[YoutubePlayer] failed to initialize YT.Player:", err);
         }
       };
-    }, [iframeId, url]);
+
+      const checkAndInit = () => {
+        if ((window as any).YT && (window as any).YT.Player) {
+          initPlayer();
+        } else {
+          timeoutId = setTimeout(checkAndInit, 100);
+        }
+      };
+
+      checkAndInit();
+
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (playerRef.current && playerRef.current.destroy) {
+          try {
+            playerRef.current.destroy();
+          } catch (e) {
+            // ignore
+          }
+          playerRef.current = null;
+        }
+      };
+    }, [url]);
 
     return (
-      <iframe
-        id={iframeId}
-        src={url}
-        title={title}
-        className="h-full w-full border-0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-        allowFullScreen
-      />
+      <div className={className ?? "h-full w-full"}>
+        <div ref={containerRef} />
+      </div>
     );
   },
 );
@@ -402,6 +435,7 @@ export default function ClassMaterialContentPageTemplate({
   const markVideoWatched = useMarkVideoWatched(contentId ?? "");
 
   const [emotionSupported] = useState(() => isEmotionSupported());
+  const emotionDetectionEnabled = false; // Flag untuk menonaktifkan deteksi emosi pada halaman materi
 
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
@@ -413,6 +447,7 @@ export default function ClassMaterialContentPageTemplate({
   );
   const bottomRef = useRef<HTMLDivElement>(null);
   const [maxUnlockedIndex, setMaxUnlockedIndex] = useState<number>(-1);
+  const prevContentIdRef = useRef<string | null>(null);
 
   const { data: detailModule } = useGsModuleById(contentId ?? "");
 
@@ -492,18 +527,29 @@ export default function ClassMaterialContentPageTemplate({
 
   // Set default selectedStep dari modul yang dibuka via contentId.
   useEffect(() => {
-    if (modules.length === 0 || selectedStepId !== null) return;
+    if (modules.length === 0) return;
     const target = modules.find((m) => m.id === contentId) ?? modules[0];
 
-    if (stepParam === "remedial") {
-      const remedialStep = target.steps.find((s) => s.kind === "REMEDIAL");
-      if (remedialStep) {
-        setSelectedStepId(remedialStep.id);
-        return;
+    // Hanya sinkronisasi jika contentId berubah atau selectedStepId masih kosong
+    if (prevContentIdRef.current !== contentId || !selectedStepId) {
+      prevContentIdRef.current = contentId ?? null;
+
+      const currentStepInTarget = target.steps.some((s) => s.id === selectedStepId);
+
+      if (!selectedStepId || !currentStepInTarget) {
+        if (stepParam) {
+          const matchedStep = target.steps.find(
+            (s) => s.kind.toLowerCase() === stepParam.toLowerCase(),
+          );
+          if (matchedStep) {
+            setSelectedStepId(matchedStep.id);
+            return;
+          }
+        }
+
+        if (target.steps[0]) setSelectedStepId(target.steps[0].id);
       }
     }
-
-    if (target.steps[0]) setSelectedStepId(target.steps[0].id);
   }, [modules, contentId, selectedStepId, stepParam]);
 
   const toggleModule = useCallback((moduleId: string) => {
@@ -592,20 +638,20 @@ export default function ClassMaterialContentPageTemplate({
 
   const subjectEmotion = useEmotionDetectorBucketed({
     courseModuleId: activeStep?.moduleId ?? "",
-    enabled: isSubjectStep,
+    enabled: isSubjectStep && emotionDetectionEnabled,
     bucketMs: 30_000,
   });
 
   useEffect(() => {
-    if (!isSubjectStep || !emotionSupported) return;
+    if (!isSubjectStep || !emotionSupported || !emotionDetectionEnabled) return;
     subjectEmotion.start().catch(() => { });
-  }, [isSubjectStep, emotionSupported]);
+  }, [isSubjectStep, emotionSupported, emotionDetectionEnabled]);
 
   useEffect(() => {
-    if (!isSubjectStep) {
+    if (!isSubjectStep || !emotionDetectionEnabled) {
       subjectEmotion.stop();
     }
-  }, [isSubjectStep]);
+  }, [isSubjectStep, emotionDetectionEnabled]);
 
   const { data: activeModuleData } = useGsModuleById(
     activeStep?.kind === "DIAGNOSTIC" || activeStep?.kind === "REMEDIAL"
@@ -692,15 +738,19 @@ export default function ClassMaterialContentPageTemplate({
       if (slug) {
         let targetUrl = `/student/dashboard/class/${encodeURIComponent(slug)}/materi/${step.moduleId}`;
 
-        if (step.kind === "REMEDIAL") {
-          targetUrl += "?step=remedial";
+        const queryParams = new URLSearchParams();
+        queryParams.set("step", step.kind.toLowerCase());
+
+        const queryString = queryParams.toString();
+        if (queryString) {
+          targetUrl += `?${queryString}`;
         }
 
         const currentFullUrl =
           window.location.pathname + window.location.search;
 
         if (currentFullUrl !== targetUrl) {
-          window.history.pushState(null, "", targetUrl);
+          router.push(targetUrl);
         }
       }
 
@@ -798,18 +848,20 @@ export default function ClassMaterialContentPageTemplate({
 
   return (
     <section className="min-h-screen rounded-3xl sm:p-3 lg:p-0">
-      {isSubjectStep && emotionSupported && subjectEmotion.error && (
+      {emotionDetectionEnabled && isSubjectStep && emotionSupported && subjectEmotion.error && (
         <CameraRequiredScreen reason={subjectEmotion.error} />
       )}
 
-      <video
-        ref={subjectEmotion.videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="pointer-events-none fixed -left-[9999px] top-0 h-60 w-80"
-        aria-hidden="true"
-      />
+      {emotionDetectionEnabled && (
+        <video
+          ref={subjectEmotion.videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="pointer-events-none fixed -left-[9999px] top-0 h-60 w-80"
+          aria-hidden="true"
+        />
+      )}
 
       {/* ---- Breadcrumb ---- */}
       <nav className="mb-3 flex flex-wrap items-center gap-2 text-sm text-lottie-zinc-500">

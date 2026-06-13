@@ -9,6 +9,8 @@ import type {
 } from "@/types/adminClassList";
 import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useQueries } from "@tanstack/react-query";
+import { gsGet } from "@/libs/api/gsAction";
 import {
   useGsAllCourses,
   useGsArchiveCourse,
@@ -75,7 +77,15 @@ export default function AdminClassListTemplate() {
         testCount: course.diagnosticTestCount ?? 0,
         code: course.courseCode,
         status: course.isArchived ? "Nonaktif" : "Aktif",
-        progress: course.averageProgressPercent ?? 0,
+        progress:
+          course.progressPercent ??
+          (course as any).averageProgress ??
+          course.averageProgressPercent ??
+          (course as any).progress ??
+          (course as any).average_progress ??
+          (course as any).average_progress_percent ??
+          (course as any).progress_percent ??
+          0,
       })),
     [coursesData],
   );
