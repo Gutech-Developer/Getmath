@@ -541,7 +541,59 @@ export function useSubmitRemedialVariant(courseModuleId: string) {
   });
 }
 
+// ─── POST /api/progress/modules/:courseModuleId/remedial/attempts/:remedialAttemptId/discussion-read ─
+
+export interface DiscussionReadInput {
+  variantId: string;
+  packageLabel: string;
+  startedAt: string;
+  endedAt: string;
+}
+
+export interface DiscussionReadResult {
+  status: string;
+  success: boolean;
+  message: string;
+}
+
+export function useRecordRemedialDiscussionRead(courseModuleId: string) {
+  return useMutation({
+    mutationFn: async ({
+      remedialAttemptId,
+      input,
+    }: {
+      remedialAttemptId: string;
+      input: DiscussionReadInput;
+    }) => {
+      gsLogger.request(
+        "POST",
+        `/progress/modules/${courseModuleId}/remedial/attempts/${remedialAttemptId}/discussion-read`,
+        {},
+        input,
+      );
+      const response = await gsPost<DiscussionReadResult>(
+        `/progress/modules/${courseModuleId}/remedial/attempts/${remedialAttemptId}/discussion-read`,
+        input,
+      );
+      gsLogger.response(
+        "POST",
+        `/progress/modules/${courseModuleId}/remedial/attempts/${remedialAttemptId}/discussion-read`,
+        200,
+        response,
+      );
+      return response;
+    },
+    onSuccess: (data) => {
+      gsLogger.info("Remedial discussion read recorded", {
+        success: data?.success,
+        message: data?.message,
+      });
+    },
+  });
+}
+
 // ─── POST /api/progress/modules/:courseModuleId/remedial/attempts/:remedialAttemptId/submit ─
+
 
 export function useSubmitRemedialBulk(courseModuleId: string) {
   const queryClient = useQueryClient();

@@ -36,6 +36,7 @@ import {
   useDiagnosticAnswersReview,
   useRemedialAnswersReview,
   useGsRemedialTestById,
+  useRecordRemedialDiscussionRead,
 } from "@/services";
 import type {
   StartTestAttemptResult,
@@ -285,8 +286,10 @@ export default function ClassDiagnosisContentPageTemplate({
 
   const startRemedialMutation = useStartRemedialAttempt(contentId);
   const submitRemedialVariantMutation = useSubmitRemedialVariant(contentId);
+  const recordDiscussionReadMutation = useRecordRemedialDiscussionRead(contentId);
   const submitRemedialBulkMutation = useSubmitRemedialBulk(contentId);
   const remedialAutoSubmitTriggeredRef = useRef(false);
+  const discussionStartedAtRef = useRef<string | null>(null);
 
   const { data: remedialTestData } = useGsRemedialTestById(
     isRemedial ? (apiModule?.remedialTestId ?? "") : "",
@@ -941,6 +944,7 @@ export default function ClassDiagnosisContentPageTemplate({
           }
 
           if (data.isCompleted && !data.isCorrect && data.discussion) {
+            discussionStartedAtRef.current = new Date().toISOString();
             setPendingRemedialSummary(data.summary ?? null);
             setDiscussionData(data.discussion);
             setDiscussionShow(true);
@@ -955,6 +959,7 @@ export default function ClassDiagnosisContentPageTemplate({
             setReviewView("remedial");
             setFlowStep("completed");
           } else if (!data.isCorrect && data.discussion) {
+            discussionStartedAtRef.current = new Date().toISOString();
             setDiscussionData(data.discussion);
             setDiscussionShow(true);
             setNextVariantData(data.nextVariant ?? null);
@@ -986,7 +991,22 @@ export default function ClassDiagnosisContentPageTemplate({
   };
 
   const handleNextRemedialStep = () => {
+    if (discussionStartedAtRef.current && currentVariant) {
+      const endedAt = new Date().toISOString();
+      recordDiscussionReadMutation.mutate({
+        remedialAttemptId: remedialAttemptId || "",
+        input: {
+          variantId: currentVariant.variantId,
+          packageLabel: currentVariant.packageLabel,
+          startedAt: discussionStartedAtRef.current,
+          endedAt,
+        },
+      });
+      discussionStartedAtRef.current = null;
+    }
+
     if (nextVariantData) {
+      emotion.reset();
       setCurrentVariant(nextVariantData);
       setSelectedRemedialOptionId(null);
       setDiscussionShow(false);
