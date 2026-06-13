@@ -8,6 +8,8 @@ import AdminLearningAnalyticsContent, {
 } from "@/components/organisms/AdminLearningAnalyticsContent";
 import { useGsAllCourses } from "@/services";
 import { useMemo } from "react";
+import { useQueries } from "@tanstack/react-query";
+import { gsGet } from "@/libs/api/gsAction";
 
 // Fallback empty metrics since we don't have a global admin dashboard endpoint yet
 const SCORE_BUCKETS: IScoreBucket[] = [
@@ -28,15 +30,52 @@ const EMOTION_SEGMENTS: IEmotionSegment[] = [
 export default function AdminLearningAnalyticsTemplate() {
   const { data: coursesData, isLoading } = useGsAllCourses({ limit: 100 });
 
+  const courses = coursesData?.courses ?? [];
+
+  const dashboardQueries = useQueries({
+    queries: courses.map((course) => ({
+      queryKey: ["gsDashboard", "teacher", course.id],
+      queryFn: async () => {
+        const res = await gsGet<any>(`/courses/${course.id}/dashboard/teacher`);
+        return res.ok ? res.data : null;
+      },
+      enabled: !!course.id,
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
   const classAnalytics: IClassAnalytics[] = useMemo(() => {
-    return (coursesData?.courses ?? []).map((course) => {
+    return courses.map((course, idx) => {
+      const dashboardData = dashboardQueries[idx]?.data;
       // Calculate realistic dummy data based on progress and enrolledCount
-      const progress = course.averageProgressPercent ?? 0;
+      const progress =
+        dashboardData?.averageProgress ??
+        course.progressPercent ??
+        (course as any).averageProgress ??
+        course.averageProgressPercent ??
+        (course as any).progress ??
+        (course as any).average_progress ??
+        (course as any).average_progress_percent ??
+        (course as any).progress_percent ??
+        0;
       const studentCount = course.enrolledCount ?? 0;
       
-      const averageScore = progress > 0 ? Math.min(100, Math.round(progress * 0.8 + 20)) : 0;
-      const passedCount = studentCount > 0 ? Math.floor(studentCount * (averageScore / 100)) : 0;
-      const remedialCount = studentCount > 0 ? studentCount - passedCount : 0;
+      const averageScore =
+        (course as any).averageScore ??
+        (course as any).average_score ??
+        (course as any).avgScore ??
+        (course as any).avg_score ??
+        (progress > 0 ? Math.min(100, Math.round(progress * 0.8 + 20)) : 0);
+
+      const passedCount =
+        (course as any).passedCount ??
+        (course as any).passed_count ??
+        (studentCount > 0 ? Math.floor(studentCount * (averageScore / 100)) : 0);
+
+      const remedialCount =
+        (course as any).remedialCount ??
+        (course as any).remedial_count ??
+        (studentCount > 0 ? studentCount - passedCount : 0);
 
       return {
         id: course.slug || course.id,
@@ -49,7 +88,7 @@ export default function AdminLearningAnalyticsTemplate() {
         progress,
       };
     });
-  }, [coursesData]);
+  }, [coursesData, dashboardQueries]);
 
   const SUMMARY_STATS: ISummaryStat[] = useMemo(() => {
     const totalStudents = classAnalytics.reduce((acc, c) => acc + c.studentCount, 0);

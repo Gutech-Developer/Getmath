@@ -50,7 +50,7 @@ import {
 } from "@/services/hooks/useGsRemedialTest";
 import {
   useGsDiagnosticScores,
-  useGsRemedialScores
+  useGsRemedialScores,
 } from "@/services/hooks/useGsProgress";
 import type { GsCourseModule } from "@/types/gs-course";
 import Link from "next/link";
@@ -74,11 +74,20 @@ import type {
   ITeacherClassLearningAnalyticsDetail,
 } from "@/types/learningAnalytics";
 import { LADDonutChart } from "../classroom";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ResponsiveContainer } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+  ResponsiveContainer,
+} from "recharts";
 import {
   useEmotionDistributionOverall,
   useDiagnosticTestDistribution,
-  useRemedialTestDistribution
+  useRemedialTestDistribution,
 } from "@/services/hooks/useLAD";
 import { mapDistributionToSegments } from "@/components/templates/pages/classroom/ClassLADPageTemplate";
 
@@ -167,14 +176,14 @@ const VIEW_ITEMS: Array<{
   type: ClassAnalyticsViewType;
   icon: ComponentType<{ className?: string }>;
 }> = [
-    { type: "Beranda", icon: DashboardIcon },
-    { type: "Siswa", icon: ThreeUserGroupIcon },
-    { type: "Materi", icon: NotebookIcon },
-    { type: "Nilai E-LKPD", icon: ClipboardIcon },
-    { type: "Nilai Test", icon: ClipboardIcon },
-    { type: "Laporan", icon: TrendUpIcon },
-    { type: "Forum", icon: ChatIcon },
-  ];
+  { type: "Beranda", icon: DashboardIcon },
+  { type: "Siswa", icon: ThreeUserGroupIcon },
+  { type: "Materi", icon: NotebookIcon },
+  { type: "Nilai E-LKPD", icon: ClipboardIcon },
+  { type: "Nilai Test", icon: ClipboardIcon },
+  { type: "Laporan", icon: TrendUpIcon },
+  { type: "Forum", icon: ChatIcon },
+];
 
 const REPORT_MODES = ["Analisis Nilai & Emosi", "Word Cloud Forum"] as const;
 
@@ -1114,36 +1123,49 @@ export function BaseMateriSection({
     }
   }, [courseModules]);
 
-  const { data: mySubjectsData, isLoading: isMySubjectsLoading } = useGsMySubjects(
-    { limit: 200 },
-    { enabled: isApiMode && !teacherId },
-  );
-  const { data: teacherSubjectsData, isLoading: isTeacherSubjectsLoading } = useGsSubjectsByTeacher(
-    teacherId ?? "",
-    { limit: 200 },
-  );
+  const { data: mySubjectsData, isLoading: isMySubjectsLoading } =
+    useGsMySubjects({ limit: 200 }, { enabled: isApiMode && !teacherId });
+  const { data: teacherSubjectsData, isLoading: isTeacherSubjectsLoading } =
+    useGsSubjectsByTeacher(teacherId ?? "", { limit: 200 });
   const subjectsData = teacherId ? teacherSubjectsData : mySubjectsData;
-  const isSubjectsLoading = teacherId ? isTeacherSubjectsLoading : isMySubjectsLoading;
+  const isSubjectsLoading = teacherId
+    ? isTeacherSubjectsLoading
+    : isMySubjectsLoading;
 
   const { data: myDiagnosticTestsData, isLoading: isMyDiagnosticTestsLoading } =
     useGsMyDiagnosticTests(
       { page: diagnosticPage, limit: diagnosticItemsPerPage },
       { enabled: isApiMode && !teacherId },
     );
-  const { data: teacherDiagnosticTestsData, isLoading: isTeacherDiagnosticTestsLoading } =
-    useGsDiagnosticTestsByTeacher(
-      teacherId ?? "",
-      { page: diagnosticPage, limit: diagnosticItemsPerPage },
-    );
-  const diagnosticTestsData = teacherId ? teacherDiagnosticTestsData : myDiagnosticTestsData;
-  const isDiagnosticTestsLoading = teacherId ? isTeacherDiagnosticTestsLoading : isMyDiagnosticTestsLoading;
+  const {
+    data: teacherDiagnosticTestsData,
+    isLoading: isTeacherDiagnosticTestsLoading,
+  } = useGsDiagnosticTestsByTeacher(teacherId ?? "", {
+    page: diagnosticPage,
+    limit: diagnosticItemsPerPage,
+  });
+  const diagnosticTestsData = teacherId
+    ? teacherDiagnosticTestsData
+    : myDiagnosticTestsData;
+  const isDiagnosticTestsLoading = teacherId
+    ? isTeacherDiagnosticTestsLoading
+    : isMyDiagnosticTestsLoading;
 
   const { data: myRemedialTestsData, isLoading: isMyRemedialTestsLoading } =
-    useGsMyRemedialTests({ page: 1, limit: 100 }, { enabled: isApiMode && !teacherId });
-  const { data: teacherRemedialTestsData, isLoading: isTeacherRemedialTestsLoading } =
-    useGsRemedialTestsByTeacher(teacherId ?? "", { page: 1, limit: 100 });
-  const remedialTestsData = teacherId ? teacherRemedialTestsData : myRemedialTestsData;
-  const isRemedialTestsLoading = teacherId ? isTeacherRemedialTestsLoading : isMyRemedialTestsLoading;
+    useGsMyRemedialTests(
+      { page: 1, limit: 100 },
+      { enabled: isApiMode && !teacherId },
+    );
+  const {
+    data: teacherRemedialTestsData,
+    isLoading: isTeacherRemedialTestsLoading,
+  } = useGsRemedialTestsByTeacher(teacherId ?? "", { page: 1, limit: 100 });
+  const remedialTestsData = teacherId
+    ? teacherRemedialTestsData
+    : myRemedialTestsData;
+  const isRemedialTestsLoading = teacherId
+    ? isTeacherRemedialTestsLoading
+    : isMyRemedialTestsLoading;
 
   const [selectedDiagnosticForPairing, setSelectedDiagnosticForPairing] =
     useState<ILearningAnalyticsDiagnosticOption | null>(null);
@@ -1938,7 +1960,7 @@ export function BaseMateriSection({
                                 ? "border-lottie-teal/20 bg-[#E0E7FF]"
                                 : "border-transparent bg-transparent hover:bg-[#F8FAFC]",
                               isAlreadyAdded &&
-                              "cursor-not-allowed border-[#E5E7EB] bg-[#F8FAFC] opacity-60",
+                                "cursor-not-allowed border-[#E5E7EB] bg-[#F8FAFC] opacity-60",
                             )}
                           >
                             <div className="flex items-center gap-2.5">
@@ -2062,10 +2084,10 @@ export function BaseMateriSection({
                   const alreadyAdded = isApiMode
                     ? usedDiagnosticIds.has(option.id)
                     : sequenceItems.some(
-                      (item) =>
-                        item.type === "Tes Diagnostik" &&
-                        item.title === option.title,
-                    );
+                        (item) =>
+                          item.type === "Tes Diagnostik" &&
+                          item.title === option.title,
+                      );
 
                   return (
                     <button
@@ -2226,13 +2248,13 @@ export function BaseMateriSection({
         elkpds={
           resolvedSelectedModule?.subject?.eLKPDTitle
             ? [
-              {
-                id: resolvedSelectedModule.subject.id, // Using subject id as a fallback for elkpd id
-                title: resolvedSelectedModule.subject.eLKPDTitle,
-                description: resolvedSelectedModule.subject.eLKPDDescription,
-                fileUrl: resolvedSelectedModule.subject.eLKPDFileUrl || "",
-              },
-            ]
+                {
+                  id: resolvedSelectedModule.subject.id, // Using subject id as a fallback for elkpd id
+                  title: resolvedSelectedModule.subject.eLKPDTitle,
+                  description: resolvedSelectedModule.subject.eLKPDDescription,
+                  fileUrl: resolvedSelectedModule.subject.eLKPDFileUrl || "",
+                },
+              ]
             : []
         }
         students={students}
@@ -2292,7 +2314,9 @@ export function BaseMateriSection({
 export function BaseNilaiTestSection({ courseId }: { courseId?: string }) {
   const { data: modules, isPending } = useGsModulesByCourse(courseId ?? "");
   const [expandedModuleId, setExpandedModuleId] = useState<string>("");
-  const [activeScoreType, setActiveScoreType] = useState<"DIAGNOSTIC" | "REMEDIAL">("DIAGNOSTIC");
+  const [activeScoreType, setActiveScoreType] = useState<
+    "DIAGNOSTIC" | "REMEDIAL"
+  >("DIAGNOSTIC");
 
   const diagnosticModules = useMemo(() => {
     return modules?.filter((m) => m.type === "DIAGNOSTIC_TEST") || [];
@@ -2318,7 +2342,10 @@ export function BaseNilaiTestSection({ courseId }: { courseId?: string }) {
         diagnosticModules.map((m) => {
           const isExpanded = expandedModuleId === m.id;
           return (
-            <div key={m.id} className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0px_4px_16px_rgba(148,163,184,0.08)]">
+            <div
+              key={m.id}
+              className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0px_4px_16px_rgba(148,163,184,0.08)]"
+            >
               <div
                 className="flex cursor-pointer items-center justify-between"
                 onClick={() => {
@@ -2334,7 +2361,9 @@ export function BaseNilaiTestSection({ courseId }: { courseId?: string }) {
                     <h3 className="text-sm font-bold text-[#0F172A]">
                       {m.diagnosticTest?.testName || "Tes Diagnostik"}
                     </h3>
-                    <p className="mt-0.5 text-xs text-[#64748B]">Tes Diagnostik & Remedial</p>
+                    <p className="mt-0.5 text-xs text-[#64748B]">
+                      Tes Diagnostik & Remedial
+                    </p>
                   </div>
                 </div>
                 <div className="text-[#94A3B8] transition-transform duration-200">
@@ -2364,7 +2393,7 @@ export function BaseNilaiTestSection({ courseId }: { courseId?: string }) {
                         "rounded-lg px-4 py-2 text-xs font-semibold transition",
                         activeScoreType === "DIAGNOSTIC"
                           ? "bg-[#1F2375] text-white"
-                          : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
+                          : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]",
                       )}
                     >
                       Nilai Diagnostik
@@ -2375,7 +2404,7 @@ export function BaseNilaiTestSection({ courseId }: { courseId?: string }) {
                         "rounded-lg px-4 py-2 text-xs font-semibold transition",
                         activeScoreType === "REMEDIAL"
                           ? "bg-[#1F2375] text-white"
-                          : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
+                          : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]",
                       )}
                     >
                       Nilai Remedial
@@ -2393,7 +2422,13 @@ export function BaseNilaiTestSection({ courseId }: { courseId?: string }) {
   );
 }
 
-function NilaiTestScoreTable({ moduleId, type }: { moduleId: string; type: "DIAGNOSTIC" | "REMEDIAL" }) {
+function NilaiTestScoreTable({
+  moduleId,
+  type,
+}: {
+  moduleId: string;
+  type: "DIAGNOSTIC" | "REMEDIAL";
+}) {
   if (type === "DIAGNOSTIC") {
     return <DiagnosticScoreTable moduleId={moduleId} />;
   }
@@ -2403,8 +2438,18 @@ function NilaiTestScoreTable({ moduleId, type }: { moduleId: string; type: "DIAG
 function DiagnosticScoreTable({ moduleId }: { moduleId: string }) {
   const { data, isPending, error } = useGsDiagnosticScores(moduleId);
 
-  if (isPending) return <div className="p-4 text-center text-sm text-[#94A3B8]">Memuat nilai diagnostik...</div>;
-  if (error) return <div className="p-4 text-center text-sm text-[#EF4444]">Gagal memuat nilai diagnostik.</div>;
+  if (isPending)
+    return (
+      <div className="p-4 text-center text-sm text-[#94A3B8]">
+        Memuat nilai diagnostik...
+      </div>
+    );
+  if (error)
+    return (
+      <div className="p-4 text-center text-sm text-[#EF4444]">
+        Gagal memuat nilai diagnostik.
+      </div>
+    );
 
   const scores = data?.scores || [];
 
@@ -2413,30 +2458,52 @@ function DiagnosticScoreTable({ moduleId }: { moduleId: string }) {
       <table className="w-full min-w-[600px] border-collapse text-sm">
         <thead className="bg-[#F8FAFC]">
           <tr>
-            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">Nama Siswa</th>
-            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">NIS</th>
-            <th className="px-4 py-3 text-center font-semibold text-[#64748B]">Percobaan</th>
-            <th className="px-4 py-3 text-right font-semibold text-[#64748B]">Nilai Terbaik</th>
-            <th className="px-4 py-3 text-center font-semibold text-[#64748B]">Status</th>
+            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">
+              Nama Siswa
+            </th>
+            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">
+              NIS
+            </th>
+            <th className="px-4 py-3 text-center font-semibold text-[#64748B]">
+              Percobaan
+            </th>
+            <th className="px-4 py-3 text-right font-semibold text-[#64748B]">
+              Nilai Terbaik
+            </th>
+            <th className="px-4 py-3 text-center font-semibold text-[#64748B]">
+              Status
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#E2E8F0] bg-white">
           {scores.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-4 py-6 text-center text-[#94A3B8]">Belum ada nilai diagnostik.</td>
+              <td colSpan={5} className="px-4 py-6 text-center text-[#94A3B8]">
+                Belum ada nilai diagnostik.
+              </td>
             </tr>
           ) : (
             scores.map((s, i) => (
               <tr key={i} className="hover:bg-[#F8FAFC]">
-                <td className="px-4 py-3 font-medium text-[#0F172A]">{s.fullName}</td>
+                <td className="px-4 py-3 font-medium text-[#0F172A]">
+                  {s.fullName}
+                </td>
                 <td className="px-4 py-3 text-[#64748B]">{s.NIS}</td>
-                <td className="px-4 py-3 text-center text-[#64748B]">{s.totalAttempts}</td>
-                <td className="px-4 py-3 text-right font-bold text-[#0F172A]">{s.bestScore ?? "-"}</td>
+                <td className="px-4 py-3 text-center text-[#64748B]">
+                  {s.totalAttempts}
+                </td>
+                <td className="px-4 py-3 text-right font-bold text-[#0F172A]">
+                  {s.bestScore ?? "-"}
+                </td>
                 <td className="px-4 py-3 text-center">
-                  <span className={cn(
-                    "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                    s.isPassed ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEE2E2] text-[#B91C1C]"
-                  )}>
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                      s.isPassed
+                        ? "bg-[#DCFCE7] text-[#166534]"
+                        : "bg-[#FEE2E2] text-[#B91C1C]",
+                    )}
+                  >
                     {s.isPassed ? "Tuntas" : "Belum Tuntas"}
                   </span>
                 </td>
@@ -2452,8 +2519,18 @@ function DiagnosticScoreTable({ moduleId }: { moduleId: string }) {
 function RemedialScoreTable({ moduleId }: { moduleId: string }) {
   const { data, isPending, error } = useGsRemedialScores(moduleId);
 
-  if (isPending) return <div className="p-4 text-center text-sm text-[#94A3B8]">Memuat nilai remedial...</div>;
-  if (error) return <div className="p-4 text-center text-sm text-[#EF4444]">Gagal memuat nilai remedial.</div>;
+  if (isPending)
+    return (
+      <div className="p-4 text-center text-sm text-[#94A3B8]">
+        Memuat nilai remedial...
+      </div>
+    );
+  if (error)
+    return (
+      <div className="p-4 text-center text-sm text-[#EF4444]">
+        Gagal memuat nilai remedial.
+      </div>
+    );
 
   const scores = data?.scores || [];
 
@@ -2462,28 +2539,46 @@ function RemedialScoreTable({ moduleId }: { moduleId: string }) {
       <table className="w-full min-w-[600px] border-collapse text-sm">
         <thead className="bg-[#F8FAFC]">
           <tr>
-            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">Nama Siswa</th>
-            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">NIS</th>
-            <th className="px-4 py-3 text-right font-semibold text-[#64748B]">Nilai</th>
-            <th className="px-4 py-3 text-center font-semibold text-[#64748B]">Status</th>
+            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">
+              Nama Siswa
+            </th>
+            <th className="px-4 py-3 text-left font-semibold text-[#64748B]">
+              NIS
+            </th>
+            <th className="px-4 py-3 text-right font-semibold text-[#64748B]">
+              Nilai
+            </th>
+            <th className="px-4 py-3 text-center font-semibold text-[#64748B]">
+              Status
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#E2E8F0] bg-white">
           {scores.length === 0 ? (
             <tr>
-              <td colSpan={4} className="px-4 py-6 text-center text-[#94A3B8]">Belum ada nilai remedial.</td>
+              <td colSpan={4} className="px-4 py-6 text-center text-[#94A3B8]">
+                Belum ada nilai remedial.
+              </td>
             </tr>
           ) : (
             scores.map((s, i) => (
               <tr key={i} className="hover:bg-[#F8FAFC]">
-                <td className="px-4 py-3 font-medium text-[#0F172A]">{s.fullName}</td>
+                <td className="px-4 py-3 font-medium text-[#0F172A]">
+                  {s.fullName}
+                </td>
                 <td className="px-4 py-3 text-[#64748B]">{s.NIS}</td>
-                <td className="px-4 py-3 text-right font-bold text-[#0F172A]">{s.score ?? "-"}</td>
+                <td className="px-4 py-3 text-right font-bold text-[#0F172A]">
+                  {s.score ?? "-"}
+                </td>
                 <td className="px-4 py-3 text-center">
-                  <span className={cn(
-                    "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                    s.isPassed ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FEE2E2] text-[#B91C1C]"
-                  )}>
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                      s.isPassed
+                        ? "bg-[#DCFCE7] text-[#166534]"
+                        : "bg-[#FEE2E2] text-[#B91C1C]",
+                    )}
+                  >
                     {s.isPassed ? "Tuntas" : "Belum Tuntas"}
                   </span>
                 </td>
@@ -2495,8 +2590,6 @@ function RemedialScoreTable({ moduleId }: { moduleId: string }) {
     </div>
   );
 }
-
-
 
 export function BaseKelolaELKPDSection({
   elkpdItems,
@@ -2657,21 +2750,25 @@ function SectionCard({
   );
 }
 
-function ReportScoreChart({
-  classId,
-}: {
-  classId: string;
-}) {
-  const [distributionType, setDistributionType] = useState<"diagnostic" | "remedial">("diagnostic");
+function ReportScoreChart({ classId }: { classId: string }) {
+  const [distributionType, setDistributionType] = useState<
+    "diagnostic" | "remedial"
+  >("diagnostic");
 
-  const { data: diagnosticDist, isPending: isDiagPending } = useDiagnosticTestDistribution(classId);
-  const { data: remedialDist, isPending: isRemPending } = useRemedialTestDistribution(classId);
+  const { data: diagnosticDist, isPending: isDiagPending } =
+    useDiagnosticTestDistribution(classId);
+  const { data: remedialDist, isPending: isRemPending } =
+    useRemedialTestDistribution(classId);
 
-  const rawDist = distributionType === "diagnostic" ? diagnosticDist : remedialDist;
+  const rawDist =
+    distributionType === "diagnostic" ? diagnosticDist : remedialDist;
   const activeDist = rawDist
-    ? ("buckets" in rawDist ? rawDist : rawDist.data)
+    ? "buckets" in rawDist
+      ? rawDist
+      : rawDist.data
     : undefined;
-  const isPending = distributionType === "diagnostic" ? isDiagPending : isRemPending;
+  const isPending =
+    distributionType === "diagnostic" ? isDiagPending : isRemPending;
 
   const scoreBuckets = useMemo(() => {
     if (!activeDist?.buckets) {
@@ -2709,13 +2806,21 @@ function ReportScoreChart({
     <article className="rounded-2xl border border-[#E5E7EB] bg-white p-4 md:p-5 shadow-[0px_4px_16px_rgba(148,163,184,0.04)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F1F5F9] pb-4">
         <div>
-          <h3 className="text-sm font-bold text-[#0F172A]">Distribusi Nilai Siswa</h3>
+          <h3 className="text-sm font-bold text-[#0F172A]">
+            Distribusi Nilai Siswa
+          </h3>
           <p className="mt-1 text-xs text-[#64748B]">
             {!isPending && (
               <>
-                Rata-rata: <span className="font-semibold text-[#1F2375]">{averageScore.toFixed(1)}</span>
+                Rata-rata:{" "}
+                <span className="font-semibold text-[#1F2375]">
+                  {averageScore.toFixed(1)}
+                </span>
                 <span className="mx-2 text-[#CBD5E1]">|</span>
-                Sampel: <span className="font-semibold text-[#0F172A]">{totalSamples} Sesi</span>
+                Sampel:{" "}
+                <span className="font-semibold text-[#0F172A]">
+                  {totalSamples} Sesi
+                </span>
               </>
             )}
             {isPending && "Memuat data..."}
@@ -2724,7 +2829,9 @@ function ReportScoreChart({
 
         <select
           value={distributionType}
-          onChange={(e) => setDistributionType(e.target.value as "diagnostic" | "remedial")}
+          onChange={(e) =>
+            setDistributionType(e.target.value as "diagnostic" | "remedial")
+          }
           className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] shadow-sm outline-none transition focus:border-[#1F2375] focus:ring-1 focus:ring-[#1F2375] cursor-pointer"
         >
           <option value="diagnostic">Tes Diagnostik</option>
@@ -2735,9 +2842,24 @@ function ReportScoreChart({
       <div className="mt-5 rounded-2xl border border-[#F1F5F9] bg-[#F8FAFC] p-4 md:p-5">
         {isPending ? (
           <div className="flex h-44 items-center justify-center text-sm text-[#64748B] font-medium">
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#1F2375]" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            <svg
+              className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#1F2375]"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
             </svg>
             Memuat grafik distribusi...
           </div>
@@ -2775,7 +2897,11 @@ function ReportScoreChart({
               />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                 {scoreBuckets.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} className="transition-all duration-300 hover:opacity-90" />
+                  <Cell
+                    key={i}
+                    fill={entry.color}
+                    className="transition-all duration-300 hover:opacity-90"
+                  />
                 ))}
               </Bar>
             </BarChart>
@@ -3083,7 +3209,8 @@ export function BaseLaporanSection({
     "Analisis Nilai & Emosi",
   );
 
-  const { data: emotionOverall, isPending } = useEmotionDistributionOverall(classId)
+  const { data: emotionOverall, isPending } =
+    useEmotionDistributionOverall(classId);
 
   return (
     <section className="space-y-4">
@@ -3160,8 +3287,8 @@ export function BaseLaporanSection({
         <>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-1">
             <ReportScoreChart classId={classId} />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <SectionCard
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
+              {/* <SectionCard
                 title="Emosi saat Membaca Materi"
                 icon={
                   <svg
@@ -3180,13 +3307,13 @@ export function BaseLaporanSection({
               >
                 <LADDonutChart
                   segments={mapDistributionToSegments(
-                    emotionOverall?.moduleLearning.distribution
+                    emotionOverall?.moduleLearning.distribution,
                   )}
                 />
-              </SectionCard>
+              </SectionCard> */}
 
               <SectionCard
-                title="Emosi saat Tes Diagnostik"
+                title="Emosi Saat Menjawab Remedial"
                 icon={
                   <svg
                     viewBox="0 0 20 20"
@@ -3204,7 +3331,7 @@ export function BaseLaporanSection({
               >
                 <LADDonutChart
                   segments={mapDistributionToSegments(
-                    emotionOverall?.remedial.distribution
+                    emotionOverall?.remedial.distribution,
                   )}
                 />
               </SectionCard>

@@ -49,8 +49,16 @@ import { isEmotionSupported } from "@/libs/emotion";
 import CameraRequiredScreen from "@/components/molecules/classroom/CameraRequiredScreen";
 import EmotionNotification from "@/components/molecules/classroom/EmotionNotification";
 
+function extractYoutubeId(url: string): string | null {
+  if (!url) return null;
+  const regExp =
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+}
+
 interface YoutubePlayerProps {
-  iframeId: string;
+  iframeId?: string;
   url: string;
   title: string;
   onEnded: () => void;
@@ -59,14 +67,19 @@ interface YoutubePlayerProps {
 }
 
 const YoutubePlayer = React.memo(
-  ({ iframeId, url, title, onEnded, className, frameBorder }: YoutubePlayerProps) => {
+  ({ url, onEnded, className }: YoutubePlayerProps) => {
     const onEndedRef = useRef(onEnded);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const playerRef = useRef<any>(null);
 
     useEffect(() => {
       onEndedRef.current = onEnded;
     }, [onEnded]);
 
     useEffect(() => {
+      const videoId = extractYoutubeId(url);
+      if (!videoId) return;
+
       const tagId = "yt-iframe-api";
       if (!document.getElementById(tagId)) {
         const tag = document.createElement("script");
@@ -78,54 +91,72 @@ const YoutubePlayer = React.memo(
         }
       }
 
-      let player: any;
+      let timeoutId: any;
 
       const initPlayer = () => {
-        if (!document.getElementById(iframeId)) return;
-        player = new (window as any).YT.Player(iframeId, {
-          events: {
-            onStateChange: (event: any) => {
-              if (event.data === (window as any).YT.PlayerState.ENDED) {
-                onEndedRef.current();
-              }
-            },
-          },
-        });
-      };
+        if (!containerRef.current) return;
 
-      if ((window as any).YT && (window as any).YT.Player) {
-        initPlayer();
-      } else {
-        const prevCallback = (window as any).onYouTubeIframeAPIReady;
-        (window as any).onYouTubeIframeAPIReady = () => {
-          if (prevCallback) {
-            try {
-              prevCallback();
-            } catch (e) {
-              console.error(e);
-            }
+        if (playerRef.current && playerRef.current.destroy) {
+          try {
+            playerRef.current.destroy();
+          } catch (e) {
+            console.error(e);
           }
-          initPlayer();
-        };
-      }
+        }
 
-      return () => {
-        if (player && player.destroy) {
-          player.destroy();
+        try {
+          playerRef.current = new (window as any).YT.Player(containerRef.current, {
+            height: "100%",
+            width: "100%",
+            videoId: videoId,
+            playerVars: {
+              autoplay: 0,
+              controls: 1,
+              rel: 0,
+              enablejsapi: 1,
+              origin: typeof window !== "undefined" ? window.location.origin : "",
+            },
+            events: {
+              onStateChange: (event: any) => {
+                const endedState = (window as any).YT?.PlayerState?.ENDED ?? 0;
+                if (event.data === endedState || event.data === 0) {
+                  onEndedRef.current();
+                }
+              },
+            },
+          });
+        } catch (err) {
+          console.error("[YoutubePlayer] failed to initialize YT.Player:", err);
         }
       };
-    }, [iframeId, url]);
+
+      const checkAndInit = () => {
+        if ((window as any).YT && (window as any).YT.Player) {
+          initPlayer();
+        } else {
+          timeoutId = setTimeout(checkAndInit, 100);
+        }
+      };
+
+      checkAndInit();
+
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (playerRef.current && playerRef.current.destroy) {
+          try {
+            playerRef.current.destroy();
+          } catch (e) {
+            // ignore
+          }
+          playerRef.current = null;
+        }
+      };
+    }, [url]);
 
     return (
-      <iframe
-        id={iframeId}
-        src={url}
-        title={title}
-        className={className}
-        frameBorder={frameBorder}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-        allowFullScreen
-      />
+      <div className={className ?? "h-full w-full"}>
+        <div ref={containerRef} />
+      </div>
     );
   },
 );
@@ -144,9 +175,7 @@ export default function ClassDiagnosisContentPageTemplate({
   const [reviewView, setReviewView] = useState<ReviewView | null>(null);
   const [cameraState, setCameraState] = useState<CameraPermissionState>("idle");
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [ruleChecklist, setRuleChecklist] = useState<boolean[]>(
-    DIAGNOSTIC_RULES.map(() => false),
-  );
+
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [openedDiscussionIds, setOpenedDiscussionIds] = useState<string[]>([]);
@@ -244,6 +273,7 @@ export default function ClassDiagnosisContentPageTemplate({
   const [discussionVideoWatched, setDiscussionVideoWatched] =
     useState<boolean>(false);
   const [remedialSummary, setRemedialSummary] = useState<any | null>(null);
+  const [pendingRemedialSummary, setPendingRemedialSummary] = useState<any | null>(null);
   const [nextVariantData, setNextVariantData] =
     useState<RemedialVariant | null>(null);
   const [remedialSubmittedAnswers, setRemedialSubmittedAnswers] = useState<
@@ -413,7 +443,7 @@ export default function ClassDiagnosisContentPageTemplate({
     : `${baseMaterialHref}/${encodeURIComponent(diagnotisId ?? "")}`;
 
   const activeQuestion = diagnosticQuestions[activeQuestionIndex] ?? null;
-  const allRulesConfirmed = ruleChecklist.every(Boolean);
+  const allRulesConfirmed = true;
   const answeredCount = Object.keys(answers).length;
   // Scoring comes from the server (submitResult); use 0 as fallback before submit
   const correctCount = submitResult?.correctAnswers ?? 0;
@@ -726,11 +756,7 @@ export default function ClassDiagnosisContentPageTemplate({
     }
   };
 
-  const handleToggleRule = (ruleIndex: number) => {
-    setRuleChecklist((current) =>
-      current.map((value, index) => (index === ruleIndex ? !value : value)),
-    );
-  };
+
 
   const handleStartRemedial = () => {
     startRemedialMutation.mutate(undefined, {
@@ -752,6 +778,7 @@ export default function ClassDiagnosisContentPageTemplate({
         setRemedialSubmittedAnswers([]);
         setRemedialAnswers([]);
         setRemedialSummary(null);
+        setPendingRemedialSummary(null);
         setRemedialTestInfo({
           testName: data?.testName ?? "Tes Remedial",
           passingScore: data?.passingScore ?? 70,
@@ -913,7 +940,17 @@ export default function ClassDiagnosisContentPageTemplate({
             setEmotionFeedbackMsg(pickFeedback(detectedMode));
           }
 
-          if (data.isCompleted) {
+          if (data.isCompleted && !data.isCorrect && data.discussion) {
+            setPendingRemedialSummary(data.summary ?? null);
+            setDiscussionData(data.discussion);
+            setDiscussionShow(true);
+            setNextVariantData(null);
+            if (!data.discussion.videoUrl) {
+              setDiscussionVideoWatched(true);
+            } else {
+              setDiscussionVideoWatched(false);
+            }
+          } else if (data.isCompleted) {
             setRemedialSummary(data.summary);
             setReviewView("remedial");
             setFlowStep("completed");
@@ -933,6 +970,10 @@ export default function ClassDiagnosisContentPageTemplate({
               setDiscussionShow(false);
               setDiscussionData(null);
               setNextVariantData(null);
+            } else {
+              // Fallback if correct but no nextVariant and isCompleted is false
+              setReviewView("remedial");
+              setFlowStep("completed");
             }
           }
         },
@@ -952,6 +993,12 @@ export default function ClassDiagnosisContentPageTemplate({
       setDiscussionData(null);
       setNextVariantData(null);
       setDiscussionVideoWatched(false);
+    } else {
+      if (pendingRemedialSummary) {
+        setRemedialSummary(pendingRemedialSummary);
+      }
+      setReviewView("remedial");
+      setFlowStep("completed");
     }
   };
 
@@ -1304,36 +1351,18 @@ export default function ClassDiagnosisContentPageTemplate({
 
             <ul className="mt-3 space-y-2">
               {DIAGNOSTIC_RULES.map((rule, index) => {
-                const checked = ruleChecklist[index];
-
                 return (
                   <li key={rule}>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleRule(index)}
-                      className={cn(
-                        "flex w-full items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition",
-                        checked
-                          ? "border-lottie-teal/40 bg-lottie-teal/5"
-                          : "border-lottie-mist bg-white hover:bg-lottie-pearl",
-                      )}
+                    <div
+                      className="flex w-full items-start gap-3 rounded-xl border border-lottie-mist bg-[#F8FAFC]/50 px-3 py-2.5 text-left"
                     >
                       <span
-                        className={cn(
-                          "mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold",
-                          checked
-                            ? "border-lottie-teal bg-lottie-teal text-white"
-                            : "border-lottie-mist bg-white text-lottie-zinc-400",
-                        )}
+                        className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-lottie-mist bg-white text-[11px] font-semibold text-lottie-zinc-500"
                       >
-                        {checked ? (
-                          <CheckCircleIcon className="h-3.5 w-3.5" />
-                        ) : (
-                          index + 1
-                        )}
+                        {index + 1}
                       </span>
                       <p className="text-sm leading-6 text-lottie-zinc-600">{rule}</p>
-                    </button>
+                    </div>
                   </li>
                 );
               })}
@@ -1965,7 +1994,7 @@ export default function ClassDiagnosisContentPageTemplate({
                         <YoutubePlayer
                           key={discussionData.videoUrl}
                           iframeId="youtube-remedial-player"
-                          url={`https://www.youtube.com/embed/${getYouTubeId(discussionData.videoUrl)}?enablejsapi=1&controls=1&rel=0`}
+                          url={`https://www.youtube.com/embed/${getYouTubeId(discussionData.videoUrl)}?enablejsapi=1&controls=1&rel=0&origin=${typeof window !== "undefined" ? encodeURIComponent(window.location.origin) : ""}`}
                           title="Video Pembahasan"
                           frameBorder="0"
                           className="w-full aspect-video"

@@ -465,6 +465,14 @@ async function coreFetch<T>(
   }
 
   const json: GsApiResponse<T> = await res.json();
+  if (path.includes("courses")) {
+    try {
+      require("fs").appendFileSync(
+        "/home/whoami/getsmart/Getmath/api-debug.log",
+        `PATH: ${path}\nDATA: ${JSON.stringify(json.data, null, 2)}\n\n`
+      );
+    } catch (e) {}
+  }
   logGsApiResponse({
     method,
     endpoint,

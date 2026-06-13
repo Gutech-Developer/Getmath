@@ -248,7 +248,14 @@ const StudentDashboardTemplate = () => {
           teacher: course.teacher?.fullName ?? "–",
           institution: course.schoolName ?? "–",
           academicYear: schoolCourse?.schoolYear ?? "–",
-          progressPercent: +(e as any).progressPercent,
+          progressPercent: +(
+            e.progressPercent ??
+            (e as any).progress ??
+            (e as any).progress_percent ??
+            (e as any).averageProgress ??
+            (e as any).average_progress ??
+            0
+          ),
           totalMaterials:
             schoolCourse?.subjectCount ?? (course as any).subjectCount ?? 0,
           totalStudents:
