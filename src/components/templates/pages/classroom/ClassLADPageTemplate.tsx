@@ -20,9 +20,24 @@ import { useStudentDashboard } from "@/services/hooks/useGsDashboard";
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
 } from "./ClassPageShellTemplate";
-import { useCourseSummary, useEmotionDistribution, useStudyTimeByModule, useActivityLogs } from "@/services/hooks/useLAD";
-import { useGsCourseBySlug, useUserById, useGsModulesByCourse, useModuleProgressTable } from "@/services";
-import type { IActivityLog, IRemedialAnswerCell, IRemedialDiscussionCell, IModuleProgressTableResponse } from "@/types/LAD";
+import {
+  useCourseSummary,
+  useEmotionDistribution,
+  useStudyTimeByModule,
+  useActivityLogs,
+} from "@/services/hooks/useLAD";
+import {
+  useGsCourseBySlug,
+  useUserById,
+  useGsModulesByCourse,
+  useModuleProgressTable,
+} from "@/services";
+import type {
+  IActivityLog,
+  IRemedialAnswerCell,
+  IRemedialDiscussionCell,
+  IModuleProgressTableResponse,
+} from "@/types/LAD";
 import type { GsCourseModule } from "@/types/gs-course";
 
 /* ------------------------------------------------------------------ */
@@ -53,23 +68,25 @@ const EMOTION_TES_DATA = [
 ];
 
 export const mapDistributionToSegments = (
-  dist: {
-    neutral: number;
-    happy: number;
-    sad: number;
-    angry: number;
-    fearful: number;
-    disgusted: number;
-    surprised: number;
-  } | undefined
+  dist:
+    | {
+        neutral: number;
+        happy: number;
+        sad: number;
+        angry: number;
+        fearful: number;
+        disgusted: number;
+        surprised: number;
+      }
+    | undefined,
 ) => {
   const fallback = [
     { label: "Netral", value: 0, color: "#10B981" },
     { label: "Senang", value: 0, color: "#8B5CF6" },
     { label: "Sedih", value: 0, color: "#3B82F6" },
     { label: "Marah", value: 0, color: "#F43F5E" },
-    { label: "Tegang", value: 0, color: "#F97316" },
-    { label: "Jijik", value: 0, color: "#94A3B8" },
+    { label: "Takut", value: 0, color: "#F97316" },
+    { label: "Sangat Tidak Suka", value: 0, color: "#94A3B8" },
     { label: "Terkejut", value: 0, color: "#06B6D4" },
   ];
 
@@ -82,8 +99,12 @@ export const mapDistributionToSegments = (
     { label: "Senang", value: dist.happy || 0, color: "#8B5CF6" },
     { label: "Sedih", value: dist.sad || 0, color: "#3B82F6" },
     { label: "Marah", value: dist.angry || 0, color: "#F43F5E" },
-    { label: "Tegang", value: dist.fearful || 0, color: "#F97316" },
-    { label: "Jijik", value: dist.disgusted || 0, color: "#94A3B8" },
+    { label: "Takut", value: dist.fearful || 0, color: "#F97316" },
+    {
+      label: "Sangat Tidak Suka",
+      value: dist.disgusted || 0,
+      color: "#94A3B8",
+    },
     { label: "Terkejut", value: dist.surprised || 0, color: "#06B6D4" },
   ];
 };
@@ -115,7 +136,8 @@ const renderLogMessage = (log: IActivityLog) => {
       const method = log.metadata?.method === "google" ? "Google" : "Password";
       return (
         <span>
-          Masuk ke aplikasi menggunakan <span className="font-semibold text-[#0F172A]">{method}</span>
+          Masuk ke aplikasi menggunakan{" "}
+          <span className="font-semibold text-[#0F172A]">{method}</span>
         </span>
       );
     }
@@ -124,58 +146,89 @@ const renderLogMessage = (log: IActivityLog) => {
     case "COURSE_ENROLLED":
       return (
         <span>
-          Mendaftar ke kelas <span className="font-semibold text-[#2563EB]">{log.courseName || "Kelas"}</span>
+          Mendaftar ke kelas{" "}
+          <span className="font-semibold text-[#2563EB]">
+            {log.courseName || "Kelas"}
+          </span>
         </span>
       );
     case "COURSE_OPENED":
       return (
         <span>
-          Membuka kelas <span className="font-semibold text-[#2563EB]">{log.courseName || "Kelas"}</span>
+          Membuka kelas{" "}
+          <span className="font-semibold text-[#2563EB]">
+            {log.courseName || "Kelas"}
+          </span>
         </span>
       );
     case "SUBJECT_MODULE_OPENED":
       return (
         <span>
-          Membuka modul <span className="font-semibold text-[#0F172A]">{log.moduleName || "Materi"}</span>
+          Membuka modul{" "}
+          <span className="font-semibold text-[#0F172A]">
+            {log.moduleName || "Materi"}
+          </span>
         </span>
       );
     case "FILE_READ":
       return (
         <span>
-          Membaca materi <span className="font-semibold text-[#0F172A]">{log.moduleName || "Dokumen"}</span>
+          Membaca materi{" "}
+          <span className="font-semibold text-[#0F172A]">
+            {log.moduleName || "Dokumen"}
+          </span>
         </span>
       );
     case "VIDEO_WATCHED":
       return (
         <span>
-          Menonton video <span className="font-semibold text-[#0F172A]">{log.moduleName || "Video"}</span>
+          Menonton video{" "}
+          <span className="font-semibold text-[#0F172A]">
+            {log.moduleName || "Video"}
+          </span>
         </span>
       );
     case "ELKPD_SUBMITTED":
       return (
         <span>
-          Mengirimkan E-LKPD <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tugas"}</span>
+          Mengirimkan E-LKPD{" "}
+          <span className="font-semibold text-[#0F172A]">
+            {log.moduleName || "Tugas"}
+          </span>
         </span>
       );
     case "DIAGNOSTIC_MODULE_OPENED":
       return (
         <span>
-          Membuka halaman tes diagnostik <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+          Membuka halaman tes diagnostik{" "}
+          <span className="font-semibold text-[#0F172A]">
+            {log.moduleName || "Tes"}
+          </span>
         </span>
       );
     case "DIAGNOSTIC_STARTED":
       return (
         <span>
-          Memulai tes diagnostik <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+          Memulai tes diagnostik{" "}
+          <span className="font-semibold text-[#0F172A]">
+            {log.moduleName || "Tes"}
+          </span>
         </span>
       );
     case "DIAGNOSTIC_SUBMITTED": {
       const score = log.metadata?.score;
       return (
         <span>
-          Menyelesaikan tes diagnostik <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+          Menyelesaikan tes diagnostik{" "}
+          <span className="font-semibold text-[#0F172A]">
+            {log.moduleName || "Tes"}
+          </span>
           {score !== undefined && (
-            <> dengan nilai <span className="font-bold text-[#10B981]">{score}</span></>
+            <>
+              {" "}
+              dengan nilai{" "}
+              <span className="font-bold text-[#10B981]">{score}</span>
+            </>
           )}
         </span>
       );
@@ -183,16 +236,26 @@ const renderLogMessage = (log: IActivityLog) => {
     case "REMEDIAL_STARTED":
       return (
         <span>
-          Memulai tes remedial <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+          Memulai tes remedial{" "}
+          <span className="font-semibold text-[#0F172A]">
+            {log.moduleName || "Tes"}
+          </span>
         </span>
       );
     case "REMEDIAL_COMPLETED": {
       const score = log.metadata?.score;
       return (
         <span>
-          Menyelesaikan tes remedial <span className="font-semibold text-[#0F172A]">{log.moduleName || "Tes"}</span>
+          Menyelesaikan tes remedial{" "}
+          <span className="font-semibold text-[#0F172A]">
+            {log.moduleName || "Tes"}
+          </span>
           {score !== undefined && (
-            <> dengan nilai <span className="font-bold text-[#10B981]">{score}</span></>
+            <>
+              {" "}
+              dengan nilai{" "}
+              <span className="font-bold text-[#10B981]">{score}</span>
+            </>
           )}
         </span>
       );
@@ -201,7 +264,8 @@ const renderLogMessage = (log: IActivityLog) => {
       const title = log.metadata?.title || "diskusi baru";
       return (
         <span>
-          Membuat diskusi baru: <span className="italic text-[#475569]">"{title}"</span>
+          Membuat diskusi baru:{" "}
+          <span className="italic text-[#475569]">"{title}"</span>
         </span>
       );
     }
@@ -226,8 +290,18 @@ const getLogIcon = (action: string) => {
     case "LOGOUT":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lottie-pearl text-lottie-zinc-500">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+            />
           </svg>
         </span>
       );
@@ -235,8 +309,18 @@ const getLogIcon = (action: string) => {
     case "COURSE_OPENED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+            />
           </svg>
         </span>
       );
@@ -245,17 +329,42 @@ const getLogIcon = (action: string) => {
     case "DIAGNOSTIC_MODULE_OPENED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
         </span>
       );
     case "VIDEO_WATCHED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         </span>
       );
@@ -263,8 +372,18 @@ const getLogIcon = (action: string) => {
     case "REMEDIAL_STARTED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+            />
           </svg>
         </span>
       );
@@ -273,8 +392,18 @@ const getLogIcon = (action: string) => {
     case "ELKPD_SUBMITTED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         </span>
       );
@@ -284,16 +413,36 @@ const getLogIcon = (action: string) => {
     case "COMMENT_LIKED":
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-50 text-violet-600">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
           </svg>
         </span>
       );
     default:
       return (
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lottie-pearl text-lottie-zinc-500">
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         </span>
       );
@@ -360,7 +509,9 @@ function SectionCard({
           </span>
         )}
         <div>
-          <h2 className=" text-base font-normal text-lottie-midnight">{title}</h2>
+          <h2 className=" text-base font-normal text-lottie-midnight">
+            {title}
+          </h2>
           {subtitle && (
             <p className="mt-0.5 text-xs text-lottie-zinc-500">{subtitle}</p>
           )}
@@ -395,13 +546,13 @@ const translateEmotion = (emotion: string | null | undefined): string => {
     case "angry":
       return "Marah";
     case "fearful":
-      return "Tegang";
+      return "Takut";
     case "disgusted":
       return "Jenuh";
     case "surprised":
       return "Terkejut";
     case "neutral":
-      return "Fokus";
+      return "Netral";
     default:
       return emotion;
   }
@@ -411,16 +562,20 @@ const renderAnswerCell = (cell: IRemedialAnswerCell | null | undefined) => {
   if (!cell) return <span className="text-lottie-zinc-300">-</span>;
   const option = cell.selectedOption ?? "Kosong";
   return (
-    <span className={cn(
-      "font-semibold text-[11px]",
-      cell.isCorrect ? "text-emerald-600" : "text-rose-600"
-    )}>
+    <span
+      className={cn(
+        "font-semibold text-[11px]",
+        cell.isCorrect ? "text-emerald-600" : "text-rose-600",
+      )}
+    >
       {option} ({cell.isCorrect ? "BENAR" : "SALAH"})
     </span>
   );
 };
 
-const renderDiscussionCell = (cell: IRemedialDiscussionCell | null | undefined) => {
+const renderDiscussionCell = (
+  cell: IRemedialDiscussionCell | null | undefined,
+) => {
   if (!cell) return <span className="text-lottie-zinc-300">-</span>;
   return (
     <span className="inline-flex items-center gap-0.5">
@@ -451,8 +606,15 @@ interface IDiagnosticAccordionContentProps {
   studentId?: string;
 }
 
-function DiagnosticAccordionContent({ moduleId, studentId }: IDiagnosticAccordionContentProps) {
-  const { data: progressTable, isLoading, error } = useModuleProgressTable(moduleId, studentId);
+function DiagnosticAccordionContent({
+  moduleId,
+  studentId,
+}: IDiagnosticAccordionContentProps) {
+  const {
+    data: progressTable,
+    isLoading,
+    error,
+  } = useModuleProgressTable(moduleId, studentId);
 
   if (isLoading) {
     return (
@@ -493,22 +655,37 @@ function DiagnosticAccordionContent({ moduleId, studentId }: IDiagnosticAccordio
       {/* Summary Header */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 bg-lottie-pearl/50 border border-lottie-mist rounded-xl p-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-lottie-zinc-400">Nama Tes</p>
-          <p className="text-sm font-semibold text-lottie-midnight mt-0.5">{progressTable.diagnostic.testName}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-lottie-zinc-400">Nilai Diagnostik</p>
-          <p className={`text-sm font-extrabold mt-0.5 ${progressTable.diagnostic.isPassed ? 'text-emerald-600' : 'text-rose-600'}`}>
-            {progressTable.diagnostic.score !== null ? `${progressTable.diagnostic.score} / 100` : "Belum Bernilai"}
+          <p className="text-[10px] font-bold uppercase tracking-wider text-lottie-zinc-400">
+            Nama Tes
+          </p>
+          <p className="text-sm font-semibold text-lottie-midnight mt-0.5">
+            {progressTable.diagnostic.testName}
           </p>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-lottie-zinc-400">Status Diagnostik</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-lottie-zinc-400">
+            Nilai Diagnostik
+          </p>
+          <p
+            className={`text-sm font-extrabold mt-0.5 ${progressTable.diagnostic.isPassed ? "text-emerald-600" : "text-rose-600"}`}
+          >
+            {progressTable.diagnostic.score !== null
+              ? `${progressTable.diagnostic.score} / 100`
+              : "Belum Bernilai"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-lottie-zinc-400">
+            Status Diagnostik
+          </p>
           <div className="mt-0.5">
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${progressTable.diagnostic.isPassed
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
-              }`}>
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${
+                progressTable.diagnostic.isPassed
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-rose-50 text-rose-700 border-rose-200"
+              }`}
+            >
               {progressTable.diagnostic.isPassed ? "Lulus" : "Remedial"}
             </span>
           </div>
@@ -524,34 +701,67 @@ function DiagnosticAccordionContent({ moduleId, studentId }: IDiagnosticAccordio
                 <thead className="bg-lottie-pearl border-b border-lottie-mist font-semibold text-lottie-zinc-500 uppercase tracking-wider">
                   <tr>
                     <th className="px-3 py-3 text-center w-[70px]">No Soal</th>
-                    <th className="px-3 py-3 text-center border-l border-lottie-mist" colSpan={3}>Jawaban Paket</th>
-                    <th className="px-3 py-3 text-center border-l border-lottie-mist" colSpan={3}>Durasi Soal</th>
-                    <th className="px-3 py-3 text-center border-l border-lottie-mist" colSpan={2}>Durasi Diskusi Pembahasan</th>
-                    <th className="px-3 py-3 text-center border-l border-lottie-mist" colSpan={3}>Emosi Dominan</th>
+                    <th
+                      className="px-3 py-3 text-center border-l border-lottie-mist"
+                      colSpan={3}
+                    >
+                      Jawaban Paket
+                    </th>
+                    <th
+                      className="px-3 py-3 text-center border-l border-lottie-mist"
+                      colSpan={3}
+                    >
+                      Durasi Soal
+                    </th>
+                    <th
+                      className="px-3 py-3 text-center border-l border-lottie-mist"
+                      colSpan={2}
+                    >
+                      Durasi Diskusi Pembahasan
+                    </th>
+                    <th
+                      className="px-3 py-3 text-center border-l border-lottie-mist"
+                      colSpan={3}
+                    >
+                      Emosi Dominan
+                    </th>
                   </tr>
                   <tr className="border-t border-lottie-mist bg-lottie-pearl/50 text-[10px]">
                     <th></th>
                     {/* Jawaban */}
-                    <th className="px-3 py-2 text-center border-l border-lottie-mist">Paket A</th>
+                    <th className="px-3 py-2 text-center border-l border-lottie-mist">
+                      Paket A
+                    </th>
                     <th className="px-3 py-2 text-center">Paket B</th>
                     <th className="px-3 py-2 text-center">Paket C</th>
                     {/* Durasi */}
-                    <th className="px-3 py-2 text-center border-l border-lottie-mist">Paket A</th>
+                    <th className="px-3 py-2 text-center border-l border-lottie-mist">
+                      Paket A
+                    </th>
                     <th className="px-3 py-2 text-center">Paket B</th>
                     <th className="px-3 py-2 text-center">Paket C</th>
                     {/* Durasi Pembahasan */}
-                    <th className="px-3 py-2 text-center border-l border-lottie-mist">Paket A</th>
+                    <th className="px-3 py-2 text-center border-l border-lottie-mist">
+                      Paket A
+                    </th>
                     <th className="px-3 py-2 text-center">Paket B</th>
                     {/* Emosi */}
-                    <th className="px-3 py-2 text-center border-l border-lottie-mist">Paket A</th>
+                    <th className="px-3 py-2 text-center border-l border-lottie-mist">
+                      Paket A
+                    </th>
                     <th className="px-3 py-2 text-center">Paket B</th>
                     <th className="px-3 py-2 text-center">Paket C</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-lottie-mist bg-white">
                   {progressTable.remedial.rows.map((row) => (
-                    <tr key={row.questionId} className="hover:bg-lottie-pearl/30 transition-colors">
-                      <td className="px-3 py-3 text-center font-medium text-lottie-zinc-600">{row.questionNumber}</td>
+                    <tr
+                      key={row.questionId}
+                      className="hover:bg-lottie-pearl/30 transition-colors"
+                    >
+                      <td className="px-3 py-3 text-center font-medium text-lottie-zinc-600">
+                        {row.questionNumber}
+                      </td>
 
                       {/* Jawaban */}
                       <td className="px-3 py-3 text-center border-l border-lottie-mist">
@@ -599,7 +809,8 @@ function DiagnosticAccordionContent({ moduleId, studentId }: IDiagnosticAccordio
               </table>
             </div>
             <p className="text-[10px] text-lottie-zinc-500">
-              * Durasi A/B bertanda bintang (*) merupakan estimasi berdasarkan selisih waktu pengerjaan soal paket berikutnya (historical data).
+              * Durasi A/B bertanda bintang (*) merupakan estimasi berdasarkan
+              selisih waktu pengerjaan soal paket berikutnya (historical data).
             </p>
           </div>
         ) : (
@@ -628,7 +839,12 @@ interface IDiagnosticAccordionItemProps {
   onToggle: () => void;
 }
 
-function DiagnosticAccordionItem({ module, studentId, isOpen, onToggle }: IDiagnosticAccordionItemProps) {
+function DiagnosticAccordionItem({
+  module,
+  studentId,
+  isOpen,
+  onToggle,
+}: IDiagnosticAccordionItemProps) {
   const [hasOpened, setHasOpened] = useState(isOpen);
 
   useEffect(() => {
@@ -637,36 +853,72 @@ function DiagnosticAccordionItem({ module, studentId, isOpen, onToggle }: IDiagn
     }
   }, [isOpen]);
 
-  const testName = module.testName || module.diagnosticTest?.testName || "Tes Diagnostik";
+  const testName =
+    module.testName || module.diagnosticTest?.testName || "Tes Diagnostik";
 
   return (
     <div
       className={cn(
         "border rounded-2xl overflow-hidden bg-white shadow-xs transition-all duration-300",
-        isOpen ? "border-lottie-teal/40 ring-1 ring-lottie-teal/10" : "border-lottie-mist"
+        isOpen
+          ? "border-lottie-teal/40 ring-1 ring-lottie-teal/10"
+          : "border-lottie-mist",
       )}
     >
       <button
         onClick={onToggle}
         className={cn(
           "w-full flex items-center justify-between p-4 text-left font-semibold text-sm transition-all duration-300",
-          isOpen ? "bg-lottie-teal/5 text-lottie-teal" : "bg-white text-lottie-midnight hover:bg-lottie-pearl/50"
+          isOpen
+            ? "bg-lottie-teal/5 text-lottie-teal"
+            : "bg-white text-lottie-midnight hover:bg-lottie-pearl/50",
         )}
       >
         <div className="flex items-center gap-2.5">
-          <span className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-lg transition-colors duration-300",
-            isOpen ? "bg-lottie-teal/15 text-lottie-teal" : "bg-lottie-zinc-100 text-lottie-zinc-500"
-          )}>
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          <span
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-lg transition-colors duration-300",
+              isOpen
+                ? "bg-lottie-teal/15 text-lottie-teal"
+                : "bg-lottie-zinc-100 text-lottie-zinc-500",
+            )}
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
             </svg>
           </span>
           <span>{testName}</span>
         </div>
-        <span className={cn("transform transition-transform duration-300", isOpen ? "rotate-180 text-lottie-teal" : "rotate-0 text-lottie-zinc-400")}>
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        <span
+          className={cn(
+            "transform transition-transform duration-300",
+            isOpen
+              ? "rotate-180 text-lottie-teal"
+              : "rotate-0 text-lottie-zinc-400",
+          )}
+        >
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </span>
       </button>
@@ -682,10 +934,15 @@ function DiagnosticAccordionItem({ module, studentId, isOpen, onToggle }: IDiagn
           <div
             className={cn(
               "p-4 sm:p-5 border-t border-lottie-mist bg-white transition-all duration-300",
-              isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95"
+              isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95",
             )}
           >
-            {hasOpened && <DiagnosticAccordionContent moduleId={module.id || (module as any).courseModuleId} studentId={studentId} />}
+            {hasOpened && (
+              <DiagnosticAccordionContent
+                moduleId={module.id || (module as any).courseModuleId}
+                studentId={studentId}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -705,58 +962,60 @@ export default function ClassLADPageTemplate({
   backLabel,
 }: IClassLADPageTemplateProps) {
   // Parent Mode
-  const { data: course, isLoading: isCourseSlugLoading } = useGsCourseBySlug(slug);
+  const { data: course, isLoading: isCourseSlugLoading } =
+    useGsCourseBySlug(slug);
   const resolvedCourseId = course?.id || courseId || "";
 
-  const { data: childCourseDetail, isLoading: isChildLoading } = useGsChildCourseDetail(
-    studentId || "",
-    resolvedCourseId
-  );
+  const { data: childCourseDetail, isLoading: isChildLoading } =
+    useGsChildCourseDetail(studentId || "", resolvedCourseId);
 
   // Student Mode (Self)
-  const { data: studentDashboard, isLoading: isStudentLoading } = useStudentDashboard(
-    resolvedCourseId,
-    { enabled: !studentId && !!resolvedCourseId }
-  );
-
+  const { data: studentDashboard, isLoading: isStudentLoading } =
+    useStudentDashboard(resolvedCourseId, {
+      enabled: !studentId && !!resolvedCourseId,
+    });
 
   // Perbaikan: Menambahkan parameter opsi { enabled: !!resolvedCourseId } agar menunggu ID didapatkan dari slug
 
-  const { data: courseSummary, isPending: courseSummaryPending, error: courseSummaryError } = useCourseSummary(
-    resolvedCourseId,
-    studentId,
-  );
-  const { data: emotionDistribution, isPending: emotionDistributionPending, error: emotionDistributionError } = useEmotionDistribution(
-    resolvedCourseId,
-    studentId,
-  );
-  const { data: studyTimeByModule, isPending: studyTimeByModulePending, error: studyTimeByModuleError } = useStudyTimeByModule(
-    resolvedCourseId,
-    studentId,
-  );
+  const {
+    data: courseSummary,
+    isPending: courseSummaryPending,
+    error: courseSummaryError,
+  } = useCourseSummary(resolvedCourseId, studentId);
+  const {
+    data: emotionDistribution,
+    isPending: emotionDistributionPending,
+    error: emotionDistributionError,
+  } = useEmotionDistribution(resolvedCourseId, studentId);
+  const {
+    data: studyTimeByModule,
+    isPending: studyTimeByModulePending,
+    error: studyTimeByModuleError,
+  } = useStudyTimeByModule(resolvedCourseId, studentId);
 
   const [activityPage, setActivityPage] = useState(1);
   const ACTIVITY_LIMIT = 5;
 
-  const { data: activityLogsData, isPending: activityLogsPending } = useActivityLogs(
-    resolvedCourseId,
-    studentId,
-    activityPage,
-    ACTIVITY_LIMIT,
-  );
+  const { data: activityLogsData, isPending: activityLogsPending } =
+    useActivityLogs(resolvedCourseId, studentId, activityPage, ACTIVITY_LIMIT);
 
   // Load course modules to locate diagnostic test module IDs
-  const { data: modules, isLoading: isModulesLoading } = useGsModulesByCourse(resolvedCourseId);
+  const { data: modules, isLoading: isModulesLoading } =
+    useGsModulesByCourse(resolvedCourseId);
 
   const diagnosticModules = useMemo(() => {
     return (modules || []).filter((m) => m.type === "DIAGNOSTIC_TEST");
   }, [modules]);
 
-  const [expandedDiagnosticId, setExpandedDiagnosticId] = useState<string | null>(null);
+  const [expandedDiagnosticId, setExpandedDiagnosticId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (diagnosticModules.length > 0 && expandedDiagnosticId === null) {
-      setExpandedDiagnosticId(diagnosticModules[0].id || (diagnosticModules[0] as any).courseModuleId);
+      setExpandedDiagnosticId(
+        diagnosticModules[0].id || (diagnosticModules[0] as any).courseModuleId,
+      );
     }
   }, [diagnosticModules, expandedDiagnosticId]);
 
@@ -770,8 +1029,10 @@ export default function ClassLADPageTemplate({
     activityLogsPending ||
     isModulesLoading;
 
-  const classTitle = childCourseDetail?.course.courseName || studentDashboard?.courseName || formatClassTitleFromSlug(slug);
-
+  const classTitle =
+    childCourseDetail?.course.courseName ||
+    studentDashboard?.courseName ||
+    formatClassTitleFromSlug(slug);
 
   const studentName = studentNameProp;
   const ladTitle = studentId ? `LAD – ${studentName}` : `LAD – ${classTitle}`;
@@ -779,14 +1040,30 @@ export default function ClassLADPageTemplate({
   const resolvedBackLabel = backLabel ?? "← Kembali ke Beranda Kelas";
 
   const progressPercent = studentId
-    ? (childCourseDetail?.totalSubjectModules ? Math.round((childCourseDetail.completedSubjectModules / childCourseDetail.totalSubjectModules) * 100) : 0)
-    : studentDashboard?.progressPercent;
+    ? childCourseDetail?.totalSubjectModules
+      ? Math.round(
+          (childCourseDetail.completedSubjectModules /
+            childCourseDetail.totalSubjectModules) *
+            100,
+        )
+      : 0
+    : (studentDashboard?.progressPercent ??
+       (studentDashboard as any)?.progress_percent ??
+       (studentDashboard as any)?.progress ??
+       (studentDashboard as any)?.averageProgress ??
+       (studentDashboard as any)?.average_progress ??
+       0);
 
   const scoreTrendData = studentId
-    ? (childCourseDetail?.diagnosticResults || []).map(d => ({
-      date: new Date(d.completedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
-      nilai: d.score
-    })).reverse()
+    ? (childCourseDetail?.diagnosticResults || [])
+        .map((d) => ({
+          date: new Date(d.completedAt).toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "short",
+          }),
+          nilai: d.score,
+        }))
+        .reverse()
     : SCORE_TREND_DATA;
 
   const totalMs = courseSummary?.totalStudyTimeMs || 0;
@@ -796,7 +1073,9 @@ export default function ClassLADPageTemplate({
   const stringTotalWaktu = hours > 0 ? `${hours}j ${minutes}m` : `${minutes}m`;
 
   const rawStudyTimeList = studyTimeByModule
-    ? (Array.isArray(studyTimeByModule) ? studyTimeByModule : studyTimeByModule.data)
+    ? Array.isArray(studyTimeByModule)
+      ? studyTimeByModule
+      : studyTimeByModule.data
     : [];
 
   const barChartData = rawStudyTimeList.map((item) => ({
@@ -857,9 +1136,7 @@ export default function ClassLADPageTemplate({
 
         {/* Card 3: Materi Selesai */}
         <LADMetricCard
-          value={
-            `${courseSummary?.completedMaterials || 0}/${courseSummary?.totalMaterials || 0}`
-          }
+          value={`${courseSummary?.completedMaterials || 0}/${courseSummary?.totalMaterials || 0}`}
           label={"Materi Selesai"}
           sub={"Modul dibaca"}
           icon={TrophyIcon}
@@ -870,7 +1147,9 @@ export default function ClassLADPageTemplate({
         {/* Card 4: Peringkat */}
         <LADMetricCard
           value={
-            (studentDashboard?.enrolledCount ? `#${studentDashboard.enrolledCount}` : "-")
+            studentDashboard?.enrolledCount
+              ? `#${studentDashboard.enrolledCount}`
+              : "-"
           }
           label={"Peringkat"}
           sub={"Status kelas"}
@@ -885,8 +1164,18 @@ export default function ClassLADPageTemplate({
         title="Progres Tes Diagnostik & Remedial"
         subtitle="Detail pengerjaan soal diagnostik dan tabel progress remedial siswa"
         icon={
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+            />
           </svg>
         }
       >
@@ -905,7 +1194,9 @@ export default function ClassLADPageTemplate({
                   studentId={studentId}
                   isOpen={expandedDiagnosticId === mId}
                   onToggle={() => {
-                    setExpandedDiagnosticId((prev) => (prev === mId ? null : mId));
+                    setExpandedDiagnosticId((prev) =>
+                      prev === mId ? null : mId,
+                    );
                   }}
                 />
               );
@@ -915,8 +1206,8 @@ export default function ClassLADPageTemplate({
       </SectionCard>
 
       {/* ---- Emotion Charts ---- */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <SectionCard
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
+        {/* <SectionCard
           title="Emosi saat Membaca Materi"
           icon={
             <svg
@@ -935,13 +1226,13 @@ export default function ClassLADPageTemplate({
         >
           <LADDonutChart
             segments={mapDistributionToSegments(
-              emotionDistribution?.moduleLearning?.distribution
+              emotionDistribution?.moduleLearning?.distribution,
             )}
           />
-        </SectionCard>
+        </SectionCard> */}
 
         <SectionCard
-          title="Emosi saat Tes Diagnostik"
+          title="Emosi Saat Menjawab Remedial"
           icon={
             <svg
               viewBox="0 0 20 20"
@@ -959,7 +1250,7 @@ export default function ClassLADPageTemplate({
         >
           <LADDonutChart
             segments={mapDistributionToSegments(
-              emotionDistribution?.remedial?.distribution
+              emotionDistribution?.remedial?.distribution,
             )}
           />
         </SectionCard>
@@ -982,13 +1273,14 @@ export default function ClassLADPageTemplate({
                 className="flex items-center justify-between text-sm"
               >
                 <span className="text-lottie-zinc-600">{item.label}</span>
-                <span className="font-semibold text-amber-600">{item.time}</span>
+                <span className="font-semibold text-amber-600">
+                  {item.time}
+                </span>
               </div>
             ))}
           </div>
         )}
       </SectionCard>
-
 
       {/* ---- Activity Logs Section ---- */}
       <SectionCard
@@ -1022,10 +1314,15 @@ export default function ClassLADPageTemplate({
           <div className="space-y-4">
             <div className="divide-y divide-lottie-mist/50">
               {activityLogsData.logs.map((log) => (
-                <div key={log.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                <div
+                  key={log.id}
+                  className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
+                >
                   {getLogIcon(log.action)}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-lottie-midnight">{renderLogMessage(log)}</div>
+                    <div className="text-sm text-lottie-midnight">
+                      {renderLogMessage(log)}
+                    </div>
                     <p className="mt-0.5 text-xs text-lottie-zinc-500">
                       {formatLogDate(log.createdAt)}
                     </p>
@@ -1034,27 +1331,38 @@ export default function ClassLADPageTemplate({
               ))}
             </div>
 
-            {activityLogsData.pagination && activityLogsData.pagination.totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between border-t border-lottie-mist/50 pt-4">
-                <button
-                  onClick={() => setActivityPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={!activityLogsData.pagination.hasPrevPage}
-                  className="rounded-xl border border-lottie-mist bg-white px-3 py-1.5 text-xs font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed"
-                >
-                  Sebelumnya
-                </button>
-                <span className="text-xs text-lottie-zinc-500">
-                  Halaman {activityLogsData.pagination.currentPage} dari {activityLogsData.pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => setActivityPage((prev) => Math.min(prev + 1, activityLogsData.pagination.totalPages))}
-                  disabled={!activityLogsData.pagination.hasNextPage}
-                  className="rounded-xl border border-lottie-mist bg-white px-3 py-1.5 text-xs font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed"
-                >
-                  Selanjutnya
-                </button>
-              </div>
-            )}
+            {activityLogsData.pagination &&
+              activityLogsData.pagination.totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between border-t border-lottie-mist/50 pt-4">
+                  <button
+                    onClick={() =>
+                      setActivityPage((prev) => Math.max(prev - 1, 1))
+                    }
+                    disabled={!activityLogsData.pagination.hasPrevPage}
+                    className="rounded-xl border border-lottie-mist bg-white px-3 py-1.5 text-xs font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Sebelumnya
+                  </button>
+                  <span className="text-xs text-lottie-zinc-500">
+                    Halaman {activityLogsData.pagination.currentPage} dari{" "}
+                    {activityLogsData.pagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setActivityPage((prev) =>
+                        Math.min(
+                          prev + 1,
+                          activityLogsData.pagination.totalPages,
+                        ),
+                      )
+                    }
+                    disabled={!activityLogsData.pagination.hasNextPage}
+                    className="rounded-xl border border-lottie-mist bg-white px-3 py-1.5 text-xs font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl disabled:opacity-40 disabled:hover:bg-white cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Selanjutnya
+                  </button>
+                </div>
+              )}
           </div>
         )}
       </SectionCard>

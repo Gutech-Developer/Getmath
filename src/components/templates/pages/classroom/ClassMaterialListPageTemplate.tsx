@@ -264,7 +264,14 @@ export default function ClassMaterialListPageTemplate({
   // Memakai asumsi modul diagnostik belum tercatat sebagai 'read', namun subjectModuleTotal bisa digunakan.
   // Jika diagnostic dihitung ke total:
   const displayTotalModules = studentDashboard ? studentDashboard.subjectModuleTotal + studentDashboard.diagnosticTestTotal : totalModules;
-  const displayProgress = studentDashboard ? studentDashboard.progressPercent : overallProgress;
+  const displayProgress = studentDashboard
+    ? (studentDashboard.progressPercent ??
+       (studentDashboard as any).progress_percent ??
+       (studentDashboard as any).progress ??
+       (studentDashboard as any).averageProgress ??
+       (studentDashboard as any).average_progress ??
+       0)
+    : overallProgress;
 
   const filteredModules = searchQuery.trim()
     ? modules.filter(

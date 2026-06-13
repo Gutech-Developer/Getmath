@@ -55,6 +55,15 @@ export default function ClassDashboardPageTemplate({
     enabled: !!course?.id,
   });
 
+  const progressPercent = dashboardMetrics
+    ? (dashboardMetrics.progressPercent ??
+       (dashboardMetrics as any).progress_percent ??
+       (dashboardMetrics as any).progress ??
+       (dashboardMetrics as any).averageProgress ??
+       (dashboardMetrics as any).average_progress ??
+       0)
+    : 0;
+
   const courseName = course?.courseName ?? classTitle;
   const courseCode = course?.courseCode ?? "–";
   const totalStudents = course?.enrolledCount ?? 0;
@@ -112,7 +121,7 @@ export default function ClassDashboardPageTemplate({
       },
       {
         key: "metric-progress",
-        value: dashboardMetrics ? `${dashboardMetrics.progressPercent}%` : "–",
+        value: dashboardMetrics ? `${progressPercent}%` : "–",
         label: "Rata-rata Nilai",
         hint: "Lihat LAD lengkapmu",
         routeKey: "lad",
@@ -160,12 +169,12 @@ export default function ClassDashboardPageTemplate({
         <div className="relative z-10 mt-5">
           <div className="flex items-center justify-between text-xs font-medium text-white/85">
             <span>Progres keseluruhan</span>
-            <span>{dashboardMetrics?.progressPercent ?? 0}%</span>
+            <span>{progressPercent}%</span>
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/20">
             <div
               className="h-full rounded-full bg-[#DCE3FF] transition-all duration-500"
-              style={{ width: `${dashboardMetrics?.progressPercent ?? 0}%` }}
+              style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>

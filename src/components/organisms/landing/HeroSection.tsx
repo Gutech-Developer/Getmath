@@ -24,67 +24,82 @@ export default function HeroSection() {
     return () => clearInterval(interval);
   }, []);
 
-  useGSAP(() => {
-    // Create entrance timeline
-    const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+  useGSAP(
+    () => {
+      // Create entrance timeline
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-    tl.from(".hero-text-animate", {
-      y: 35,
-      opacity: 0,
-      duration: 0.8,
-      stagger: 0.12,
-    });
+      tl.from(".hero-text-animate", {
+        y: 35,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.12,
+      });
 
-    tl.from(".hero-mockup-animate", {
-      scale: 0.95,
-      y: 45,
-      opacity: 0,
-      duration: 1.1,
-      ease: "power2.out",
-    }, "-=0.6");
+      tl.from(
+        ".hero-mockup-animate",
+        {
+          scale: 0.95,
+          y: 45,
+          opacity: 0,
+          duration: 1.1,
+          ease: "power2.out",
+        },
+        "-=0.6",
+      );
 
-    // Draw SVG brush strokes
-    tl.to(".hero-brush-1", {
-      strokeDashoffset: 0,
-      duration: 1.2,
-      ease: "power1.inOut",
-    }, "-=0.5");
+      // Draw SVG brush strokes
+      tl.to(
+        ".hero-brush-1",
+        {
+          strokeDashoffset: 0,
+          duration: 1.2,
+          ease: "power1.inOut",
+        },
+        "-=0.5",
+      );
 
-    tl.to([".hero-brush-2", ".hero-brush-3"], {
-      strokeDashoffset: 0,
-      duration: 0.8,
-      stagger: 0.15,
-      ease: "power1.inOut",
-    }, "-=0.9");
+      tl.to(
+        [".hero-brush-2", ".hero-brush-3"],
+        {
+          strokeDashoffset: 0,
+          duration: 0.8,
+          stagger: 0.15,
+          ease: "power1.inOut",
+        },
+        "-=0.9",
+      );
 
-    // Floating animations
-    gsap.to(".hero-float-1", {
-      y: "-=12",
-      rotation: 6,
-      duration: 4,
-      repeat: -1,
-      yoyo: true,
-      ease: "sine.inOut",
-    });
+      // Floating animations
+      gsap.to(".hero-float-1", {
+        y: "-=12",
+        rotation: 6,
+        duration: 4,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
 
-    gsap.to(".hero-float-2", {
-      y: "+=15",
-      rotation: -5,
-      duration: 5,
-      repeat: -1,
-      yoyo: true,
-      ease: "sine.inOut",
-    });
+      gsap.to(".hero-float-2", {
+        y: "+=15",
+        rotation: -5,
+        duration: 5,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
 
-    gsap.to(".hero-float-3", {
-      y: "-=10",
-      rotation: 8,
-      duration: 3.5,
-      repeat: -1,
-      yoyo: true,
-      ease: "sine.inOut",
-    });
-  }, { scope: heroRef });
+      gsap.to(".hero-float-3", {
+        y: "-=10",
+        rotation: 8,
+        duration: 3.5,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
+    },
+    { scope: heroRef },
+  );
 
   // Determine heights and labels based on the active mode
   const getGraphData = () => {
@@ -121,7 +136,10 @@ export default function HeroSection() {
   const days = ["Sen", "Sel", "Rab", "Kam", "Jum"];
 
   return (
-    <section ref={heroRef} className="relative w-full min-h-svh overflow-hidden bg-[#ededed] math-grid-bg pt-28 pb-20 md:pt-36 md:pb-32">
+    <section
+      ref={heroRef}
+      className="relative w-full min-h-svh overflow-hidden bg-[#ededed] math-grid-bg pt-28 pb-20 md:pt-36 md:pb-32"
+    >
       {/* Playful background vector elements - Full screen coverage */}
 
       {/* Hand-drawn star doodle in the left margin */}
@@ -237,7 +255,7 @@ export default function HeroSection() {
           {/* Call to Actions */}
           <div className="flex flex-wrap gap-3 w-full sm:w-auto mt-2 hero-text-animate">
             <Link
-              href="/register"
+              href="/login"
               className="inline-flex h-12 items-center justify-center rounded-2xl bg-lottie-teal px-6 text-sm font-medium text-white transition-all hover:bg-lottie-teal/90 hover:shadow-[rgba(31,35,117,0.3)_0px_8px_16px_0px] active:scale-[0.98] shadow-[rgba(31,35,117,0.2)_0px_4px_12px_0px]"
             >
               Mulai Belajar Gratis
@@ -254,12 +272,6 @@ export default function HeroSection() {
                   d="M9 5l7 7-7 7"
                 />
               </svg>
-            </Link>
-            <Link
-              href="#cara-kerja"
-              className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/50 bg-white/40 px-6 text-sm font-medium text-lottie-midnight transition-colors hover:bg-white/80 active:scale-[0.98] backdrop-blur-sm"
-            >
-              Lihat Demo
             </Link>
           </div>
         </div>
