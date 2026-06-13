@@ -14,6 +14,7 @@ import {
   useGsDiagnosticTestById,
   useGsUploadFile,
   useGsDeleteFile,
+  useGsAssignDiagnosticTestToTeacher,
 } from "@/services";
 import SearchableInput from "@/components/atoms/SearchableInput";
 import type { GsDiagnosticTest } from "@/types/gs-diagnostic-test";
@@ -66,73 +67,28 @@ function latexTextToTiptapHtml(text: string): string {
     return text;
   }
 
-  if (typeof window !== "undefined") {
-    try {
-      const parser = new DOMParser();
-      const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(text);
-      const parsedText = hasHtmlTags ? text : text.split("\n").map(l => `<p>${l || "<br>"}</p>`).join("");
-      
-      const doc = parser.parseFromString(parsedText, "text/html");
-      const walk = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
-      let textNode = walk.nextNode();
-      const nodesToReplace: { node: Node; replacement: DocumentFragment }[] = [];
-      
-      while (textNode) {
-        const content = textNode.textContent ?? "";
-        if (content.includes("$")) {
-          const fragment = doc.createDocumentFragment();
-          const parts = content.split(/(\$\$(?:[^$]|\$[^\n$])+\$\$|\$(?:[^$\n])+\$)/g);
-          
-          parts.forEach((part) => {
-            if (/^\$\$(?:[^$]|\$[^\n$])+\$\$$/.test(part)) {
-              const latex = part.slice(2, -2);
-              const span = doc.createElement("span");
-              span.setAttribute("data-type", "block-math");
-              span.setAttribute("data-latex", latex);
-              fragment.appendChild(span);
-            } else if (/^\$(?:[^$\n])+\$$/.test(part)) {
-              const latex = part.slice(1, -1);
-              const span = doc.createElement("span");
-              span.setAttribute("data-type", "inline-math");
-              span.setAttribute("data-latex", latex);
-              fragment.appendChild(span);
-            } else if (part) {
-              fragment.appendChild(doc.createTextNode(part));
-            }
-          });
-          nodesToReplace.push({ node: textNode, replacement: fragment });
-        }
-        textNode = walk.nextNode();
-      }
-      
-      nodesToReplace.forEach(({ node, replacement }) => {
-        node.parentNode?.replaceChild(replacement, node);
-      });
-      
-      return doc.body.innerHTML;
-    } catch (e) {
-      console.error("DOMParser parsing failed:", e);
-    }
-  }
-
-  const lines = text.split("\n").map((line) => {
-    const parts = line.split(/(\$[^$\n]+\$)/g);
-    const lineHtml = parts
-      .map((part) => {
-        if (/^\$[^$\n]+\$$/.test(part)) {
-          const latex = part.slice(1, -1).replace(/"/g, "&quot;");
-          return `<span data-type="inline-math" data-latex="${latex}"></span>`;
-        }
-        return part
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-      })
-      .join("");
-    return line.includes("<p>") ? lineHtml : `<p>${lineHtml || "<br>"}</p>`;
+  // 1. Convert block math $$...$$ to <div data-type="block-math" data-latex="..."></div>
+  let parsed = text.replace(/\$\$((?:[^$]|\$[^\n$])+)\$\$/g, (_, latex) => {
+    const cleanLatex = latex.replace(/"/g, "&quot;");
+    return `<div data-type="block-math" data-latex="${cleanLatex}"></div>`;
   });
   
-  return lines.join("");
+  // 2. Convert inline math $...$ to <span data-type="inline-math" data-latex="..."></span>
+  parsed = parsed.replace(/\$([^$\n]+)\$/g, (_, latex) => {
+    const cleanLatex = latex.replace(/"/g, "&quot;");
+    return `<span data-type="inline-math" data-latex="${cleanLatex}"></span>`;
+  });
+
+  // 3. Wrap plain text blocks in <p> tags if no HTML wrapper tags exist
+  const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(text);
+  if (!hasHtmlTags) {
+    parsed = parsed
+      .split("\n")
+      .map((line) => `<p>${line || "<br>"}</p>`)
+      .join("");
+  }
+  
+  return parsed;
 }
 
 function tiptapHtmlToLatexHtml(html: string): string {
@@ -218,6 +174,7 @@ export default function TeacherCreateDiagnosticContent({
     useGsDiagnosticTestById(editId ?? "");
   const createMutation = useGsCreateDiagnosticTest();
   const updateMutation = useGsUpdateDiagnosticTest();
+  const assignDiagnosticTestMutation = useGsAssignDiagnosticTestToTeacher();
   const uploadMutation = useGsUploadFile();
   const deleteMutation = useGsDeleteFile();
 
@@ -403,6 +360,9 @@ export default function TeacherCreateDiagnosticContent({
     }
 
     if (isEditing && editId) {
+      const initialTeacherId = existingTest?.teacherId ?? "";
+      const shouldAssignTeacher = role === "admin" && teacherId && teacherId !== initialTeacherId;
+
       updateMutation.mutate(
         {
           id: editId,
@@ -417,8 +377,24 @@ export default function TeacherCreateDiagnosticContent({
         },
         {
           onSuccess: () => {
-            showToast.success("Tes diagnostik berhasil diperbarui");
-            router.push(`${basePath}/manage-diagnostics`);
+            if (shouldAssignTeacher) {
+              assignDiagnosticTestMutation.mutate(
+                { diagnosticTestId: editId, teacherId: teacherId },
+                {
+                  onSuccess: () => {
+                    showToast.success("Tes diagnostik dan guru pengampu berhasil diperbarui");
+                    router.push(`${basePath}/manage-diagnostics`);
+                  },
+                  onError: (err) => {
+                    showToast.error(err.message ?? "Tes diagnostik diperbarui, tetapi gagal mengubah guru pengampu");
+                    router.push(`${basePath}/manage-diagnostics`);
+                  },
+                }
+              );
+            } else {
+              showToast.success("Tes diagnostik berhasil diperbarui");
+              router.push(`${basePath}/manage-diagnostics`);
+            }
           },
           onError: () => showToast.error("Gagal memperbarui tes diagnostik"),
         },

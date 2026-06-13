@@ -49,12 +49,7 @@ function ProfileCard({
   className?: string;
 }) {
   return (
-    <article
-      className={cn(
-        "getmath-card p-5 sm:p-7",
-        className,
-      )}
-    >
+    <article className={cn("getmath-card p-5 sm:p-7", className)}>
       {children}
     </article>
   );
@@ -118,7 +113,7 @@ export default function UserProfileContent({
         onError: (err) => {
           showToast.error(err.message || "Gagal memperbarui profil");
         },
-      }
+      },
     );
   };
 
@@ -225,27 +220,6 @@ export default function UserProfileContent({
           ) : null}
         </ProfileCard>
 
-        <ProfileCard>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className=" text-xl font-normal tracking-[-0.02em] text-lottie-teal">
-                Keamanan Akun
-              </h2>
-              <p className="mt-1 text-sm text-lottie-zinc-500">
-                {securityDescription}
-              </p>
-            </div>
-
-            <ProfileActionButton
-              variant="warm"
-              onClick={onChangePassword}
-              icon={<ShieldIcon className="h-4 w-4" />}
-            >
-              {passwordLabel}
-            </ProfileActionButton>
-          </div>
-        </ProfileCard>
-
         <button
           type="button"
           onClick={onLogout}
@@ -306,7 +280,9 @@ export default function UserProfileContent({
               className="px-5 py-2.5 rounded-xl bg-[#1F2375] text-white text-sm font-semibold hover:bg-[#171B5A] transition disabled:opacity-50"
               disabled={updateProfileMutation.isPending}
             >
-              {updateProfileMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+              {updateProfileMutation.isPending
+                ? "Menyimpan..."
+                : "Simpan Perubahan"}
             </button>
           </div>
         </form>

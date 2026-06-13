@@ -13,6 +13,7 @@ import {
   useGsCreateSubject,
   useGsUpdateSubject,
   useGsDeleteSubject,
+  useGsAssignSubjectToTeacher,
 } from "@/services";
 import { TablePagination } from "@/components/molecules/table";
 import SearchableInput from "@/components/atoms/SearchableInput";
@@ -252,8 +253,10 @@ function SubjectModal({
     if (isOpen) {
       if (initialTeacherName) {
         setTeacherSearchInput(initialTeacherName);
+        setDebouncedTeacherQuery(initialTeacherName);
       } else {
         setTeacherSearchInput("");
+        setDebouncedTeacherQuery("");
       }
     }
   }, [isOpen, initialTeacherName]);
@@ -269,6 +272,21 @@ function SubjectModal({
       }
     }
   }, [isOpen, initialTeacherName, userData, form.teacherId, onChange]);
+
+  // KUNCI PERBAIKAN: Jika form.teacherId tersedia tetapi nama guru (teacherSearchInput) kosong,
+  // cari nama guru secara otomatis dari list users yang ter-load.
+  useEffect(() => {
+    if (isOpen && form.teacherId && userData?.users && !teacherSearchInput) {
+      const matchedTeacher = userData.users.find(
+        (u) => u.profileId === form.teacherId,
+      );
+      if (matchedTeacher) {
+        setTeacherSearchInput(matchedTeacher.fullName);
+        setDebouncedTeacherQuery(matchedTeacher.fullName);
+        onChange({ teacherName: matchedTeacher.fullName });
+      }
+    }
+  }, [isOpen, form.teacherId, userData, teacherSearchInput, onChange]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -495,6 +513,7 @@ export default function TeacherManageMaterialContent({
   const createSubject = useGsCreateSubject();
   const updateSubject = useGsUpdateSubject();
   const deleteSubject = useGsDeleteSubject();
+  const assignSubject = useGsAssignSubjectToTeacher();
 
   const subjects = subjectsData?.subjects ?? [];
 
@@ -600,12 +619,32 @@ export default function TeacherManageMaterialContent({
         eLKPDFileUrl: form.elkpdFileUrl.trim() || null,
       };
 
+      const originalSubject = subjects.find((x) => x.id === editingSubjectId) as any;
+      const initialTeacherId = originalSubject?.teacherId ?? "";
+      const shouldAssignTeacher = role === "admin" && form.teacherId && form.teacherId !== initialTeacherId;
+
       updateSubject.mutate(
         { id: editingSubjectId, data: updatePayload },
         {
           onSuccess: () => {
-            showToast.success("Materi berhasil diperbarui");
-            closeModal();
+            if (shouldAssignTeacher) {
+              assignSubject.mutate(
+                { subjectId: editingSubjectId, teacherId: form.teacherId! },
+                {
+                  onSuccess: () => {
+                    showToast.success("Materi dan guru pengampu berhasil diperbarui");
+                    closeModal();
+                  },
+                  onError: (err) => {
+                    showToast.error(err.message ?? "Materi diperbarui, tetapi gagal mengubah guru pengampu");
+                    closeModal();
+                  },
+                }
+              );
+            } else {
+              showToast.success("Materi berhasil diperbarui");
+              closeModal();
+            }
           },
           onError: (err) =>
             showToast.error(err.message ?? "Gagal memperbarui materi"),

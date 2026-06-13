@@ -1,8 +1,9 @@
 const IS_DEV = process.env.NODE_ENV === "development";
+const LOGGING_ENABLED = IS_DEV || process.env.GS_LOGGING_ENABLED === "true";
 
 export const gsLogger = {
   request: (method: string, endpoint: string, headers: any, payload?: any) => {
-    if (!IS_DEV) return;
+    if (!LOGGING_ENABLED) return;
 
     console.log(` [GS API REQUEST] [${method}] ${endpoint}`);
     console.dir(
@@ -15,7 +16,7 @@ export const gsLogger = {
   },
 
   response: (method: string, endpoint: string, status: number, data: any) => {
-    if (!IS_DEV) return;
+    if (!LOGGING_ENABLED) return;
 
     const icon = status >= 200 && status < 300 ? "[Success]" : "[Failed]";
     console.log(
@@ -25,7 +26,7 @@ export const gsLogger = {
   },
 
   info: (message: string, detail?: any) => {
-    if (!IS_DEV) return;
+    if (!LOGGING_ENABLED) return;
     console.log(` [GS INFO] ${message}`, detail ?? "");
   },
 };

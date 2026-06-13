@@ -4,6 +4,7 @@
  */
 
 export * from "./hooks/useClassForum";
+export * from "./hooks/useGsAdmin";
 export * from "./hooks/useGsAuth";
 export * from "./hooks/useGsCourse";
 export * from "./hooks/useGsCourseEnrollment";

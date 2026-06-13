@@ -14,6 +14,7 @@ import {
   useGsRemedialTestById,
   useGsUploadFile,
   useGsDeleteFile,
+  useGsAssignRemedialTestToTeacher,
 } from "@/services";
 import SearchableInput from "@/components/atoms/SearchableInput";
 import type { GsRemedialTest, GsRemedialVariant } from "@/types/gs-remedial";
@@ -85,73 +86,28 @@ function latexTextToTiptapHtml(text: string): string {
     return text;
   }
 
-  if (typeof window !== "undefined") {
-    try {
-      const parser = new DOMParser();
-      const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(text);
-      const parsedText = hasHtmlTags ? text : text.split("\n").map(l => `<p>${l || "<br>"}</p>`).join("");
-      
-      const doc = parser.parseFromString(parsedText, "text/html");
-      const walk = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
-      let textNode = walk.nextNode();
-      const nodesToReplace: { node: Node; replacement: DocumentFragment }[] = [];
-      
-      while (textNode) {
-        const content = textNode.textContent ?? "";
-        if (content.includes("$")) {
-          const fragment = doc.createDocumentFragment();
-          const parts = content.split(/(\$\$(?:[^$]|\$[^\n$])+\$\$|\$(?:[^$\n])+\$)/g);
-          
-          parts.forEach((part) => {
-            if (/^\$\$(?:[^$]|\$[^\n$])+\$\$$/.test(part)) {
-              const latex = part.slice(2, -2);
-              const span = doc.createElement("span");
-              span.setAttribute("data-type", "block-math");
-              span.setAttribute("data-latex", latex);
-              fragment.appendChild(span);
-            } else if (/^\$(?:[^$\n])+\$$/.test(part)) {
-              const latex = part.slice(1, -1);
-              const span = doc.createElement("span");
-              span.setAttribute("data-type", "inline-math");
-              span.setAttribute("data-latex", latex);
-              fragment.appendChild(span);
-            } else if (part) {
-              fragment.appendChild(doc.createTextNode(part));
-            }
-          });
-          nodesToReplace.push({ node: textNode, replacement: fragment });
-        }
-        textNode = walk.nextNode();
-      }
-      
-      nodesToReplace.forEach(({ node, replacement }) => {
-        node.parentNode?.replaceChild(replacement, node);
-      });
-      
-      return doc.body.innerHTML;
-    } catch (e) {
-      console.error("DOMParser parsing failed:", e);
-    }
-  }
-
-  const lines = text.split("\n").map((line) => {
-    const parts = line.split(/(\$[^$\n]+\$)/g);
-    const lineHtml = parts
-      .map((part) => {
-        if (/^\$[^$\n]+\$$/.test(part)) {
-          const latex = part.slice(1, -1).replace(/"/g, "&quot;");
-          return `<span data-type="inline-math" data-latex="${latex}"></span>`;
-        }
-        return part
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-      })
-      .join("");
-    return line.includes("<p>") ? lineHtml : `<p>${lineHtml || "<br>"}</p>`;
+  // 1. Convert block math $$...$$ to <div data-type="block-math" data-latex="..."></div>
+  let parsedText = text.replace(/\$\$((?:[^$]|\$[^\n$])+)\$\$/g, (_, latex) => {
+    const cleanLatex = latex.replace(/"/g, "&quot;");
+    return `<div data-type="block-math" data-latex="${cleanLatex}"></div>`;
   });
   
-  return lines.join("");
+  // 2. Convert inline math $...$ to <span data-type="inline-math" data-latex="..."></span>
+  parsedText = parsedText.replace(/\$([^$\n]+)\$/g, (_, latex) => {
+    const cleanLatex = latex.replace(/"/g, "&quot;");
+    return `<span data-type="inline-math" data-latex="${cleanLatex}"></span>`;
+  });
+
+  // 3. Wrap plain text blocks in <p> tags if no HTML wrapper tags exist
+  const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(text);
+  if (!hasHtmlTags) {
+    parsedText = parsedText
+      .split("\n")
+      .map((line) => `<p>${line || "<br>"}</p>`)
+      .join("");
+  }
+  
+  return parsedText;
 }
 
 function tiptapHtmlToLatexHtml(html: string): string {
@@ -282,6 +238,7 @@ export default function TeacherCreateRemedialContent({
   const updateMutation = useGsUpdateRemedialTest();
   const uploadMutation = useGsUploadFile();
   const deleteMutation = useGsDeleteFile();
+  const assignRemedialTestMutation = useGsAssignRemedialTestToTeacher();
 
   const [testTitle, setTestTitle] = useState("");
   const [durationMinutes, setDurationMinutes] = useState("60");
@@ -527,6 +484,9 @@ export default function TeacherCreateRemedialContent({
     }
 
     if (isEditing && editId) {
+      const initialTeacherId = existingTest?.teacherId ?? "";
+      const shouldAssignTeacher = role === "admin" && teacherId && teacherId !== initialTeacherId;
+
       updateMutation.mutate(
         {
           id: editId,
@@ -541,8 +501,24 @@ export default function TeacherCreateRemedialContent({
         },
         {
           onSuccess: () => {
-            showToast.success("Tes remedial berhasil diperbarui");
-            router.push(`${basePath}/manage-remedial`);
+            if (shouldAssignTeacher) {
+              assignRemedialTestMutation.mutate(
+                { remedialTestId: editId, teacherId: teacherId },
+                {
+                  onSuccess: () => {
+                    showToast.success("Tes remedial dan guru pengampu berhasil diperbarui");
+                    router.push(`${basePath}/manage-remedial`);
+                  },
+                  onError: (err) => {
+                    showToast.error(err.message ?? "Tes remedial diperbarui, tetapi gagal mengubah guru pengampu");
+                    router.push(`${basePath}/manage-remedial`);
+                  },
+                }
+              );
+            } else {
+              showToast.success("Tes remedial berhasil diperbarui");
+              router.push(`${basePath}/manage-remedial`);
+            }
           },
           onError: () => showToast.error("Gagal memperbarui tes remedial"),
         },
