@@ -1,10 +1,10 @@
 import type { IDiagnosticQuestion } from "@/types";
 
 export const DIAGNOSTIC_DURATION_SECONDS = 15 * 60;
-export const DIAGNOSTIC_KKM_MINIMUM_SCORE = 75;
 
 export const CAMERA_REQUIREMENTS = [
   "Gunakan perangkat dengan kamera aktif selama tes.",
+
   "Pastikan wajah terlihat jelas dan pencahayaan cukup.",
   "Izinkan browser mengakses kamera sebelum mulai.",
 ];
