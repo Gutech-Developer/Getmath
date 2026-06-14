@@ -37,7 +37,14 @@ services:
     # load-balance round-robin ke semua container yang match service ini.
     # Port TIDAK di-publish ke host — routing via Traefik internal network.
     deploy:
-      replicas: 2
+      replicas: ${FRONTEND_REPLICAS:-2}
+      resources:
+        limits:
+          cpus: '${FRONTEND_CPU_LIMIT:-1.0}'
+          memory: ${FRONTEND_MEM_LIMIT:-1024M}
+        reservations:
+          cpus: '${FRONTEND_CPU_RESERVE:-0.25}'
+          memory: ${FRONTEND_MEM_RESERVE:-256M}
       restart_policy:
         condition: unless-stopped
     expose:
