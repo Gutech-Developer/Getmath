@@ -305,9 +305,9 @@ export const options = {
 export default function () {
   const responses = http.batch([
     ["GET", `${BASE_URL}/`],
-    ["GET", `${BASE_URL}/about-us`],
-    ["GET", `${BASE_URL}/business-and-operations`],
-    ["GET", `${BASE_URL}/investor-relations`],
+    // ["GET", `${BASE_URL}/login`],
+    // ["GET", `${BASE_URL}/register/student`],
+    // ["GET", `${BASE_URL}/register/teacher`],
   ]);
 
   responses.forEach((res) => {
