@@ -332,8 +332,7 @@ export default function TeacherLearningAnalyticsClassContent({
               Siswa: classDetail.studentCount,
               Materi: materials.length,
               "Nilai E-LKPD": elkpdItems.length,
-              "Nilai Test": 0,
-             
+              "Nilai Test": materials.filter((m) => m.type === "Tes").length,
             }}
           />
         </div>
