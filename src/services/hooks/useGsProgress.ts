@@ -434,9 +434,20 @@ export function useSubmitTestAttempt(courseModuleId: string) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsRemediations.all,
       });
-      // Invalidate module list so diagnostic step shows completed/passed in sidebar/list page
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.diagnosticScores(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.remedialScores(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsDashboard.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lad.all,
       });
       gsLogger.info("Test attempt submitted", {
         attemptId: data?.attemptId,
@@ -526,6 +537,18 @@ export function useSubmitRemedialVariant(courseModuleId: string) {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.remedialScores(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.diagnosticScores(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsDashboard.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lad.all,
       });
       // Invalidate remediations list when a remedial attempt is completed
       if (data?.isCompleted) {
@@ -638,6 +661,18 @@ export function useSubmitRemedialBulk(courseModuleId: string) {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.gsCourseModules.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.remedialScores(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsProgress.diagnosticScores(courseModuleId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.gsDashboard.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lad.all,
       });
       if (data?.isPassed !== undefined) {
         queryClient.invalidateQueries({
