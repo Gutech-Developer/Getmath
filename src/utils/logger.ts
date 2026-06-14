@@ -1,5 +1,5 @@
 const IS_DEV = process.env.NODE_ENV === "development";
-const LOGGING_ENABLED = IS_DEV || process.env.GS_LOGGING_ENABLED === "true";
+const LOGGING_ENABLED = IS_DEV;
 
 export const gsLogger = {
   request: (method: string, endpoint: string, headers: any, payload?: any) => {
