@@ -12,7 +12,6 @@ import MathText from "@/components/atoms/MathText";
 import {
   CAMERA_REQUIREMENTS,
   DIAGNOSTIC_DURATION_SECONDS,
-  DIAGNOSTIC_KKM_MINIMUM_SCORE,
   DIAGNOSTIC_RULES,
 } from "@/constant/classDiagnosis";
 import { cn } from "@/libs/utils";
@@ -499,7 +498,7 @@ export default function ClassDiagnosisContentPageTemplate({
   // Scoring comes from the server (submitResult); use 0 as fallback before submit
   const correctCount = submitResult?.correctAnswers ?? 0;
   const scorePercent = submitResult?.score ?? 0;
-  const kkmScore = apiModule?.passingScore ?? DIAGNOSTIC_KKM_MINIMUM_SCORE;
+  const kkmScore = apiModule?.passingScore ?? 0;
   const isPassedKKM = submitResult ? submitResult.isPassed : false;
   const allQuestionsAnswered = answeredCount === diagnosticQuestions.length;
   const completionPercent = Math.round(
@@ -572,7 +571,7 @@ export default function ClassDiagnosisContentPageTemplate({
         attemptId: latestDiagnosticAttempt.attemptId,
         attemptNumber: latestDiagnosticAttempt.attemptNumber,
         score: latestDiagnosticAttempt.score ?? 0,
-        passingScore: apiModule?.passingScore ?? DIAGNOSTIC_KKM_MINIMUM_SCORE,
+        passingScore: apiModule?.passingScore ?? 0,
         isPassed: latestDiagnosticAttempt.isPassed,
         totalQuestions: 0,
         correctAnswers: 0,
@@ -689,6 +688,9 @@ export default function ClassDiagnosisContentPageTemplate({
   };
 
   const handleAutoSubmitRemedial = () => {
+    setReviewView("remedial");
+    setFlowStep("completed");
+
     if (
       !remedialAttemptId ||
       remedialAutoSubmitTriggeredRef.current ||
