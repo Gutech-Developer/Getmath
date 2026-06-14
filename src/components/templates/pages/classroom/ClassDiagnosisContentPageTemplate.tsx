@@ -52,10 +52,58 @@ import EmotionNotification from "@/components/molecules/classroom/EmotionNotific
 
 function extractYoutubeId(url: string): string | null {
   if (!url) return null;
-  const regExp =
-    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  try {
+    const cleanUrl = url.trim();
+    if (cleanUrl.length === 11 && !cleanUrl.includes("/") && !cleanUrl.includes(".")) {
+      return cleanUrl;
+    }
+    const u = new URL(cleanUrl);
+    const host = u.hostname.replace(/^www\./, "").replace(/^m\./, "");
+
+    if (host === "youtu.be") {
+      const id = u.pathname.split("/").filter(Boolean)[0];
+      if (id && id.length === 11) return id;
+    } else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+      if (u.pathname === "/watch") {
+        const id = u.searchParams.get("v");
+        if (id && id.length === 11) return id;
+      } else {
+        const segments = u.pathname.split("/").filter(Boolean);
+        if (
+          ["shorts", "embed", "live", "v"].includes(segments[0]) &&
+          segments[1] &&
+          segments[1].length === 11
+        ) {
+          return segments[1];
+        }
+      }
+    }
+  } catch (e) {
+    // ignore URL parsing error and try regex fallback
+  }
+
+  // Regex fallback
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
-  return match && match[2].length === 11 ? match[2] : null;
+  if (match && match[2].length === 11) {
+    return match[2];
+  }
+
+  // Shorts fallback regex
+  const shortsReg = /youtube\.com\/shorts\/([^#\&\?\/]+)/;
+  const shortsMatch = url.match(shortsReg);
+  if (shortsMatch && shortsMatch[1].length === 11) {
+    return shortsMatch[1];
+  }
+
+  // Live fallback regex
+  const liveReg = /youtube\.com\/live\/([^#\&\?\/]+)/;
+  const liveMatch = url.match(liveReg);
+  if (liveMatch && liveMatch[1].length === 11) {
+    return liveMatch[1];
+  }
+
+  return null;
 }
 
 interface YoutubePlayerProps {
@@ -132,6 +180,10 @@ const YoutubePlayer = React.memo(
       };
 
       const checkAndInit = () => {
+        if (!containerRef.current) {
+          timeoutId = setTimeout(checkAndInit, 100);
+          return;
+        }
         if ((window as any).YT && (window as any).YT.Player) {
           initPlayer();
         } else {
@@ -156,7 +208,7 @@ const YoutubePlayer = React.memo(
 
     return (
       <div className={className ?? "h-full w-full"}>
-        <div ref={containerRef} />
+        <div key={url} ref={containerRef} />
       </div>
     );
   },
@@ -297,11 +349,7 @@ export default function ClassDiagnosisContentPageTemplate({
 
 
   const getYouTubeId = (url: string): string | null => {
-    if (!url) return null;
-    const regExp =
-      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return match && match[2].length === 11 ? match[2] : null;
+    return extractYoutubeId(url);
   };
 
   const isImageMediaUrl = (url: string | null | undefined) =>
