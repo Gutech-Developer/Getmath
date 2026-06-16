@@ -15,7 +15,6 @@ import {
   LearningAnalyticsClassHeaderCard,
   LearningAnalyticsViewSwitcher,
   TeacherOverviewSection,
-
 } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
 import type { IBaseMateriSectionProps } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
 import { useGsKickStudentFromCourse } from "@/services/hooks/useGsCourseEnrollment";
@@ -44,7 +43,6 @@ interface ITeacherLearningAnalyticsClassContentProps {
   buildStudentDetailHref?: (studentId: string, studentName: string) => string;
   materiSectionProps?: Omit<IBaseMateriSectionProps, "materials">;
 }
-
 interface ITeacherSidebarItem {
   type: ClassAnalyticsViewType;
   label: string;
@@ -78,7 +76,7 @@ const TEACHER_VIEW_ITEMS: ITeacherSidebarItem[] = [
     label: "Nilai Test",
     icon: ClipboardIcon,
   },
-  
+
   {
     type: "Laporan",
     label: "Laporan",
@@ -183,7 +181,6 @@ export default function TeacherLearningAnalyticsClassContent({
     classDetail.defaultViewType ??
     "Beranda";
 
-
   const defaultSummaryCards: IClassAnalyticsReportSummaryCard[] =
     useMemo(() => {
       const finishedTests = classDetail.students.length;
@@ -278,14 +275,14 @@ export default function TeacherLearningAnalyticsClassContent({
     "Nilai Test": (
       <BaseNilaiTestSection courseId={classDetail.id ?? classDetail.slug} />
     ),
-   
+
     Laporan: (
       <BaseLaporanSection
         reportSummaryCards={reportSummaryCards}
         scoreBuckets={scoreBuckets}
         emotionSegments={emotionSegments}
         buildStudentDetailHref={studentDetailHrefBuilder}
-        classId={classDetail.id?? ""}
+        classId={classDetail.id ?? ""}
         students={classDetail.students}
       />
     ),
