@@ -90,4 +90,8 @@ jobs:
             exit 0
           fi
           echo "Triggering Dokploy Redeploy for branch ${{ github.ref_name }}..."
-          curl -s -X POST "$DOKPLOY_WEBHOOK"
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: push" \
+            -d '{"ref": "refs/heads/${{ github.ref_name }}"}' \
+            "$DOKPLOY_WEBHOOK"
