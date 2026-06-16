@@ -43,7 +43,6 @@ interface ITeacherLearningAnalyticsClassContentProps {
   buildStudentDetailHref?: (studentId: string, studentName: string) => string;
   materiSectionProps?: Omit<IBaseMateriSectionProps, "materials">;
 }
-//
 interface ITeacherSidebarItem {
   type: ClassAnalyticsViewType;
   label: string;
