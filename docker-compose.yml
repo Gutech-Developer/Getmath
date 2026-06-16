@@ -23,16 +23,18 @@ services:
   frontend:
     # container_name SENGAJA tidak diset — replicas butuh nama unik per instance.
     # Compose/Swarm akan generate <project>_frontend_1, _2, dst secara otomatis.
-    image: getsmart-frontend:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-      # Build args — di-inline ke bundle JS saat `next build`.
-      # Nilai diambil dari env Dokploy / file `.env` lokal via ${VAR}.
-      args:
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
-        NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
+    image: ghcr.io/gutech-developer/getmath:${IMAGE_TAG:-latest}
+    # Build kini dihandle oleh GitHub Actions (CI/CD) ke GHCR.
+    # Jika ingin build lokal, Anda bisa aktifkan section build di docker-compose.override.yml.
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   # Build args — di-inline ke bundle JS saat `next build`.
+    #   # Nilai diambil dari env Dokploy / file `.env` lokal via ${VAR}.
+    #   args:
+    #     NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+    #     NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+    #     NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
     # Jalankan 2 replica identik. Traefik (dokploy-network) otomatis
     # load-balance round-robin ke semua container yang match service ini.
     # Port TIDAK di-publish ke host — routing via Traefik internal network.
