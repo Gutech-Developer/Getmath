@@ -23,7 +23,7 @@ services:
   frontend:
     # container_name SENGAJA tidak diset — replicas butuh nama unik per instance.
     # Compose/Swarm akan generate <project>_frontend_1, _2, dst secara otomatis.
-    image: ghcr.io/gutech-developer/getmath:latest
+    image: ghcr.io/gutech-developer/getmath:${IMAGE_TAG:-latest}
     # Build kini dihandle oleh GitHub Actions (CI/CD) ke GHCR.
     # Jika ingin build lokal, Anda bisa aktifkan section build di docker-compose.override.yml.
     # build:

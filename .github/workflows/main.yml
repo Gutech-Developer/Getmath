@@ -2,9 +2,9 @@ name: Getsmart Frontend CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "staging"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "staging"]
 
 jobs:
   build:
@@ -83,7 +83,7 @@ jobs:
       - name: Trigger Dokploy Redeploy
         if: github.event_name == 'push' && env.DOKPLOY_WEBHOOK != ''
         env:
-          DOKPLOY_WEBHOOK: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+          DOKPLOY_WEBHOOK: ${{ github.ref == 'refs/heads/main' && (secrets.DOKPLOY_WEBHOOK_URL_PROD || secrets.DOKPLOY_WEBHOOK_URL) || (github.ref == 'refs/heads/staging' && secrets.DOKPLOY_WEBHOOK_URL_STAGING) || '' }}
         run: |
-          echo "Triggering Dokploy Redeploy..."
+          echo "Triggering Dokploy Redeploy for branch ${{ github.ref_name }}..."
           curl -s -X POST "$DOKPLOY_WEBHOOK"
