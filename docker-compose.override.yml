@@ -19,6 +19,14 @@ services:
     # port 3000 di host. Force ke 1 supaya `docker compose up` aman.
     deploy:
       replicas: 1
+    # Uncomment jika ingin mem-build image lokal saat `docker compose up --build`
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   args:
+    #     NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+    #     NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+    #     NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
 
 networks:
   dokploy-network:
