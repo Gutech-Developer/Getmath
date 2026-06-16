@@ -81,9 +81,13 @@ jobs:
             NEXT_PUBLIC_GETSMART_API_URL=${{ secrets.NEXT_PUBLIC_GETSMART_API_URL || vars.NEXT_PUBLIC_GETSMART_API_URL }}
 
       - name: Trigger Dokploy Redeploy
-        if: github.event_name == 'push' && env.DOKPLOY_WEBHOOK != ''
+        if: github.event_name == 'push'
         env:
           DOKPLOY_WEBHOOK: ${{ github.ref == 'refs/heads/main' && (secrets.DOKPLOY_WEBHOOK_URL_PROD || secrets.DOKPLOY_WEBHOOK_URL) || (github.ref == 'refs/heads/staging' && secrets.DOKPLOY_WEBHOOK_URL_STAGING) || '' }}
         run: |
+          if [ -z "$DOKPLOY_WEBHOOK" ]; then
+            echo "Dokploy webhook URL is not configured for branch ${{ github.ref_name }}. Skipping redeploy."
+            exit 0
+          fi
           echo "Triggering Dokploy Redeploy for branch ${{ github.ref_name }}..."
           curl -s -X POST "$DOKPLOY_WEBHOOK"
