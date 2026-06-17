@@ -24,6 +24,10 @@ services:
     # container_name SENGAJA tidak diset — replicas butuh nama unik per instance.
     # Compose/Swarm akan generate <project>_frontend_1, _2, dst secara otomatis.
     image: ghcr.io/gutech-developer/getmath:${IMAGE_TAG:-latest}
+    # Selalu tarik ulang dari GHCR. Tanpa ini, Docker memakai image lama yang
+    # ter-cache lokal di VPS meski tag (mis. :staging) sudah dibuat ulang oleh CI
+    # → fix tidak pernah ikut, error lama muncul lagi dengan chunk hash sama.
+    pull_policy: always
     # Build kini dihandle oleh GitHub Actions (CI/CD) ke GHCR.
     # Jika ingin build lokal, Anda bisa aktifkan section build di docker-compose.override.yml.
     # build:
