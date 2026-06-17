@@ -267,9 +267,11 @@ const LoginFormContent: React.FC = () => {
   );
 };
 
-const LoginForm: React.FC = () => {
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+interface LoginFormProps {
+  clientId: string;
+}
 
+const LoginForm: React.FC<LoginFormProps> = ({ clientId }) => {
   return (
     <GoogleOAuthProvider clientId={clientId}>
       <LoginFormContent />

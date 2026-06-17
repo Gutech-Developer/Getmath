@@ -1,7 +1,11 @@
 import LoginOrganism from "@/components/organisms/login/Login";
 
-const LoginPageTemplate: React.FC = () => {
-  return <LoginOrganism />;
+interface LoginPageTemplateProps {
+  clientId: string;
+}
+
+const LoginPageTemplate: React.FC<LoginPageTemplateProps> = ({ clientId }) => {
+  return <LoginOrganism clientId={clientId} />;
 };
 
 export default LoginPageTemplate;

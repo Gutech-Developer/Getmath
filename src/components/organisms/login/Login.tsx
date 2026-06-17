@@ -3,7 +3,11 @@ import LoginForm from "@/components/molecules/login/LoginForm";
 import Image from "next/image";
 import Link from "next/link";
 
-const LoginOrganism: React.FC = () => {
+interface LoginOrganismProps {
+  clientId: string;
+}
+
+const LoginOrganism: React.FC<LoginOrganismProps> = ({ clientId }) => {
   return (
     <div className="w-full flex items-center justify-center p-4 sm:p-5">
       <div className="w-full max-w-[448px]">
@@ -31,7 +35,7 @@ const LoginOrganism: React.FC = () => {
             </h2>
             <p className="text-[13px] text-lottie-zinc-500">Masuk ke akun GetMath kamu</p>
           </div>
-          <LoginForm />
+          <LoginForm clientId={clientId} />
         </div>
       </div>
     </div>
