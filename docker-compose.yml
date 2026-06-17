@@ -58,9 +58,12 @@ services:
       NODE_ENV: production
       GETSMART_API_URL: ${GETSMART_API_URL}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-${NEXT_PUBLIC_GOOGLE_CLIENT_ID}}
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      # Dibaca server-side saat runtime (force-dynamic) → cukup set GOOGLE_CLIENT_ID
+      # di tab Environment Dokploy. Fallback ke NEXT_PUBLIC_* bila itu yang diisi.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}}
+      # Default `:-` mencegah warning "variable is not set" saat var tak diisi.
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
       NEXT_PUBLIC_GETSMART_API_URL: ${NEXT_PUBLIC_GETSMART_API_URL:-}
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
