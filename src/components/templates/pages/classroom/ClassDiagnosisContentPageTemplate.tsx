@@ -14,7 +14,7 @@ import {
   DIAGNOSTIC_DURATION_SECONDS,
   DIAGNOSTIC_RULES,
 } from "@/constant/classDiagnosis";
-import { cn } from "@/libs/utils";
+import { cn, resolveAssetUrl } from "@/libs/utils";
 import { toEmbedUrl } from "@/libs/embed";
 import type {
   CameraPermissionState,
@@ -367,7 +367,7 @@ export default function ClassDiagnosisContentPageTemplate({
     if (isImageMediaUrl(url)) {
       return (
         <div className="overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F8FAFC]">
-          <img src={url} alt={label} className="h-auto w-full object-contain" />
+          <img src={resolveAssetUrl(url)} alt={label} className="h-auto w-full object-contain" />
         </div>
       );
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@/libs/utils";
+import { cn, sanitizeHtmlUrls } from "@/libs/utils";
 
 export interface IELKPDShortAnswer {
   id: string;
@@ -98,7 +98,7 @@ export default function ELKPDForm({
                 </span>
                 <span
                   // eslint-disable-next-line react/no-danger
-                  dangerouslySetInnerHTML={{ __html: question.questionHtml }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtmlUrls(question.questionHtml) }}
                 />
               </p>
               <input
