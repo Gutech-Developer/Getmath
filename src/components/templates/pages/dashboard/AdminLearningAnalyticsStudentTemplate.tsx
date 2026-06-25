@@ -156,7 +156,7 @@ export default function AdminLearningAnalyticsStudentTemplate({
   studentId: string;
   studentName?: string;
   backHref?: string;
-}) {
+}) {    
   const classCollection = STUDENT_ANALYTICS_DATA.find(
     (item) => item.slug === slug,
   );

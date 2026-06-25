@@ -7,7 +7,7 @@ import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
 import MathText from "@/components/atoms/MathText";
-import { cn } from "@/libs/utils";
+import { cn, resolveAssetUrl } from "@/libs/utils";
 import type {
   GsDiagnosticTest,
 } from "@/types/gs-diagnostic-test";
@@ -196,7 +196,7 @@ export function DiagnosticPreviewBody({ test }: { test: GsDiagnosticTest }) {
                     {question.imageQuestionUrl && (
                       <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
                         <img
-                          src={question.imageQuestionUrl}
+                          src={resolveAssetUrl(question.imageQuestionUrl)}
                           alt="Gambar Soal"
                           className="max-h-80 w-auto object-contain rounded-lg mx-auto"
                         />
@@ -223,7 +223,7 @@ export function DiagnosticPreviewBody({ test }: { test: GsDiagnosticTest }) {
                         <MathText text={option.textAnswer ?? "–"} />
                         {option.imageAnswerUrl && (
                           <img
-                            src={option.imageAnswerUrl}
+                            src={resolveAssetUrl(option.imageAnswerUrl)}
                             alt={`Gambar Opsi ${option.option}`}
                             className="max-h-40 w-auto object-contain rounded-lg"
                           />
@@ -326,7 +326,7 @@ export function RemedialPreviewBody({ test }: { test: any }) {
                         {variant.imageQuestionUrl && (
                           <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
                             <img
-                              src={variant.imageQuestionUrl}
+                              src={resolveAssetUrl(variant.imageQuestionUrl)}
                               alt="Gambar Soal"
                               className="max-h-80 w-auto object-contain rounded-lg mx-auto"
                             />
@@ -353,7 +353,7 @@ export function RemedialPreviewBody({ test }: { test: any }) {
                               <MathText text={option.textAnswer ?? "–"} />
                               {option.imageAnswerUrl && (
                                 <img
-                                  src={option.imageAnswerUrl}
+                                  src={resolveAssetUrl(option.imageAnswerUrl)}
                                   alt={`Gambar Opsi ${option.option}`}
                                   className="max-h-40 w-auto object-contain rounded-lg"
                                 />

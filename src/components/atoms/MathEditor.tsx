@@ -7,7 +7,7 @@ import Image from "@tiptap/extension-image";
 import "katex/dist/katex.min.css";
 import TrashIcon from "./icons/TrashIcon";
 import katex from "katex";
-import { cn } from "@/libs/utils";
+import { cn, resolveAssetUrl } from "@/libs/utils";
 import { useEffect, useRef, useState } from "react";
 
 /* ------------------------------------------------------------------ */
@@ -101,7 +101,7 @@ export default function MathEditor({
       const html = e.getHTML();
       
       // Detect deleted images using regex
-      const imageRegex = /https?:\/\/[^\s"'>]+\/uploads\/images\/[^\s"'>]+/g;
+      const imageRegex = /(?:https?:\/\/[^\s"'>]+|\/api)\/uploads\/[^\s"'>]+/g;
       const oldImages = Array.from(lastOnUpdateHtml.current.match(imageRegex) || []);
       const newImages = Array.from(html.match(imageRegex) || []);
       
@@ -355,7 +355,7 @@ export default function MathEditor({
       {/* ── Image preview & delete ── */}
       {(() => {
         const currentHtml = editor ? editor.getHTML() : value;
-        const imageRegex = /https?:\/\/[^\s"'>]+\/uploads\/images\/[^\s"'>]+/g;
+        const imageRegex = /(?:https?:\/\/[^\s"'>]+|\/api)\/uploads\/[^\s"'>]+/g;
         const images = Array.from(currentHtml?.match(imageRegex) || []);
         if (images.length === 0) return null;
         
@@ -364,7 +364,7 @@ export default function MathEditor({
             {images.map((url, idx) => (
               <div key={idx} className="relative group">
                 <img
-                  src={url}
+                  src={resolveAssetUrl(url)}
                   alt={`Lampiran ${idx + 1}`}
                   className="h-16 w-16 object-cover rounded border border-[#E5E7EB] bg-white"
                   title="Gambar dalam teks"

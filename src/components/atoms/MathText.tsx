@@ -2,6 +2,7 @@
 
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import { sanitizeHtmlUrls } from "@/libs/utils";
 
 interface IMathTextProps {
   text: string;
@@ -19,8 +20,9 @@ export default function MathText({
   displayMode = false,
 }: IMathTextProps) {
   if (!text) return null;
+  const cleanText = sanitizeHtmlUrls(text);
   // Split on $...$ patterns (non-greedy, no newlines inside)
-  const parts = text.split(/(\$[^$\n]+\$)/g);
+  const parts = cleanText.split(/(\$[^$\n]+\$)/g);
 
   return (
     <span className={className} style={{ whiteSpace: "pre-line" }}>

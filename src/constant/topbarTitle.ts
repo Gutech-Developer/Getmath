@@ -96,11 +96,13 @@ function pickSlug(slugParam?: string | string[]): string | undefined {
 export interface IResolveTopbarTitleOptions {
   pathname: string;
   slugParam?: string | string[];
+  searchParams?: { get: (key: string) => string | null } | null;
 }
 
 export function resolveTopbarTitle({
   pathname,
   slugParam,
+  searchParams,
 }: IResolveTopbarTitleOptions): string {
   const normalizedPathname = normalizePathname(pathname);
 
@@ -139,6 +141,18 @@ export function resolveTopbarTitle({
       return `${classTitle} - Penilaian E-LKPD`;
     }
     return "Penilaian E-LKPD";
+  }
+
+  // Learning Analytics / Class List Student Detail pages
+  if (/\/(?:teacher|admin)\/dashboard\/(?:learning-analytics|class-list)\/([^/]+)\/[^/]+$/i.test(normalizedPathname)) {
+    const match = normalizedPathname.match(/\/(?:teacher|admin)\/dashboard\/(?:learning-analytics|class-list)\/([^/]+)\/[^/]+$/i);
+    const rawSlug = pickSlug(slugParam) ?? match?.[1];
+    const studentName = searchParams?.get("studentName");
+    if (rawSlug) {
+      const classTitle = stripTrailingClassCode(humanizeSegment(rawSlug));
+      return studentName ? `${classTitle} - ${studentName}` : `${classTitle} - Detail Siswa`;
+    }
+    return studentName ?? "Detail Siswa";
   }
 
   const resolvedSidebar = resolveSidebarVariant(normalizedPathname);

@@ -6,6 +6,24 @@ const nextConfig: NextConfig = {
   // yang membundle hanya runtime deps yang dipakai, image jadi kecil.
   output: "standalone",
   reactCompiler: true,
+  async rewrites() {
+    const apiUrl =
+      process.env.GETSMART_API_URL ||
+      process.env.NEXT_PUBLIC_GETSMART_API_URL ||
+      "";
+    const backendHost = apiUrl
+      ? apiUrl.replace(/\/api\/?$/, "")
+      : process.env.NODE_ENV === "production"
+        ? "http://getsmart-api-go:5000"
+        : "http://localhost:5000";
+
+    return [
+      {
+        source: "/api/uploads/:path*",
+        destination: `${backendHost}/uploads/:path*`,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
