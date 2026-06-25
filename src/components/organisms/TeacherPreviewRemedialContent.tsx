@@ -5,7 +5,7 @@ import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import EditIcon from "@/components/atoms/icons/EditIcon";
 import { useRouter } from "next/navigation";
 import { useGsRemedialTestById } from "@/services";
-import { cn } from "@/libs/utils";
+import { cn, resolveAssetUrl } from "@/libs/utils";
 import MathText from "@/components/atoms/MathText";
 import type { GsRemedialTest, GsRemedialVariant } from "@/types/gs-remedial";
 
@@ -109,7 +109,7 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                         {variant.imageQuestionUrl && (
                           <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
                             <img
-                              src={variant.imageQuestionUrl}
+                              src={resolveAssetUrl(variant.imageQuestionUrl)}
                               alt="Gambar Soal"
                               className="max-h-80 w-auto object-contain rounded-lg mx-auto"
                             />
@@ -145,7 +145,7 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                               </div>
                               {opt.imageAnswerUrl && (
                                 <img
-                                  src={opt.imageAnswerUrl}
+                                  src={resolveAssetUrl(opt.imageAnswerUrl)}
                                   alt={`Gambar Opsi ${opt.option}`}
                                   className="max-h-40 w-auto object-contain rounded-lg"
                                 />
@@ -169,7 +169,7 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                         {question.discussionImageUrl && (
                           <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
                             <img
-                              src={question.discussionImageUrl}
+                              src={resolveAssetUrl(question.discussionImageUrl)}
                               alt={`Gambar Pembahasan Soal ${i + 1}`}
                               className="max-h-80 w-auto object-contain rounded-lg mx-auto"
                             />

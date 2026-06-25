@@ -954,16 +954,6 @@ export function BaseSiswaSection({
                         <p className="truncate text-[15px] font-semibold text-[#1F2937]">
                           {student.fullname}
                         </p>
-                        <p
-                          className={cn(
-                            "mt-0.5 text-xs",
-                            student.isOnline
-                              ? "text-[#22C55E]"
-                              : "text-[#9CA3AF]",
-                          )}
-                        >
-                          {student.isOnline ? "Online" : "Offline"}
-                        </p>
                       </div>
                     </div>
                   </td>

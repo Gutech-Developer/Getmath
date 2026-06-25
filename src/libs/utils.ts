@@ -49,3 +49,27 @@ export const smoothScrolltoSection = (elementId: string) => {
     });
   }
 };
+
+/**
+ * Resolves a single asset URL returned by the backend.
+ * Handles both absolute URLs (dev/staging) and relative paths (production).
+ */
+export function resolveAssetUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  return url.replace(
+    /http:\/\/(?:getsmart-api-go|localhost|127\.0\.0\.1):5000\/uploads\//g,
+    "/api/uploads/",
+  );
+}
+
+/**
+ * Sanitizes rich-text HTML strings from the database by replacing
+ * internal docker hosts with the Next.js proxy route /api/uploads.
+ */
+export function sanitizeHtmlUrls(html: string | null | undefined): string {
+  if (!html) return "";
+  return html.replace(
+    /http:\/\/(?:getsmart-api-go|localhost|127\.0\.0\.1):5000\/uploads\//g,
+    "/api/uploads/",
+  );
+}

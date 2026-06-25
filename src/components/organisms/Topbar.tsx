@@ -13,12 +13,13 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 
 const Topbar = () => {
   const { isOpen, isMobile, toggle } = useSidebar();
   const pathname = usePathname();
   const params = useParams();
+  const searchParams = useSearchParams();
   const [currentDate, setCurrentDate] = useState("");
   const { data: unreadData } = useGsUnreadNotificationsCount();
   const unreadCount = unreadData?.unreadCount ?? 0;
@@ -29,8 +30,9 @@ const Topbar = () => {
       resolveTopbarTitle({
         pathname,
         slugParam: params?.slug,
+        searchParams,
       }),
-    [params?.slug, pathname],
+    [params?.slug, pathname, searchParams],
   );
 
   useEffect(() => {

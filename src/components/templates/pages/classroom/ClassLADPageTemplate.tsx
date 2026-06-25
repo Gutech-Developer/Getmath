@@ -10,8 +10,6 @@ import {
   LADBarChart,
   LADDonutChart,
   LADMetricCard,
-  LADRadarChart,
-  LADScoreTrendChart,
 } from "@/components/molecules/classroom";
 import { buildClassRoute } from "@/constant/classSidebarRoutes";
 import { cn } from "@/libs/utils";
@@ -833,7 +831,7 @@ function DiagnosticAccordionContent({
 }
 
 interface IDiagnosticAccordionItemProps {
-  module: GsCourseModule;
+  module: GsCourseModule | any;
   studentId?: string;
   isOpen: boolean;
   onToggle: () => void;
@@ -1004,8 +1002,20 @@ export default function ClassLADPageTemplate({
     useGsModulesByCourse(resolvedCourseId);
 
   const diagnosticModules = useMemo(() => {
+    if (childCourseDetail?.modules && childCourseDetail.modules.length > 0) {
+      return childCourseDetail.modules
+        .filter((m) => m.type === "DIAGNOSTIC_TEST")
+        .map((m) => ({
+          id: m.courseModuleId,
+          courseModuleId: m.courseModuleId,
+          type: "DIAGNOSTIC_TEST" as const,
+          testName: m.testName || "Tes Diagnostik",
+          title: m.testName || "Tes Diagnostik",
+          order: m.order,
+        }));
+    }
     return (modules || []).filter((m) => m.type === "DIAGNOSTIC_TEST");
-  }, [modules]);
+  }, [modules, childCourseDetail]);
 
   const [expandedDiagnosticId, setExpandedDiagnosticId] = useState<
     string | null
@@ -1091,6 +1101,8 @@ export default function ClassLADPageTemplate({
 
   return (
     <ClassPageShellTemplate slug={slug} activeKey="lad" classTitle={classTitle}>
+
+    
       {/* ---- Hero Header ---- */}
       <header className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-lottie-teal to-lottie-teal/90 p-6 text-white shadow-[0px_16px_32px_rgba(31,35,117,0.18)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1111,6 +1123,14 @@ export default function ClassLADPageTemplate({
         {/* decorative circle */}
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5" />
       </header>
+         <div className="flex justify-start">
+        <Link
+          href={resolvedBackHref}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-lottie-mist bg-white px-4 py-2.5 text-sm font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl"
+        >
+          {resolvedBackLabel}
+        </Link>
+      </div>
 
       {/* ---- Metric Cards ---- */}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -1368,14 +1388,7 @@ export default function ClassLADPageTemplate({
       </SectionCard>
 
       {/* ---- Back link ---- */}
-      <div className="flex justify-start">
-        <Link
-          href={resolvedBackHref}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-lottie-mist bg-white px-4 py-2.5 text-sm font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl"
-        >
-          {resolvedBackLabel}
-        </Link>
-      </div>
+     
     </ClassPageShellTemplate>
   );
 }
