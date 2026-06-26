@@ -36,6 +36,7 @@ import {
   useRemedialAnswersReview,
   useGsRemedialTestById,
   useRecordRemedialDiscussionRead,
+  useSubmitEmotionBucket,
 } from "@/services";
 import type {
   StartTestAttemptResult,
@@ -339,6 +340,7 @@ export default function ClassDiagnosisContentPageTemplate({
   const submitRemedialVariantMutation = useSubmitRemedialVariant(contentId);
   const recordDiscussionReadMutation = useRecordRemedialDiscussionRead(contentId);
   const submitRemedialBulkMutation = useSubmitRemedialBulk(contentId);
+  const submitEmotionBucketMutation = useSubmitEmotionBucket(contentId);
   const remedialAutoSubmitTriggeredRef = useRef(false);
   const discussionStartedAtRef = useRef<string | null>(null);
 
@@ -935,7 +937,9 @@ export default function ClassDiagnosisContentPageTemplate({
 
     // Spec §12.2: flush atomik via flushOrUnknown() — satu panggilan, window timestamp utuh.
     const { result: emotionResult, imageBase64 } = emotion.flushOrUnknown();
-    console.log("[Emotion] flush →", {
+    console.log("[LOG CEK] [RemedialSoalLangsung] Flush emosi jawaban kuis:", {
+      variantId: currentVariant.variantId,
+      packageLabel: currentVariant.packageLabel,
       mode: emotionResult.mode,
       sampleCount: emotionResult.sampleCount,
       distribution: emotionResult.distribution,
@@ -1055,8 +1059,30 @@ export default function ClassDiagnosisContentPageTemplate({
       discussionStartedAtRef.current = null;
     }
 
+    // Flush emosi yang terkumpul selama tahap pembahasan & kirim ke emotion-bucket
+    const { result: emotionResult } = emotion.flushAndReset();
+    console.log("[LOG CEK] [DariPembahasan] Tombol Next diklik, cek emosi terkumpul:", {
+      sampleCount: emotionResult?.sampleCount ?? 0,
+      mode: emotionResult?.mode,
+      distribution: emotionResult?.distribution,
+      durationMs: emotionResult?.durationMs,
+    });
+    if (emotionResult && emotionResult.sampleCount > 0) {
+      const payload = {
+        context: "REMEDIAL" as const,
+        attemptId: remedialAttemptId || null,
+        emotion: toEmotionInput(emotionResult),
+      };
+      console.log("[LOG CEK] [DariPembahasan] Mengirim ke emotion-bucket:", payload);
+      submitEmotionBucketMutation.mutate(payload, {
+        onSuccess: () => console.log("[LOG CEK] [DariPembahasan] Berhasil kirim emotion-bucket!"),
+        onError: (err) => console.error("[LOG CEK] [DariPembahasan] Gagal kirim emotion-bucket:", err),
+      });
+    } else {
+      console.warn("[LOG CEK] [DariPembahasan] Tidak ada sampel emosi terkumpul selama pembahasan.");
+    }
+
     if (nextVariantData) {
-      emotion.reset();
       setCurrentVariant(nextVariantData);
       setSelectedRemedialOptionId(null);
       setDiscussionShow(false);
