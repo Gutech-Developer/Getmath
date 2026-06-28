@@ -39,6 +39,8 @@ export default function StudentDashboardProfilPage() {
       province={profile.province || "-"}
       city={profile.city || "-"}
       school={profile.schoolName || "-"}
+      birthDate={profile.birthDate || null}
+      gender={profile.gender || null}
       avatarInitial={(profile.fullName || user?.fullName || "?")
         .charAt(0)
         .toUpperCase()}

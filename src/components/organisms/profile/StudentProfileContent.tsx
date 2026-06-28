@@ -1,6 +1,7 @@
 "use client";
 
 import UserProfileContent from "@/components/organisms/profile/UserProfileContent";
+import { formatBirthDate } from "@/libs/utils";
 
 interface IStudentProfileContentProps {
   isLoading: boolean;
@@ -17,6 +18,8 @@ interface IStudentProfileContentProps {
   onChangePassword: () => void;
   onLogout: () => void;
   isLogoutLoading?: boolean;
+  birthDate?: string | null;
+  gender?: string | null;
 }
 
 export default function StudentProfileContent({
@@ -34,6 +37,8 @@ export default function StudentProfileContent({
   onChangePassword,
   onLogout,
   isLogoutLoading = false,
+  birthDate,
+  gender,
 }: IStudentProfileContentProps) {
   return (
     <UserProfileContent
@@ -46,6 +51,8 @@ export default function StudentProfileContent({
       fields={[
         { label: "Nama Lengkap", value: fullName },
         { label: "NIS (Nomor Induk Siswa)", value: nis },
+        { label: "Tanggal Lahir", value: formatBirthDate(birthDate) },
+        { label: "Jenis Kelamin", value: gender ?? "-" },
         { label: "Nomor HP/WhatsApp", value: phone },
         { label: "Email", value: email },
         { label: "Provinsi", value: province },
@@ -58,6 +65,9 @@ export default function StudentProfileContent({
       onChangePassword={onChangePassword}
       onLogout={onLogout}
       isLogoutLoading={isLogoutLoading}
+      birthDate={birthDate}
+      gender={gender}
+      isStudent={true}
     />
   );
 }

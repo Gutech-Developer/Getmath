@@ -73,3 +73,18 @@ export function sanitizeHtmlUrls(html: string | null | undefined): string {
     "/api/uploads/",
   );
 }
+
+export function formatBirthDate(dateStr?: string | null): string {
+  if (!dateStr) return "-";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+}

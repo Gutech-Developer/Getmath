@@ -591,3 +591,76 @@ export async function gsDeleteFile(url: string): Promise<GsFetchResult<void>> {
     body: { url },
   });
 }
+
+/** Download file as Base64 (untuk transfer dari Server Action ke client) */
+export async function gsDownloadFile(
+  path: string,
+  isRetry = false,
+): Promise<
+  GsFetchResult<{ base64: string; contentType: string; filename: string }>
+> {
+  const accessToken = await getAccessToken();
+  const endpoint = `${BASE_URL}${path}`;
+  const headers = {
+    ...buildBaseHeaders(accessToken),
+  };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+      // @ts-ignore
+      agent: globalHttpAgent,
+    });
+
+    if (res.status === 401 && !isRetry) {
+      const newAccessToken = await doRefreshToken();
+      if (!newAccessToken) {
+        await clearTokens();
+        redirect("/login");
+      }
+      return gsDownloadFile(path, true);
+    }
+
+    if (!res.ok) {
+      let message = `Download failed with status ${res.status}`;
+      try {
+        const errJson = await res.json();
+        if (errJson?.message) message = errJson.message;
+      } catch {}
+      return { ok: false, message, status: res.status };
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const contentType =
+      res.headers.get("content-type") || "application/octet-stream";
+
+    const contentDisposition = res.headers.get("content-disposition") || "";
+    let filename = "download.zip";
+    const filenameMatch = contentDisposition.match(
+      /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
+    );
+    if (filenameMatch && filenameMatch[1]) {
+      filename = filenameMatch[1].replace(/['"]/g, "");
+    }
+    const filenameStarMatch = contentDisposition.match(
+      /filename\*=UTF-8''([^;\n]*)/,
+    );
+    if (filenameStarMatch && filenameStarMatch[1]) {
+      filename = decodeURIComponent(filenameStarMatch[1]);
+    }
+
+    return {
+      ok: true,
+      data: {
+        base64,
+        contentType,
+        filename,
+      },
+    };
+  } catch (err: any) {
+    return { ok: false, message: err.message || "Network error", status: 500 };
+  }
+}

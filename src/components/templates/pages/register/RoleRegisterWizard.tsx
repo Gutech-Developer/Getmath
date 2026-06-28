@@ -29,6 +29,8 @@ interface IRoleRegisterForm {
   schoolId: string;
   password: string;
   confirmPassword: string;
+  birthDate?: string;
+  gender?: string;
 }
 
 function PasswordField({
@@ -142,6 +144,8 @@ function createEmptyForm(): IRoleRegisterForm {
     schoolId: "",
     password: "",
     confirmPassword: "",
+    birthDate: "",
+    gender: "",
   };
 }
 
@@ -195,6 +199,16 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
       toast.error("Lengkapi data langkah 1 terlebih dahulu.");
       return false;
     }
+    if (role === "student") {
+      if (!form.birthDate) {
+        toast.error("Tanggal lahir wajib diisi.");
+        return false;
+      }
+      if (!form.gender) {
+        toast.error("Jenis kelamin wajib diisi.");
+        return false;
+      }
+    }
     return true;
   };
 
@@ -247,7 +261,11 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
         password: form.password,
         role: role === "student" ? "STUDENT" : "TEACHER",
         ...(role === "student"
-          ? { NIS: form.identityNumber }
+          ? {
+              NIS: form.identityNumber,
+              birthDate: form.birthDate,
+              gender: form.gender,
+            }
           : { NIP: form.identityNumber }),
         schoolId: form.schoolId,
         schoolName: form.schoolName,
@@ -403,6 +421,37 @@ export default function RoleRegisterWizard({ role }: IRoleRegisterWizardProps) {
                         className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
                       />
                     </div>
+
+                    {role === "student" && (
+                      <>
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-lottie-zinc-500">
+                            Tanggal Lahir<span className="text-[#dc2626]">*</span>
+                          </label>
+                          <input
+                            type="date"
+                            value={form.birthDate}
+                            onChange={(e) => updateField("birthDate", e.target.value)}
+                            className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="block text-xs font-semibold text-lottie-zinc-500">
+                            Jenis Kelamin<span className="text-[#dc2626]">*</span>
+                          </label>
+                          <select
+                            value={form.gender}
+                            onChange={(e) => updateField("gender", e.target.value)}
+                            className="w-full rounded-xl bg-white/60 border border-lottie-teal/10 px-4 py-3 text-sm text-[#334155] outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/20 focus:bg-white cursor-pointer"
+                          >
+                            <option value="">Pilih Jenis Kelamin</option>
+                            <option value="Laki-laki">Laki-laki</option>
+                            <option value="Perempuan">Perempuan</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <button

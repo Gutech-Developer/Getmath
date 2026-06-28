@@ -44,12 +44,12 @@ interface IVariantDraft {
   prompt: string;
   options: Record<ChoiceKey, IOptionDraft>;
   correctAnswer: ChoiceKey;
+  pembahasan: string;
+  videoUrl: string;
 }
 
 interface IRemedialQuestionDraft {
   id: string;
-  pembahasan: string;
-  videoUrl: string;
   variants: Record<VariantLabel, IVariantDraft>;
 }
 
@@ -63,14 +63,14 @@ function createEmptyVariant(label: string): IVariantDraft {
       D: { text: "" },
     },
     correctAnswer: "A",
+    pembahasan: "",
+    videoUrl: "",
   };
 }
 
 function createEmptyQuestion(): IRemedialQuestionDraft {
   return {
     id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    pembahasan: "",
-    videoUrl: "",
     variants: {
       A: createEmptyVariant("A"),
       B: createEmptyVariant("B"),
@@ -194,6 +194,8 @@ function parseVariant(
     },
     correctAnswer:
       (v.options.find((o) => o.isCorrect)?.option as ChoiceKey) ?? "A",
+    pembahasan: latexTextToTiptapHtml(v.discussionText ?? ""),
+    videoUrl: v.discussionVideoUrl ?? "",
   };
 }
 
@@ -201,8 +203,6 @@ function prefillQuestions(rt: GsRemedialTest): IRemedialQuestionDraft[] {
   if (!rt.questions?.length) return [createEmptyQuestion()];
   return rt.questions.map((q) => ({
     id: q.id,
-    pembahasan: latexTextToTiptapHtml(q.discussionText ?? ""),
-    videoUrl: q.discussionVideoUrl ?? "",
     variants: {
       A: parseVariant(
         q.variants.find((v) => v.packageLabel === "A"),
@@ -341,7 +341,8 @@ export default function TeacherCreateRemedialContent({
         if (matches) urlsToDelete.push(...matches);
       };
 
-      extractUrls(targetQ.pembahasan);
+      extractUrls(targetQ.variants.A.pembahasan);
+      extractUrls(targetQ.variants.B.pembahasan);
       VARIANT_LABELS.forEach((vLabel) => {
         const variant = targetQ.variants[vLabel];
         extractUrls(variant.prompt);
@@ -410,17 +411,21 @@ export default function TeacherCreateRemedialContent({
       return {
         ...(isUpsert && q.id && !q.id.startsWith("q-") ? { id: q.id } : {}),
         questionNumber: qi + 1,
-        discussionText:
-          tiptapHtmlToLatexHtml(q.pembahasan) || `Pembahasan soal ${qi + 1}`,
-        discussionVideoUrl: q.videoUrl || null,
         variants: VARIANT_LABELS.map((label) => {
           const variant = q.variants[label];
+          const hasDiscussion = label === "A" || label === "B";
           return {
             ...(isUpsert && variant.id ? { id: variant.id } : {}),
             packageLabel: label,
             textQuestion:
               tiptapHtmlToLatexHtml(variant.prompt) ||
               `Soal ${label} ${qi + 1}`,
+            discussionText: hasDiscussion
+              ? (tiptapHtmlToLatexHtml(variant.pembahasan) || `Pembahasan soal ${label} ${qi + 1}`)
+              : undefined,
+            discussionVideoUrl: hasDiscussion
+              ? (variant.videoUrl || undefined)
+              : undefined,
             options: CHOICE_KEYS.map((key) => {
               return {
                 ...(isUpsert && variant.options[key].id
@@ -451,25 +456,6 @@ export default function TeacherCreateRemedialContent({
 
     for (let qi = 0; qi < questions.length; qi++) {
       const q = questions[qi];
-      const errorLabel = `Soal ${qi + 1}`;
-
-      if (!tiptapHtmlToLatexHtml(q.pembahasan).trim()) {
-        showToast.error(`${errorLabel}: Pembahasan tidak boleh kosong`);
-        setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
-        return;
-      }
-      if (!q.videoUrl.trim()) {
-        showToast.error(`${errorLabel}: URL video pembahasan wajib diisi`);
-        setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
-        return;
-      }
-      try {
-        new URL(q.videoUrl);
-      } catch {
-        showToast.error(`${errorLabel}: URL video pembahasan tidak valid`);
-        setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
-        return;
-      }
 
       for (const label of VARIANT_LABELS) {
         const variant = q.variants[label];
@@ -479,6 +465,30 @@ export default function TeacherCreateRemedialContent({
           setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
           setActivePackage(label);
           return;
+        }
+
+        // Discussion validation: only for Paket A and Paket B
+        if (label === "A" || label === "B") {
+          if (!tiptapHtmlToLatexHtml(variant.pembahasan).trim()) {
+            showToast.error(`${varErrorLabel}: Pembahasan tidak boleh kosong`);
+            setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
+            setActivePackage(label);
+            return;
+          }
+          if (!variant.videoUrl.trim()) {
+            showToast.error(`${varErrorLabel}: URL video pembahasan wajib diisi`);
+            setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
+            setActivePackage(label);
+            return;
+          }
+          try {
+            new URL(variant.videoUrl);
+          } catch {
+            showToast.error(`${varErrorLabel}: URL video pembahasan tidak valid`);
+            setOpenQuestionIds((prev) => [...new Set([...prev, q.id])]);
+            setActivePackage(label);
+            return;
+          }
         }
       }
     }
@@ -728,6 +738,7 @@ export default function TeacherCreateRemedialContent({
                         Pertanyaan <span className="text-[#EF4444]">*</span>
                       </label>
                       <MathEditor
+                        key={`${question.id}-${activePackage}-prompt`}
                         value={variant.prompt}
                         onChange={(v) =>
                           updateVariant(question.id, (prev) => ({
@@ -789,6 +800,7 @@ export default function TeacherCreateRemedialContent({
                               </button>
                               <div className="min-w-0 flex-1">
                                 <MathEditor
+                                  key={`${question.id}-${activePackage}-option-${key}`}
                                   value={variant.options[key].text}
                                   onChange={(v) =>
                                     updateVariant(question.id, (prev) => ({
@@ -826,67 +838,74 @@ export default function TeacherCreateRemedialContent({
                             </div>
                           );
                         })}
+                        {(activePackage === "A" || activePackage === "B") && (
+                          <>
+                            <div className="space-y-1.5 pt-4">
+                              <label className="block text-sm font-semibold text-[#4B5563]">
+                                Pembahasan <span className="text-[#EF4444]">*</span>
+                              </label>
+                              <MathEditor
+                                key={`${question.id}-${activePackage}-pembahasan`}
+                                value={variant.pembahasan}
+                                onChange={(v) =>
+                                  updateVariant(question.id, (prev) => ({
+                                    ...prev,
+                                    pembahasan: v,
+                                  }))
+                                }
+                                placeholder="Tuliskan pembahasan…"
+                                isUploadingImage={uploadMutation.isPending}
+                                onImageUpload={async (file) => {
+                                  const formData = new FormData();
+                                  formData.append("file", file);
+                                  const res =
+                                    await uploadMutation.mutateAsync(formData);
+                                  showToast.success("Gambar berhasil diunggah");
+                                  return res.url;
+                                }}
+                                onImageDelete={async (url) => {
+                                  try {
+                                    await deleteMutation.mutateAsync(url);
+                                  } catch { }
+                                }}
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="block text-sm font-semibold text-[#4B5563]">
+                                Video Pembahasan (URL){" "}
+                                <span className="text-[#EF4444]">*</span>
+                              </label>
+                              <input
+                                type="url"
+                                value={variant.videoUrl}
+                                onChange={(e) =>
+                                  updateVariant(question.id, (prev) => ({
+                                    ...prev,
+                                    videoUrl: e.target.value,
+                                  }))
+                                }
+                                placeholder="https://youtube.com/watch?v=..."
+                                className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
+                              />
+                              {(() => {
+                                const embed = getYouTubeEmbedUrl(variant.videoUrl);
+                                if (!embed) return null;
+                                return (
+                                  <div className="overflow-hidden rounded-2xl border border-[#E5E7EB]">
+                                    <iframe
+                                      src={embed}
+                                      title="Video Pembahasan"
+                                      className="w-full aspect-video"
+                                      allowFullScreen
+                                    />
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </>
+                        )}
                       </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-[#4B5563]">
-                        Pembahasan <span className="text-[#EF4444]">*</span>
-                      </label>
-                      <MathEditor
-                        value={question.pembahasan}
-                        onChange={(v) =>
-                          updateQuestion(question.id, () => ({ pembahasan: v }))
-                        }
-                        placeholder="Tuliskan pembahasan…"
-                        isUploadingImage={uploadMutation.isPending}
-                        onImageUpload={async (file) => {
-                          const formData = new FormData();
-                          formData.append("file", file);
-                          const res =
-                            await uploadMutation.mutateAsync(formData);
-                          showToast.success("Gambar berhasil diunggah");
-                          return res.url;
-                        }}
-                        onImageDelete={async (url) => {
-                          try {
-                            await deleteMutation.mutateAsync(url);
-                          } catch { }
-                        }}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-[#4B5563]">
-                        Video Pembahasan (URL){" "}
-                        <span className="text-[#EF4444]">*</span>
-                      </label>
-                      <input
-                        type="url"
-                        value={question.videoUrl}
-                        onChange={(e) =>
-                          updateQuestion(question.id, () => ({
-                            videoUrl: e.target.value,
-                          }))
-                        }
-                        placeholder="https://youtube.com/watch?v=..."
-                        className="w-full rounded-2xl border border-[#D1D5DB] px-4 py-3 text-sm outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
-                      />
-                      {(() => {
-                        const embed = getYouTubeEmbedUrl(question.videoUrl);
-                        if (!embed) return null;
-                        return (
-                          <div className="overflow-hidden rounded-2xl border border-[#E5E7EB]">
-                            <iframe
-                              src={embed}
-                              title="Preview video"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              className="aspect-video w-full"
-                            />
-                          </div>
-                        );
-                      })()}
                     </div>
 
                     <div className="flex justify-end">
