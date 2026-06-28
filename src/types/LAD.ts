@@ -149,6 +149,7 @@ export interface IRemedialDiscussionCell {
   isEstimated: boolean;
   startedAt?: string;
   endedAt?: string;
+  emotionMode?: string | null;
 }
 
 export interface IRemedialProgressPackages {

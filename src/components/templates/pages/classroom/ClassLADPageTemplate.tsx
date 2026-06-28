@@ -715,13 +715,19 @@ function DiagnosticAccordionContent({
                       className="px-3 py-3 text-center border-l border-lottie-mist"
                       colSpan={2}
                     >
-                      Durasi Diskusi Pembahasan
+                      Durasi Pembahasan
+                    </th>
+                    <th
+                      className="px-3 py-3 text-center border-l border-lottie-mist"
+                      colSpan={2}
+                    >
+                      Emosi Pembahasan
                     </th>
                     <th
                       className="px-3 py-3 text-center border-l border-lottie-mist"
                       colSpan={3}
                     >
-                      Emosi Dominan
+                      Emosi Menjawab Soal
                     </th>
                   </tr>
                   <tr className="border-t border-lottie-mist bg-lottie-pearl/50 text-[10px]">
@@ -739,6 +745,11 @@ function DiagnosticAccordionContent({
                     <th className="px-3 py-2 text-center">Paket B</th>
                     <th className="px-3 py-2 text-center">Paket C</th>
                     {/* Durasi Pembahasan */}
+                    <th className="px-3 py-2 text-center border-l border-lottie-mist">
+                      Paket A
+                    </th>
+                    <th className="px-3 py-2 text-center">Paket B</th>
+                    {/* Emosi Pembahasan */}
                     <th className="px-3 py-2 text-center border-l border-lottie-mist">
                       Paket A
                     </th>
@@ -789,6 +800,14 @@ function DiagnosticAccordionContent({
                       </td>
                       <td className="px-3 py-3 text-center text-lottie-zinc-500 font-mono">
                         {renderDiscussionCell(row.discussions.b)}
+                      </td>
+
+                      {/* Emosi Pembahasan */}
+                      <td className="px-3 py-3 text-center border-l border-lottie-mist text-lottie-zinc-600">
+                        {renderEmotionCell(row.discussions.a?.emotionMode)}
+                      </td>
+                      <td className="px-3 py-3 text-center text-lottie-zinc-600">
+                        {renderEmotionCell(row.discussions.b?.emotionMode)}
                       </td>
 
                       {/* Emosi */}
@@ -1058,11 +1077,11 @@ export default function ClassLADPageTemplate({
         )
       : 0
     : (studentDashboard?.progressPercent ??
-       (studentDashboard as any)?.progress_percent ??
-       (studentDashboard as any)?.progress ??
-       (studentDashboard as any)?.averageProgress ??
-       (studentDashboard as any)?.average_progress ??
-       0);
+      (studentDashboard as any)?.progress_percent ??
+      (studentDashboard as any)?.progress ??
+      (studentDashboard as any)?.averageProgress ??
+      (studentDashboard as any)?.average_progress ??
+      0);
 
   const scoreTrendData = studentId
     ? (childCourseDetail?.diagnosticResults || [])
@@ -1101,8 +1120,6 @@ export default function ClassLADPageTemplate({
 
   return (
     <ClassPageShellTemplate slug={slug} activeKey="lad" classTitle={classTitle}>
-
-    
       {/* ---- Hero Header ---- */}
       <header className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-lottie-teal to-lottie-teal/90 p-6 text-white shadow-[0px_16px_32px_rgba(31,35,117,0.18)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1123,7 +1140,7 @@ export default function ClassLADPageTemplate({
         {/* decorative circle */}
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/5" />
       </header>
-         <div className="flex justify-start">
+      <div className="flex justify-start">
         <Link
           href={resolvedBackHref}
           className="inline-flex items-center gap-1.5 rounded-xl border border-lottie-mist bg-white px-4 py-2.5 text-sm font-semibold text-lottie-zinc-600 transition hover:bg-lottie-pearl"
@@ -1388,7 +1405,6 @@ export default function ClassLADPageTemplate({
       </SectionCard>
 
       {/* ---- Back link ---- */}
-     
     </ClassPageShellTemplate>
   );
 }

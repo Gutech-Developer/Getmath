@@ -571,6 +571,8 @@ export interface DiscussionReadInput {
   packageLabel: string;
   startedAt: string;
   endedAt: string;
+  emotion?: EmotionInput;
+  imageBase64?: string;
 }
 
 export interface DiscussionReadResult {
@@ -778,6 +780,8 @@ export interface DiagnosticScoreItem {
   totalAttempts: number;
   isPassed: boolean;
   lastCompletedAt: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
 }
 
 export interface GetDiagnosticScoresResult {
@@ -796,6 +800,8 @@ export interface RemedialScoreItem {
   attemptId: string | null;
   isPassed: boolean;
   completedAt: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
 }
 
 export interface GetRemedialScoresResult {

@@ -1008,6 +1008,7 @@ export default function ClassDiagnosisContentPageTemplate({
             } else {
               setDiscussionVideoWatched(false);
             }
+            emotion.reset();
           } else if (data.isCompleted) {
             setRemedialSummary(data.summary);
             setReviewView("remedial");
@@ -1022,6 +1023,7 @@ export default function ClassDiagnosisContentPageTemplate({
             } else {
               setDiscussionVideoWatched(false);
             }
+            emotion.reset();
           } else {
             if (data.nextVariant) {
               setCurrentVariant(data.nextVariant ?? null);
@@ -1045,6 +1047,22 @@ export default function ClassDiagnosisContentPageTemplate({
   };
 
   const handleNextRemedialStep = () => {
+    // Flush emosi pasif yang terkumpul selama membaca pembahasan
+    const { result: emotionResult, imageBase64 } = emotion.flushAndReset();
+    let discussionEmotionInput = undefined;
+    if (emotionResult && emotionResult.sampleCount > 0) {
+      discussionEmotionInput = toEmotionInput(emotionResult);
+      console.log("[LOG CEK] [DariPembahasan] Emosi terkumpul selama pembahasan:", {
+        sampleCount: emotionResult.sampleCount,
+        mode: emotionResult.mode,
+        distribution: emotionResult.distribution,
+        durationMs: emotionResult.durationMs,
+      });
+      console.log("[RemedialDiscussionSnapshot] Best frame Base64 size:", imageBase64?.length ?? 0);
+    } else {
+      console.warn("[LOG CEK] [DariPembahasan] Tidak ada sampel emosi terkumpul selama pembahasan.");
+    }
+
     if (discussionStartedAtRef.current && currentVariant) {
       const endedAt = new Date().toISOString();
       recordDiscussionReadMutation.mutate({
@@ -1054,32 +1072,11 @@ export default function ClassDiagnosisContentPageTemplate({
           packageLabel: currentVariant.packageLabel,
           startedAt: discussionStartedAtRef.current,
           endedAt,
+          emotion: discussionEmotionInput,
+          imageBase64,
         },
       });
       discussionStartedAtRef.current = null;
-    }
-
-    // Flush emosi yang terkumpul selama tahap pembahasan & kirim ke emotion-bucket
-    const { result: emotionResult } = emotion.flushAndReset();
-    console.log("[LOG CEK] [DariPembahasan] Tombol Next diklik, cek emosi terkumpul:", {
-      sampleCount: emotionResult?.sampleCount ?? 0,
-      mode: emotionResult?.mode,
-      distribution: emotionResult?.distribution,
-      durationMs: emotionResult?.durationMs,
-    });
-    if (emotionResult && emotionResult.sampleCount > 0) {
-      const payload = {
-        context: "REMEDIAL" as const,
-        attemptId: remedialAttemptId || null,
-        emotion: toEmotionInput(emotionResult),
-      };
-      console.log("[LOG CEK] [DariPembahasan] Mengirim ke emotion-bucket:", payload);
-      submitEmotionBucketMutation.mutate(payload, {
-        onSuccess: () => console.log("[LOG CEK] [DariPembahasan] Berhasil kirim emotion-bucket!"),
-        onError: (err) => console.error("[LOG CEK] [DariPembahasan] Gagal kirim emotion-bucket:", err),
-      });
-    } else {
-      console.warn("[LOG CEK] [DariPembahasan] Tidak ada sampel emosi terkumpul selama pembahasan.");
     }
 
     if (nextVariantData) {

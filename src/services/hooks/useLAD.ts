@@ -1,8 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryKeys } from "@/libs/api";
-import { gsGet } from "@/libs/api/gsAction";
+import { gsGet, gsDownloadFile } from "@/libs/api/gsAction";
 import type {
     IEmotionDistributionResponse,
     IStudyTimeByModuleResponse,
@@ -93,5 +93,27 @@ export function useModuleProgressTable(courseModuleId: string, studentId?: strin
         queryFn: () => gsGet<IModuleProgressTableResponse>(withStudentId(`/learning-analytics/modules/${courseModuleId}/progress-table`, studentId)),
         enabled: !!courseModuleId,
         staleTime: 2 * 60 * 1000,
+    });
+}
+
+export function useDownloadAnalytics() {
+    return useMutation<
+        { base64: string; contentType: string; filename: string },
+        Error,
+        string
+    >({
+        mutationFn: (courseSlug: string) =>
+            gsDownloadFile(`/learning-analytics/courses/${courseSlug}/download-analytics`),
+    });
+}
+
+export function useDownloadModuleAnalytics() {
+    return useMutation<
+        { base64: string; contentType: string; filename: string },
+        Error,
+        string
+    >({
+        mutationFn: (courseModuleId: string) =>
+            gsDownloadFile(`/learning-analytics/modules/${courseModuleId}/download-analytics`),
     });
 }

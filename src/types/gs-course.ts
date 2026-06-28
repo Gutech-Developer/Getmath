@@ -290,6 +290,8 @@ export interface GsStudentBasic {
   NIS?: string | null;
   schoolName?: string | null;
   city?: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
 }
 
 export interface GsCourseEnrollment {
