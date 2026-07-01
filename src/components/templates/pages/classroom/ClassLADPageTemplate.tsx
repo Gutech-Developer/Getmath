@@ -614,6 +614,8 @@ function DiagnosticAccordionContent({
     error,
   } = useModuleProgressTable(moduleId, studentId);
 
+  const [activeTab, setActiveTab] = useState<"diagnostic" | "remedial">("diagnostic");
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -648,10 +650,66 @@ function DiagnosticAccordionContent({
     );
   }
 
+  const renderDiagnosticTable = () => {
+    const rows = progressTable.diagnostic?.rows || [];
+    if (rows.length === 0) {
+      return (
+        <div className="rounded-2xl border border-lottie-mist bg-lottie-pearl/50 p-5 text-center text-lottie-zinc-500 text-sm">
+          Detail pengerjaan tes diagnostik tidak tersedia.
+        </div>
+      );
+    }
+    return (
+      <div className="overflow-x-auto rounded-xl border border-lottie-mist bg-white">
+        <table className="w-full min-w-[600px] border-collapse text-left text-xs text-lottie-midnight">
+          <thead className="bg-lottie-pearl border-b border-lottie-mist font-semibold text-lottie-zinc-500 uppercase tracking-wider">
+            <tr>
+              <th className="px-4 py-3 text-center w-[100px]">No Soal</th>
+              <th className="px-4 py-3 border-l border-lottie-mist">Jawaban Siswa</th>
+              <th className="px-4 py-3 border-l border-lottie-mist text-center w-[150px]">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-lottie-mist bg-white">
+            {rows.map((row) => (
+              <tr
+                key={row.questionId}
+                className="hover:bg-lottie-pearl/30 transition-colors"
+              >
+                <td className="px-4 py-3 text-center font-medium text-lottie-zinc-600">
+                  {row.questionNumber}
+                </td>
+                <td className="px-4 py-3 border-l border-lottie-mist text-lottie-zinc-700 font-semibold font-mono">
+                  {row.answer?.selectedOption ?? "Kosong"}
+                </td>
+                <td className="px-4 py-3 border-l border-lottie-mist text-center">
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border",
+                      row.answer?.isCorrect
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-rose-50 text-rose-700 border-rose-200"
+                    )}
+                  >
+                    {row.answer?.isCorrect ? "BENAR" : "SALAH"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const hasDuration = progressTable.diagnostic.durationMs !== undefined && progressTable.diagnostic.durationMs !== null;
+
   return (
     <div className="space-y-4">
       {/* Summary Header */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 bg-lottie-pearl/50 border border-lottie-mist rounded-xl p-4">
+      <div className={cn(
+        "grid grid-cols-1 gap-4 bg-lottie-pearl/50 border border-lottie-mist rounded-xl p-4",
+        hasDuration ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"
+      )}>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-lottie-zinc-400">
             Nama Tes
@@ -688,11 +746,51 @@ function DiagnosticAccordionContent({
             </span>
           </div>
         </div>
+        {hasDuration && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-lottie-zinc-400">
+              Durasi Tes
+            </p>
+            <p className="text-sm font-semibold text-lottie-midnight mt-0.5">
+              {formatDuration(Math.round(progressTable.diagnostic.durationMs! / 1000))}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Progress Data (Tabel Remedial jika isRemedial === true) */}
+      {/* Tabs Switcher (hanya jika isRemedial === true) */}
+      {progressTable.isRemedial && (
+        <div className="flex border-b border-lottie-mist pb-px gap-6">
+          <button
+            onClick={() => setActiveTab("diagnostic")}
+            className={cn(
+              "pb-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 -mb-px cursor-pointer",
+              activeTab === "diagnostic"
+                ? "border-lottie-teal text-lottie-teal"
+                : "border-transparent text-lottie-zinc-400 hover:text-lottie-midnight"
+            )}
+          >
+            Hasil Diagnostik
+          </button>
+          <button
+            onClick={() => setActiveTab("remedial")}
+            className={cn(
+              "pb-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 -mb-px cursor-pointer",
+              activeTab === "remedial"
+                ? "border-lottie-teal text-lottie-teal"
+                : "border-transparent text-lottie-zinc-400 hover:text-lottie-midnight"
+            )}
+          >
+            Sesi Remedial
+          </button>
+        </div>
+      )}
+
+      {/* Tab Content rendering */}
       {progressTable.isRemedial ? (
-        progressTable.remedial ? (
+        activeTab === "diagnostic" ? (
+          renderDiagnosticTable()
+        ) : progressTable.remedial ? (
           <div className="space-y-2">
             <div className="overflow-x-auto rounded-xl border border-lottie-mist bg-white">
               <table className="w-full min-w-[1000px] border-collapse text-left text-xs text-lottie-midnight">
@@ -836,13 +934,16 @@ function DiagnosticAccordionContent({
           </div>
         )
       ) : (
-        <div className="rounded-2xl border border-lottie-teal/20 bg-lottie-teal/5 p-4 text-center text-lottie-teal text-sm font-medium flex items-center justify-center gap-2">
-          <span>🎉</span>
-          <span>
-            {studentId
-              ? "Siswa tidak masuk sesi remedial karena telah lulus KKM pada Tes Diagnostik."
-              : "Anda tidak masuk sesi remedial karena telah lulus KKM pada Tes Diagnostik."}
-          </span>
+        <div className="space-y-4">
+          {renderDiagnosticTable()}
+          <div className="rounded-2xl border border-lottie-teal/20 bg-lottie-teal/5 p-4 text-center text-lottie-teal text-sm font-medium flex items-center justify-center gap-2">
+            <span>🎉</span>
+            <span>
+              {studentId
+                ? "Siswa tidak masuk sesi remedial karena telah lulus KKM pada Tes Diagnostik."
+                : "Anda tidak masuk sesi remedial karena telah lulus KKM pada Tes Diagnostik."}
+            </span>
+          </div>
         </div>
       )}
     </div>
