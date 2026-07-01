@@ -125,14 +125,29 @@ export type IDistributionRemedialResponse = IDistributionTest | {
     data: IDistributionTest;
 };
 
+export interface IDiagnosticAnswer {
+  selectedOption: string | null;
+  isCorrect: boolean;
+}
+
+export interface IDiagnosticProgressRow {
+  questionNumber: number;
+  questionId: string;
+  answer: IDiagnosticAnswer;
+}
+
 export interface IDiagnosticResultInfo {
   attemptId: string;
+  diagnosticTestId: string;
   testName: string;
   score: number | null;
   passingScore: number;
   isPassed: boolean;
   startedAt?: string;
   completedAt?: string;
+  durationMs: number | null;
+  totalQuestions: number;
+  rows: IDiagnosticProgressRow[];
 }
 
 export interface IRemedialAnswerCell {
