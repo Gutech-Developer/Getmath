@@ -16,6 +16,8 @@ export interface ILearningAnalyticsStudentListItem {
   score: number;
   status: LearningAnalyticsStudentStatus;
   progress?: number;
+  birthDate?: string | null;
+  gender?: string | null;
 }
 
 export interface ILearningAnalyticsMaterialItem {

@@ -35,6 +35,9 @@ interface IUserProfileContentProps {
   passwordLabel?: string;
   logoutLabel?: string;
   isLogoutLoading?: boolean;
+  birthDate?: string | null;
+  gender?: string | null;
+  isStudent?: boolean;
   onChangePhoto: () => void;
   onEditProfile?: () => void;
   onChangePassword: () => void;
@@ -70,6 +73,9 @@ export default function UserProfileContent({
   passwordLabel = "Ubah Password",
   logoutLabel = "Keluar dari Akun",
   isLogoutLoading = false,
+  birthDate,
+  gender,
+  isStudent = false,
   onChangePhoto,
   onEditProfile,
   onChangePassword,
@@ -78,6 +84,8 @@ export default function UserProfileContent({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [formFullName, setFormFullName] = useState(fullName);
   const [formPhone, setFormPhone] = useState(phone);
+  const [formBirthDate, setFormBirthDate] = useState(birthDate || "");
+  const [formGender, setFormGender] = useState(gender || "");
 
   const updateProfileMutation = useGsUpdateProfile();
 
@@ -89,6 +97,14 @@ export default function UserProfileContent({
     setFormPhone(phone);
   }, [phone]);
 
+  useEffect(() => {
+    setFormBirthDate(birthDate || "");
+  }, [birthDate]);
+
+  useEffect(() => {
+    setFormGender(gender || "");
+  }, [gender]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formFullName.trim()) {
@@ -99,11 +115,22 @@ export default function UserProfileContent({
       showToast.error("Nomor HP/WhatsApp tidak boleh kosong");
       return;
     }
+    if (isStudent) {
+      if (!formBirthDate.trim()) {
+        showToast.error("Tanggal lahir tidak boleh kosong");
+        return;
+      }
+      if (!formGender.trim()) {
+        showToast.error("Jenis kelamin tidak boleh kosong");
+        return;
+      }
+    }
 
     updateProfileMutation.mutate(
       {
         fullName: formFullName,
         phoneNumber: formPhone,
+        ...(isStudent ? { birthDate: formBirthDate, gender: formGender } : {}),
       },
       {
         onSuccess: () => {
@@ -265,6 +292,39 @@ export default function UserProfileContent({
               required
             />
           </div>
+
+          {isStudent && (
+            <>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-[#4B5563]">
+                  Tanggal Lahir
+                </label>
+                <input
+                  type="date"
+                  value={formBirthDate}
+                  onChange={(e) => setFormBirthDate(e.target.value)}
+                  className="h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm text-[#1F2937] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#C7D2FE]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-[#4B5563]">
+                  Jenis Kelamin
+                </label>
+                <select
+                  value={formGender}
+                  onChange={(e) => setFormGender(e.target.value)}
+                  className="h-12 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm text-[#1F2937] outline-none transition focus:border-[#6366F1] focus:ring-2 focus:ring-[#C7D2FE] cursor-pointer"
+                  required
+                >
+                  <option value="">Pilih Jenis Kelamin</option>
+                  <option value="Laki-laki">Laki-laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                </select>
+              </div>
+            </>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-[#E5E7EB] mt-6">
             <button

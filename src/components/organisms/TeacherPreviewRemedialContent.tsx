@@ -90,8 +90,12 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
               );
               if (!variant) return null;
 
-              const embed = question.discussionVideoUrl
-                ? getYouTubeEmbedUrl(question.discussionVideoUrl)
+              const hasDiscussion = activePackage === "A" || activePackage === "B";
+              const discussionText = hasDiscussion ? variant.discussionText : null;
+              const discussionVideoUrl = hasDiscussion ? variant.discussionVideoUrl : null;
+              
+              const embed = discussionVideoUrl
+                ? getYouTubeEmbedUrl(discussionVideoUrl)
                 : null;
 
               return (
@@ -156,37 +160,31 @@ export function RemedialPreviewBody({ test }: { test: GsRemedialTest }) {
                       </ul>
 
                       {/* Pembahasan */}
-                      <div className="mt-4 rounded-2xl bg-[#F9FAFB] p-4 space-y-4">
-                        <div>
-                          <p className="mb-2 text-xs font-semibold uppercase text-[#6B7280]">
-                            Pembahasan
-                          </p>
-                          <div className="prose prose-sm max-w-none text-[#4B5563]">
-                            <MathText text={question.discussionText || ""} />
-                          </div>
+                      {hasDiscussion && (discussionText || embed) && (
+                        <div className="mt-4 rounded-2xl bg-[#F9FAFB] p-4 space-y-4">
+                          {discussionText && (
+                            <div>
+                              <p className="mb-2 text-xs font-semibold uppercase text-[#6B7280]">
+                                Pembahasan
+                              </p>
+                              <div className="prose prose-sm max-w-none text-[#4B5563]">
+                                <MathText text={discussionText} />
+                              </div>
+                            </div>
+                          )}
+
+                          {embed && (
+                            <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
+                              <iframe
+                                src={embed}
+                                title={`Pembahasan Soal ${i + 1}`}
+                                className="aspect-video w-full"
+                                allowFullScreen
+                              />
+                            </div>
+                          )}
                         </div>
-
-                        {question.discussionImageUrl && (
-                          <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-2">
-                            <img
-                              src={resolveAssetUrl(question.discussionImageUrl)}
-                              alt={`Gambar Pembahasan Soal ${i + 1}`}
-                              className="max-h-80 w-auto object-contain rounded-lg mx-auto"
-                            />
-                          </div>
-                        )}
-
-                        {embed && (
-                          <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
-                            <iframe
-                              src={embed}
-                              title={`Pembahasan Soal ${i + 1}`}
-                              className="aspect-video w-full"
-                              allowFullScreen
-                            />
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>

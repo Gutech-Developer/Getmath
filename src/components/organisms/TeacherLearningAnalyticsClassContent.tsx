@@ -273,7 +273,10 @@ export default function TeacherLearningAnalyticsClassContent({
       />
     ),
     "Nilai Test": (
-      <BaseNilaiTestSection courseId={classDetail.id ?? classDetail.slug} />
+      <BaseNilaiTestSection
+        courseId={classDetail.id ?? classDetail.slug}
+        courseSlug={classDetail.slug}
+      />
     ),
 
     Laporan: (

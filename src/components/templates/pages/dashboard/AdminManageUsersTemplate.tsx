@@ -42,6 +42,8 @@ function UserFormModal({
     identityNumber: "", // NIS or NIP
     schoolId: "",
     isActive: true,
+    birthDate: "",
+    gender: "",
   });
   const [schoolSearch, setSchoolSearch] = useState("");
 
@@ -54,6 +56,8 @@ function UserFormModal({
     if (isOpen) {
       if (initialData) {
         const idNum = role === "siswa" ? initialData.student?.NIS : initialData.teacher?.NIP;
+        const bDate = role === "siswa" ? initialData.student?.birthDate : "";
+        const gndr = role === "siswa" ? initialData.student?.gender : "";
         setForm({
           fullName: initialData.fullName || "",
           email: initialData.email || "",
@@ -62,6 +66,8 @@ function UserFormModal({
           identityNumber: idNum || "",
           schoolId: initialData.schoolId || "",
           isActive: initialData.isActive !== undefined ? initialData.isActive : true,
+          birthDate: bDate || "",
+          gender: gndr || "",
         });
         setSchoolSearch(initialData.schoolName || "");
       } else {
@@ -73,6 +79,8 @@ function UserFormModal({
           identityNumber: "",
           schoolId: "",
           isActive: true,
+          birthDate: "",
+          gender: "",
         });
         setSchoolSearch("");
       }
@@ -85,6 +93,7 @@ function UserFormModal({
     (!initialData && !form.password) || // password is required only for creation
     !form.identityNumber ||
     !form.schoolId ||
+    (role === "siswa" && (!form.birthDate || !form.gender)) ||
     isSubmitting;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -109,6 +118,8 @@ function UserFormModal({
     if (role === "siswa") {
       payload.role = "STUDENT";
       payload.NIS = form.identityNumber;
+      payload.birthDate = form.birthDate;
+      payload.gender = form.gender;
     } else {
       payload.role = "TEACHER";
       payload.NIP = form.identityNumber;
@@ -202,6 +213,33 @@ function UserFormModal({
             />
           </div>
 
+          {role === "siswa" && (
+            <>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-[#374151]">Tanggal Lahir</label>
+                <input
+                  type="date"
+                  value={form.birthDate}
+                  onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
+                  className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-[#374151]">Jenis Kelamin</label>
+                <select
+                  value={form.gender}
+                  onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                  className="h-11 w-full rounded-xl border border-[#D1D5DB] px-4 text-sm outline-none transition focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50 cursor-pointer"
+                >
+                  <option value="">Pilih Jenis Kelamin</option>
+                  <option value="Laki-laki">Laki-laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                </select>
+              </div>
+            </>
+          )}
+
           {initialData && (
             <div className="space-y-1.5">
               <label className="block text-sm font-semibold text-[#374151]">Status Akun</label>
@@ -290,17 +328,18 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
 
   const { data: statsData } = useUserStats();
 
-  // Fetch all users of the role
+  // Fetch users of the role (server-side pagination)
   const { data: usersData, isLoading } = useSearchUser({
-    page: 1,
-    limit: 1000,
+    page,
+    limit,
     role: backendRole,
+    search: debouncedSearch || undefined,
   });
 
   const allUsers = usersData?.users || [];
 
-  // Frontend filtering
-  const filteredUsers = useMemo(() => {
+  // Frontend filtering for status (search is handled on server side)
+  const paginatedUsers = useMemo(() => {
     let result = allUsers;
 
     if (statusFilter === "ACTIVE") {
@@ -309,25 +348,11 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
       result = result.filter(u => u.isActive === false);
     }
 
-    if (debouncedSearch) {
-      const query = debouncedSearch.toLowerCase();
-      result = result.filter((user) => {
-        return (
-          user.fullName.toLowerCase().includes(query) ||
-          user.email.toLowerCase().includes(query) ||
-          (user.schoolName && user.schoolName.toLowerCase().includes(query))
-        );
-      });
-    }
-
     return result;
-  }, [allUsers, debouncedSearch, statusFilter]);
+  }, [allUsers, statusFilter]);
 
-  // Frontend pagination
-  const totalItems = filteredUsers.length;
-  const totalPages = Math.ceil(totalItems / limit);
-  const startIndex = (page - 1) * limit;
-  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + limit);
+  const totalItems = usersData?.pagination?.totalItems ?? paginatedUsers.length;
+  const totalPages = usersData?.pagination?.totalPages ?? Math.ceil(totalItems / limit);
 
   const deleteUser = useDeleteUser();
   const createUser = useCreateUser();
@@ -518,10 +543,10 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
           </div>
         )}
 
-        {totalPages > 1 && (
+        {totalItems > 0 && (
           <TablePagination
             currentPage={page}
-            totalPages={totalPages}
+            totalPages={totalPages || 1}
             onPageChange={setPage}
             itemsPerPage={limit}
             onItemsPerPageChange={(newLimit) => {

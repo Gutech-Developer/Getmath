@@ -90,6 +90,8 @@ export default function TeacherLearningAnalyticsClassTemplate({
             (enrollment as any).averageProgress ??
             (enrollment as any).average_progress ??
             0,
+          birthDate: enrollment.student?.birthDate,
+          gender: enrollment.student?.gender,
         };
       });
 

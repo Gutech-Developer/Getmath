@@ -36,6 +36,7 @@ import {
   useRemedialAnswersReview,
   useGsRemedialTestById,
   useRecordRemedialDiscussionRead,
+  useSubmitEmotionBucket,
 } from "@/services";
 import type {
   StartTestAttemptResult,
@@ -339,6 +340,7 @@ export default function ClassDiagnosisContentPageTemplate({
   const submitRemedialVariantMutation = useSubmitRemedialVariant(contentId);
   const recordDiscussionReadMutation = useRecordRemedialDiscussionRead(contentId);
   const submitRemedialBulkMutation = useSubmitRemedialBulk(contentId);
+  const submitEmotionBucketMutation = useSubmitEmotionBucket(contentId);
   const remedialAutoSubmitTriggeredRef = useRef(false);
   const discussionStartedAtRef = useRef<string | null>(null);
 
@@ -935,7 +937,9 @@ export default function ClassDiagnosisContentPageTemplate({
 
     // Spec §12.2: flush atomik via flushOrUnknown() — satu panggilan, window timestamp utuh.
     const { result: emotionResult, imageBase64 } = emotion.flushOrUnknown();
-    console.log("[Emotion] flush →", {
+    console.log("[LOG CEK] [RemedialSoalLangsung] Flush emosi jawaban kuis:", {
+      variantId: currentVariant.variantId,
+      packageLabel: currentVariant.packageLabel,
       mode: emotionResult.mode,
       sampleCount: emotionResult.sampleCount,
       distribution: emotionResult.distribution,
@@ -1004,6 +1008,7 @@ export default function ClassDiagnosisContentPageTemplate({
             } else {
               setDiscussionVideoWatched(false);
             }
+            emotion.reset();
           } else if (data.isCompleted) {
             setRemedialSummary(data.summary);
             setReviewView("remedial");
@@ -1018,6 +1023,7 @@ export default function ClassDiagnosisContentPageTemplate({
             } else {
               setDiscussionVideoWatched(false);
             }
+            emotion.reset();
           } else {
             if (data.nextVariant) {
               setCurrentVariant(data.nextVariant ?? null);
@@ -1041,6 +1047,22 @@ export default function ClassDiagnosisContentPageTemplate({
   };
 
   const handleNextRemedialStep = () => {
+    // Flush emosi pasif yang terkumpul selama membaca pembahasan
+    const { result: emotionResult, imageBase64 } = emotion.flushAndReset();
+    let discussionEmotionInput = undefined;
+    if (emotionResult && emotionResult.sampleCount > 0) {
+      discussionEmotionInput = toEmotionInput(emotionResult);
+      console.log("[LOG CEK] [DariPembahasan] Emosi terkumpul selama pembahasan:", {
+        sampleCount: emotionResult.sampleCount,
+        mode: emotionResult.mode,
+        distribution: emotionResult.distribution,
+        durationMs: emotionResult.durationMs,
+      });
+      console.log("[RemedialDiscussionSnapshot] Best frame Base64 size:", imageBase64?.length ?? 0);
+    } else {
+      console.warn("[LOG CEK] [DariPembahasan] Tidak ada sampel emosi terkumpul selama pembahasan.");
+    }
+
     if (discussionStartedAtRef.current && currentVariant) {
       const endedAt = new Date().toISOString();
       recordDiscussionReadMutation.mutate({
@@ -1050,13 +1072,14 @@ export default function ClassDiagnosisContentPageTemplate({
           packageLabel: currentVariant.packageLabel,
           startedAt: discussionStartedAtRef.current,
           endedAt,
+          emotion: discussionEmotionInput,
+          imageBase64,
         },
       });
       discussionStartedAtRef.current = null;
     }
 
     if (nextVariantData) {
-      emotion.reset();
       setCurrentVariant(nextVariantData);
       setSelectedRemedialOptionId(null);
       setDiscussionShow(false);

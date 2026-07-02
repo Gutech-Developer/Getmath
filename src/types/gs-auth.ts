@@ -66,6 +66,8 @@ export interface GsRegisterInput {
   schoolId?: string;
   schoolName?: string;
   address?: string;
+  birthDate?: string;
+  gender?: string;
 }
 
 export interface GsForgotPasswordInput {
@@ -145,6 +147,8 @@ export interface GsGoogleCompleteProfileInput {
 export interface GsUpdateProfileInput {
   fullName: string;
   phoneNumber: string;
+  birthDate?: string;
+  gender?: string;
 }
 
 // ── Response types ─────────────────────────────────────────────────────────────

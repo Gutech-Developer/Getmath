@@ -4,6 +4,7 @@ import { useUserById } from "@/services/hooks/useUser";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import InitTemplate from "@/components/templates/init/InitTemplate";
+import { formatBirthDate } from "@/libs/utils";
 
 interface IAdminUserDetailTemplateProps {
   role: "siswa" | "guru";
@@ -79,6 +80,18 @@ export default function AdminUserDetailTemplate({ role }: IAdminUserDetailTempla
               <p className="text-sm font-medium text-gray-500">{role === "siswa" ? "NIS" : "NIP"}</p>
               <p className="mt-1 text-base text-gray-900">{identityNumber || "-"}</p>
             </div>
+            {role === "siswa" && (
+              <>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Tanggal Lahir</p>
+                  <p className="mt-1 text-base text-gray-900">{formatBirthDate(user.student?.birthDate)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Jenis Kelamin</p>
+                  <p className="mt-1 text-base text-gray-900">{user.student?.gender ?? "-"}</p>
+                </div>
+              </>
+            )}
             <div>
               <p className="text-sm font-medium text-gray-500">Nomor Telepon</p>
               <p className="mt-1 text-base text-gray-900">{user.phoneNumber || "-"}</p>

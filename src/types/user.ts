@@ -42,6 +42,8 @@ export interface GsStudentProfile {
   city: string;
   schoolId: string;
   school: GsSchool;
+  birthDate?: string | null;
+  gender?: string | null;
 }
 
 // ── Base Properti yang Dimiliki Kedua Role ────────────────────────────────────
@@ -98,6 +100,8 @@ interface CreateTeacher extends BaseCreateUser {
 interface CreateStudent extends BaseCreateUser {
   NIP: string;
   role: "STUDENT";
+  birthDate?: string;
+  gender?: string;
 }
 
 export type CreateUserInput = CreateTeacher | CreateStudent;
