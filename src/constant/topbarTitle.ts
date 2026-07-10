@@ -155,6 +155,17 @@ export function resolveTopbarTitle({
     return studentName ?? "Detail Siswa";
   }
 
+  // Admin / Teacher Manage Users detail pages
+  if (/\/(?:teacher|admin)\/dashboard\/manage-users\/(student|teacher)\/[^/]+$/i.test(normalizedPathname)) {
+    const match = normalizedPathname.match(/\/(?:teacher|admin)\/dashboard\/manage-users\/(student|teacher)\/[^/]+$/i);
+    const roleSegment = match?.[1]?.toLowerCase();
+    const fullName = searchParams?.get("fullName") || searchParams?.get("userName") || searchParams?.get("studentName");
+    if (fullName) {
+      return fullName;
+    }
+    return roleSegment === "student" ? "Detail Siswa" : "Detail Guru";
+  }
+
   const resolvedSidebar = resolveSidebarVariant(normalizedPathname);
   const slug = pickSlug(slugParam) ?? resolvedSidebar.classSlug;
 
