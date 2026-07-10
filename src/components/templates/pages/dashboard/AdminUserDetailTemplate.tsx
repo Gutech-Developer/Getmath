@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useUserById } from "@/services/hooks/useUser";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname, useSearchParams } from "next/navigation";
 import InitTemplate from "@/components/templates/init/InitTemplate";
 import { formatBirthDate } from "@/libs/utils";
 
@@ -13,9 +14,22 @@ interface IAdminUserDetailTemplateProps {
 export default function AdminUserDetailTemplate({ role }: IAdminUserDetailTemplateProps) {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const id = params?.id as string;
 
   const { data: user, isLoading, error } = useUserById(id);
+
+  useEffect(() => {
+    if (user?.fullName && pathname) {
+      const currentFullName = searchParams?.get("fullName");
+      if (currentFullName !== user.fullName) {
+        const newSearchParams = new URLSearchParams(searchParams?.toString() || "");
+        newSearchParams.set("fullName", user.fullName);
+        router.replace(`${pathname}?${newSearchParams.toString()}`, { scroll: false });
+      }
+    }
+  }, [user?.fullName, pathname, searchParams, router]);
 
   if (isLoading) {
     return (
