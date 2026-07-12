@@ -3,6 +3,7 @@
 import ForumSection from "@/components/organisms/ForumSection";
 
 import {
+  BaseInfoKelasSection,
   BaseKelolaELKPDSection,
   BaseLaporanSection,
   BaseMateriSection,
@@ -11,7 +12,6 @@ import {
   LearningAnalyticsViewSwitcher,
   TeacherOverviewSection,
   BaseNilaiTestSection,
- 
 } from "@/components/molecules/learningAnalytics/ClassAnalyticsSections";
 import { useGsKickStudentFromCourse } from "@/services/hooks/useGsCourseEnrollment";
 import type {
@@ -165,13 +165,14 @@ export default function AdminLearningAnalyticsClassContent({
     if (
       viewQuery &&
       [
-        "Beranda",
+        "Beranda",  
         "Siswa",
         "Materi",
         "Nilai E-LKPD",
         "Nilai Test",
         "Laporan",
         "Forum",
+        "Info Kelas",
       ].includes(viewQuery)
     ) {
       setActiveViewType(viewQuery as ClassAnalyticsViewType);
@@ -257,6 +258,7 @@ export default function AdminLearningAnalyticsClassContent({
     Beranda: (
       <TeacherOverviewSection classDetail={classDetail} materials={materials} />
     ),
+    "Info Kelas": <BaseInfoKelasSection classDetail={classDetail} />,
     Siswa: (
       <BaseSiswaSection
         students={classDetail.students}

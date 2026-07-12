@@ -9,6 +9,7 @@ const VIEW_TYPES: ClassAnalyticsViewType[] = [
   "Nilai Test",
   "Laporan",
   "Forum",
+  "Info Kelas",
 ];
 
 function resolveViewType(
