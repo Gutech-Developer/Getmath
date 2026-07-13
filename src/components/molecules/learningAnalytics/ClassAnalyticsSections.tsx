@@ -16,6 +16,7 @@ import TrashIcon from "@/components/atoms/icons/TrashIcon";
 import ChatIcon from "@/components/atoms/icons/ChatIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
 import VideoIcon from "@/components/atoms/icons/VideoIcon";
+import InfoCircleIcon from "@/components/atoms/icons/InfoCircleIcon";
 import { MathSymbolAvatar } from "@/components/atoms/MathSymbolAvatar";
 import { WelcomeBanner } from "@/components/molecules/cards/WelcomeBanner";
 import { DonutChart } from "@/components/molecules/charts/DonutChart";
@@ -44,6 +45,7 @@ import {
   useGsUpdateCourseModule,
   useDownloadAnalytics,
   useDownloadModuleAnalytics,
+  useGsCourseBySlug,
 } from "@/services";
 import {
   useGsRemedialTestById,
@@ -92,6 +94,11 @@ import {
   useRemedialTestDistribution,
 } from "@/services/hooks/useLAD";
 import { mapDistributionToSegments } from "@/components/templates/pages/classroom/ClassLADPageTemplate";
+import ClassInfoDetailRow from "@/components/molecules/classroom/info/ClassInfoDetailRow";
+import ClassProgressStatItem from "@/components/molecules/classroom/info/ClassProgressStatItem";
+import ClassQuestionnaireCard from "@/components/molecules/classroom/info/ClassQuestionnaireCard";
+import { formatClassTitleFromSlug } from "@/components/templates/pages/classroom/ClassPageShellTemplate";
+import { getClassInfoDetailItems } from "@/constant/classInfo";
 
 interface ITeacherOverviewSectionProps {
   classDetail: ITeacherClassLearningAnalyticsDetail;
@@ -162,6 +169,10 @@ interface IBaseInitSectionProps {
   description: string;
 }
 
+export interface IBaseInfoKelasSectionProps {
+  classDetail: ITeacherClassLearningAnalyticsDetail;
+}
+
 interface IForumWordCloudItem {
   label: string;
   className: string;
@@ -185,6 +196,7 @@ const VIEW_ITEMS: Array<{
   { type: "Nilai Test", icon: ClipboardIcon },
   { type: "Laporan", icon: TrendUpIcon },
   { type: "Forum", icon: ChatIcon },
+  { type: "Info Kelas", icon: InfoCircleIcon },
 ];
 
 const REPORT_MODES = ["Analisis Nilai & Emosi", "Word Cloud Forum"] as const;
@@ -760,6 +772,143 @@ export function LearningAnalyticsViewSwitcher({
 
 export function BaseInitSection({ title, description }: IBaseInitSectionProps) {
   return <InitTemplate title={title} description={description} />;
+}
+
+export function BaseInfoKelasSection({
+  classDetail,
+}: IBaseInfoKelasSectionProps) {
+  const classTitle =
+    classDetail.className || formatClassTitleFromSlug(classDetail.slug);
+  const { data: course } = useGsCourseBySlug(classDetail.slug);
+
+  const teacherName =
+    classDetail.teacherName || course?.teacher?.fullName || "Guru Kelas";
+  const totalStudents =
+    classDetail.studentCount ||
+    course?.enrolledCount ||
+    classDetail.students?.length ||
+    0;
+
+  const detailItems = getClassInfoDetailItems(classTitle, {
+    teacherName,
+    totalStudents,
+  });
+
+  const progressPercent = course?.progressPercent ?? classDetail.progress ?? 0;
+  const subjectCount =
+    course?.subjectCount ??
+    (classDetail.materials?.filter((m) => m.type !== "Tes").length ?? 0);
+  const diagnosticTestCount =
+    course?.diagnosticTestCount ??
+    (classDetail.materials?.filter((m) => m.type === "Tes").length ?? 0);
+
+  const studentList = classDetail.students?.length
+    ? classDetail.students.map((s) => ({
+        fullName: s.fullname,
+      }))
+    : [];
+
+  return (
+    <section className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <section className="rounded-3xl border border-lottie-mist bg-white p-6 shadow-xs sm:p-8">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-normal text-lottie-midnight">
+              Informasi Kelas
+            </h2>
+          </div>
+
+          <div className="mt-5">
+            {detailItems.map((item, index) => (
+              <ClassInfoDetailRow
+                key={item.label}
+                label={item.label}
+                value={item.value}
+                isLast={index === detailItems.length - 1}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-lottie-mist bg-white p-6 shadow-xs sm:p-8">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-normal text-lottie-midnight">
+              Progres Belajar
+            </h2>
+          </div>
+
+          <div className="mt-8">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-base text-lottie-zinc-500">
+                Progress Keseluruhan
+              </p>
+              <p className="text-lg font-bold text-lottie-teal">
+                {progressPercent}%
+              </p>
+            </div>
+
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-lottie-mist">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-lottie-teal to-lottie-teal/80"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-8 space-y-4">
+            {subjectCount > 0 && (
+              <ClassProgressStatItem
+                label={"Jumlah Materi"}
+                value={subjectCount}
+                tone={"neutral"}
+              />
+            )}
+            {diagnosticTestCount > 0 && (
+              <ClassProgressStatItem
+                label={"Jumlah Tes Diagnostik"}
+                value={diagnosticTestCount}
+                tone={"neutral"}
+              />
+            )}
+          </div>
+        </section>
+      </div>
+
+      <ClassQuestionnaireCard url="https://docs.google.com/forms/d/e/1FAIpQLSe26os1aklIBoXw89m3LYrixJx3HjXH_NP0puYR0ejYPAaNJg/viewform?usp=sharing&ouid=105865115273377729120" />
+
+      <section className="rounded-3xl border border-lottie-mist bg-white p-6 shadow-xs sm:p-8">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-normal text-lottie-midnight">
+              Daftar Siswa
+            </h2>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {studentList &&
+            studentList.length > 0 &&
+            studentList.map((student, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 p-2 rounded-xl hover:bg-lottie-pearl transition-colors"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-lottie-teal/20 bg-lottie-teal/10 text-sm font-semibold text-lottie-teal">
+                  {student.fullName?.charAt(0).toUpperCase()}
+                </div>
+
+                <div className="flex flex-col">
+                  <p className="text-sm font-medium text-lottie-midnight">
+                    {student.fullName}
+                  </p>
+                  <p className="text-xs text-lottie-zinc-400">Siswa</p>
+                </div>
+              </div>
+            ))}
+        </div>
+      </section>
+    </section>
+  );
 }
 
 export function BaseBerandaSection({

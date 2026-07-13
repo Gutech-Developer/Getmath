@@ -6,7 +6,9 @@ import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import TrendUpIcon from "@/components/atoms/icons/TrendUpIcon";
 import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
+import InfoCircleIcon from "@/components/atoms/icons/InfoCircleIcon";
 import {
+  BaseInfoKelasSection,
   BaseKelolaELKPDSection,
   BaseLaporanSection,
   BaseMateriSection,
@@ -76,7 +78,7 @@ const TEACHER_VIEW_ITEMS: ITeacherSidebarItem[] = [
     label: "Nilai Test",
     icon: ClipboardIcon,
   },
-
+  
   {
     type: "Laporan",
     label: "Laporan",
@@ -86,6 +88,11 @@ const TEACHER_VIEW_ITEMS: ITeacherSidebarItem[] = [
     type: "Forum",
     label: "Forum",
     icon: ChatIcon,
+  },
+  {
+    type: "Info Kelas",
+    label: "Info Kelas",
+    icon: InfoCircleIcon,
   },
 ];
 
@@ -250,6 +257,7 @@ export default function TeacherLearningAnalyticsClassContent({
     Beranda: (
       <TeacherOverviewSection classDetail={classDetail} materials={materials} />
     ),
+    "Info Kelas": <BaseInfoKelasSection classDetail={classDetail} />,
     Siswa: (
       <BaseSiswaSection
         students={classDetail.students}

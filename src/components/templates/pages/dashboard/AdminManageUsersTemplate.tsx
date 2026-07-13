@@ -19,6 +19,29 @@ interface IAdminManageUsersTemplateProps {
   role: "siswa" | "guru";
 }
 
+function formatDateToYYYYMMDD(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  const str = String(dateStr).trim();
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+  const idMatch = str.match(/^(\d{2})[/.-](\d{2})[/.-](\d{4})/);
+  if (idMatch) {
+    return `${idMatch[3]}-${idMatch[2]}-${idMatch[1]}`;
+  }
+  try {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+  } catch {}
+  return str.slice(0, 10);
+}
+
 function UserFormModal({
   isOpen,
   onClose,
@@ -56,7 +79,7 @@ function UserFormModal({
     if (isOpen) {
       if (initialData) {
         const idNum = role === "siswa" ? initialData.student?.NIS : initialData.teacher?.NIP;
-        const bDate = role === "siswa" ? initialData.student?.birthDate : "";
+        const bDate = role === "siswa" ? formatDateToYYYYMMDD(initialData.student?.birthDate) : "";
         const gndr = role === "siswa" ? initialData.student?.gender : "";
         setForm({
           fullName: initialData.fullName || "",
@@ -118,7 +141,7 @@ function UserFormModal({
     if (role === "siswa") {
       payload.role = "STUDENT";
       payload.NIS = form.identityNumber;
-      payload.birthDate = form.birthDate;
+      payload.birthDate = formatDateToYYYYMMDD(form.birthDate);
       payload.gender = form.gender;
     } else {
       payload.role = "TEACHER";
@@ -510,7 +533,7 @@ export default function AdminManageUsersTemplate({ role }: IAdminManageUsersTemp
                   </div>
                   <div className="flex items-center gap-2">
                     <Link
-                      href={`/admin/dashboard/manage-users/${rolePath}/${user.userId}`}
+                      href={`/admin/dashboard/manage-users/${rolePath}/${user.userId}?fullName=${encodeURIComponent(user.fullName)}`}
                       className="p-2 border border-lottie-teal/20 rounded-xl bg-lottie-teal/5 text-lottie-teal hover:bg-lottie-teal/10 transition cursor-pointer"
                       title={`Detail ${role}`}
                     >

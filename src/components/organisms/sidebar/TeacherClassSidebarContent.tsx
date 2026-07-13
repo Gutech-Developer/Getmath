@@ -2,6 +2,7 @@
 
 import ClipboardIcon from "@/components/atoms/icons/ClipboardIcon";
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
+import InfoCircleIcon from "@/components/atoms/icons/InfoCircleIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
 import TrendUpIcon from "@/components/atoms/icons/TrendUpIcon";
 import ThreeUserGroupIcon from "@/components/atoms/icons/ThreeUserGroupIcon";
@@ -33,6 +34,7 @@ const TEACHER_CLASS_SIDEBAR_ITEMS: ITeacherClassSidebarItem[] = [
   { type: "Nilai E-LKPD", label: "Nilai E-LKPD", icon: ClipboardIcon },
   { type: "Laporan", label: "Laporan", icon: TrendUpIcon },
   { type: "Remedial", label: "Remedial", icon: NotebookIcon },
+  { type: "Info Kelas", label: "Info Kelas", icon: InfoCircleIcon },
 ];
 
 function validViewType(value: string | null): string | null {

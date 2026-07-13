@@ -13,6 +13,7 @@ import {
 import type { IClassInfoPageTemplateProps } from "@/types";
 import ClassInfoDetailRow from "@/components/molecules/classroom/info/ClassInfoDetailRow";
 import ClassProgressStatItem from "@/components/molecules/classroom/info/ClassProgressStatItem";
+import ClassQuestionnaireCard from "@/components/molecules/classroom/info/ClassQuestionnaireCard";
 import ClassStudentMemberCard from "@/components/molecules/classroom/info/ClassStudentMemberCard";
 import ClassPageShellTemplate, {
   formatClassTitleFromSlug,
@@ -127,6 +128,8 @@ export default function ClassInfoPageTemplate({
             </div>
           </section>
         </div>
+
+        <ClassQuestionnaireCard url="https://docs.google.com/forms/d/e/1FAIpQLSe26os1aklIBoXw89m3LYrixJx3HjXH_NP0puYR0ejYPAaNJg/viewform?usp=sharing&ouid=105865115273377729120" />
 
         <section className="rounded-3xl border border-lottie-mist bg-white p-6 shadow-xs sm:p-8">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
