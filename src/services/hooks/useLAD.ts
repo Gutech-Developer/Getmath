@@ -11,7 +11,8 @@ import type {
     IEmotionDistributionClassOverallResponse,
     IDistributionDiagnosticTestResponse,
     IDistributionRemedialResponse,
-    IModuleProgressTableResponse
+    IModuleProgressTableResponse,
+    IWordCloudForumData
 } from "@/types/LAD";
 import { buildQuery } from "./helper";
 
@@ -115,5 +116,15 @@ export function useDownloadModuleAnalytics() {
     >({
         mutationFn: (courseModuleId: string) =>
             gsDownloadFile(`/learning-analytics/modules/${courseModuleId}/download-analytics`),
+    });
+}
+
+export function useWordCloudForum(courseId: string, limit?: number) {
+    const queryStr = limit ? `?limit=${limit}` : "";
+    return useQuery<IWordCloudForumData, Error>({
+        queryKey: queryKeys.lad.wordCloudForum(courseId, limit),
+        queryFn: () => gsGet<IWordCloudForumData>(`/learning-analytics/courses/${courseId}/word-cloud${queryStr}`),
+        enabled: !!courseId,
+        staleTime: 2 * 60 * 1000,
     });
 }

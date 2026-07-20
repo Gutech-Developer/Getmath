@@ -391,6 +391,7 @@ export const queryKeys = {
     studyTimeByModule: (courseModuleId: string, studentId: string) => [...queryKeys.lad.all, "studyTimeByModule", courseModuleId, studentId] as const,
     activityLogs: (courseId: string, studentId: string, page: number, limit: number) => [...queryKeys.lad.all, "activityLogs", courseId, studentId, page, limit] as const,
     moduleProgressTable: (courseModuleId: string, studentId: string) => [...queryKeys.lad.all, "moduleProgressTable", courseModuleId, studentId] as const,
+    wordCloudForum: (courseId: string, limit?: number) => [...queryKeys.lad.all, "wordCloudForum", courseId, limit] as const,
   },
 
   // Remediation / Diagnostic Tests Results
