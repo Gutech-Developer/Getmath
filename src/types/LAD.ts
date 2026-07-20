@@ -213,3 +213,22 @@ export interface IModuleProgressTableResponse {
   remedial: IRemedialProgressData | null;
 }
 
+export interface IWordCloudItem {
+  word: string;
+  count: number;
+  weight: number;
+}
+
+export interface IWordCloudForumData {
+  courseId: string;
+  totalWords: number;
+  uniqueWords: number;
+  items: IWordCloudItem[];
+}
+
+export interface IWordCloudForumResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  data: IWordCloudForumData;
+}

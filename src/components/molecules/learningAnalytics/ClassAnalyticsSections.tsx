@@ -92,7 +92,9 @@ import {
   useEmotionDistributionOverall,
   useDiagnosticTestDistribution,
   useRemedialTestDistribution,
+  useWordCloudForum,
 } from "@/services/hooks/useLAD";
+import { useListDiscussionsByCourse } from "@/services/hooks/useGsDiscussions";
 import { mapDistributionToSegments } from "@/components/templates/pages/classroom/ClassLADPageTemplate";
 import ClassInfoDetailRow from "@/components/molecules/classroom/info/ClassInfoDetailRow";
 import ClassProgressStatItem from "@/components/molecules/classroom/info/ClassProgressStatItem";
@@ -173,18 +175,6 @@ export interface IBaseInfoKelasSectionProps {
   classDetail: ITeacherClassLearningAnalyticsDetail;
 }
 
-interface IForumWordCloudItem {
-  label: string;
-  className: string;
-}
-
-interface IForumPostListItem {
-  id: string;
-  authorName: string;
-  dateLabel: string;
-  content: string;
-}
-
 const VIEW_ITEMS: Array<{
   type: ClassAnalyticsViewType;
   icon: ComponentType<{ className?: string }>;
@@ -201,175 +191,6 @@ const VIEW_ITEMS: Array<{
 
 const REPORT_MODES = ["Analisis Nilai & Emosi", "Word Cloud Forum"] as const;
 
-const FORUM_WORD_CLOUD_ITEMS: IForumWordCloudItem[] = [
-  {
-    label: "persamaan",
-    className:
-      "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#1F2375]",
-  },
-  {
-    label: "kuadrat",
-    className:
-      "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#1F2375]",
-  },
-  {
-    label: "cara",
-    className:
-      "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#1F2375]",
-  },
-  {
-    label: "rumus",
-    className: "text-[clamp(1.5rem,3.8vw,2.3rem)] font-bold text-[#4F46E5]",
-  },
-  {
-    label: "diskriminan",
-    className: "text-[clamp(1.5rem,3.8vw,2.3rem)] font-bold text-[#7C3AED]",
-  },
-  {
-    label: "latihan",
-    className: "text-[clamp(1.45rem,3.5vw,2.1rem)] font-bold text-[#38BDF8]",
-  },
-  {
-    label: "menyelesaikan",
-    className:
-      "text-[clamp(1.15rem,2.6vw,1.8rem)] font-semibold text-[#4BA3DA]",
-  },
-  {
-    label: "membantu",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#5A7ED8]",
-  },
-  {
-    label: "pemahaman",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#7C88E6]",
-  },
-  {
-    label: "tentang",
-    className:
-      "text-[clamp(1.05rem,2.2vw,1.55rem)] font-semibold text-[#6D8DE3]",
-  },
-  {
-    label: "materi",
-    className:
-      "text-[clamp(1.05rem,2.2vw,1.55rem)] font-semibold text-[#6088DA]",
-  },
-  {
-    label: "fungsi",
-    className:
-      "text-[clamp(1.05rem,2.2vw,1.55rem)] font-semibold text-[#5A75C8]",
-  },
-  {
-    label: "mudah",
-    className:
-      "text-[clamp(1.05rem,2.2vw,1.55rem)] font-semibold text-[#6F63E8]",
-  },
-  {
-    label: "dipahami",
-    className:
-      "text-[clamp(1.05rem,2.2vw,1.55rem)] font-semibold text-[#695EE6]",
-  },
-  {
-    label: "video",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#3BA7E8]",
-  },
-  {
-    label: "tutorial",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#5B8BE0]",
-  },
-  {
-    label: "tersedia",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#6C7CE0]",
-  },
-  {
-    label: "masih",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#7E87EE]",
-  },
-  {
-    label: "bingung",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#5F8FEF]",
-  },
-  {
-    label: "menentukan",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#5B9FE9]",
-  },
-  {
-    label: "jenis",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#5D86D7]",
-  },
-  {
-    label: "akar",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#8464E7]",
-  },
-  {
-    label: "berbeda",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#7B68EA]",
-  },
-  {
-    label: "soal",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#3FA3E6]",
-  },
-  {
-    label: "lkpd",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#4D90DA]",
-  },
-  {
-    label: "bermanfaat",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#607FCC]",
-  },
-  {
-    label: "mempersiapkan",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#8393F0]",
-  },
-  {
-    label: "diri",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#6793E5]",
-  },
-  {
-    label: "menghadapi",
-    className: "text-[clamp(1.1rem,2.4vw,1.7rem)] font-semibold text-[#61A7EA]",
-  },
-  {
-    label: "diagnostik",
-    className: "text-[clamp(1.45rem,3.5vw,2.1rem)] font-bold text-[#4A75D1]",
-  },
-];
-
-const FORUM_POST_ITEMS: IForumPostListItem[] = [
-  {
-    id: "forum-1",
-    authorName: "Ahmad Rizki",
-    dateLabel: "1 Apr 2026",
-    content:
-      "Cara menyelesaikan persamaan kuadrat dengan rumus ABC sangat membantu pemahaman saya tentang diskriminan",
-  },
-  {
-    id: "forum-2",
-    authorName: "Budi Santoso",
-    dateLabel: "2 Apr 2026",
-    content:
-      "Materi fungsi kuadrat cukup mudah dipahami dengan video tutorial yang tersedia di kelas ini",
-  },
-  {
-    id: "forum-3",
-    authorName: "Citra Dewi",
-    dateLabel: "3 Apr 2026",
-    content:
-      "Saya masih bingung dengan cara diskriminan untuk menentukan jenis akar persamaan kuadrat yang berbeda",
-  },
-  {
-    id: "forum-4",
-    authorName: "Dimas Prasetyo",
-    dateLabel: "4 Apr 2026",
-    content:
-      "Latihan soal di E-LKPD sangat bermanfaat untuk mempersiapkan diri menghadapi tes diagnostik persamaan",
-  },
-  {
-    id: "forum-5",
-    authorName: "Eka Putri",
-    dateLabel: "5 Apr 2026",
-    content:
-      "Video pembahasan membantu saya memahami langkah faktorisasi sebelum mengerjakan soal tes",
-  },
-];
 
 type ReportMode = (typeof REPORT_MODES)[number];
 type StudentStatusFilter =
@@ -3235,7 +3056,21 @@ function ReportStudentRows({
   );
 }
 
-function ReportWordCloudForum() {
+function ReportWordCloudForum({ classId }: { classId: string }) {
+  const { data: wordCloudData, isLoading } = useWordCloudForum(classId, 25);
+  const items = wordCloudData?.items || [];
+  
+  const { data: discussionsData, isLoading: isLoadingDiscussions } = useListDiscussionsByCourse(classId, { limit: 10, sortBy: "latest" });
+  const discussions = discussionsData?.discussions || [];
+
+  const getWordCloudClassName = (weight: number) => {
+    if (weight >= 0.8) return "text-[clamp(1.8rem,4.8vw,3.2rem)] font-extrabold text-[#1F2375]";
+    if (weight >= 0.6) return "text-[clamp(1.5rem,3.8vw,2.3rem)] font-bold text-[#4F46E5]";
+    if (weight >= 0.4) return "text-[clamp(1.45rem,3.5vw,2.1rem)] font-bold text-[#38BDF8]";
+    if (weight >= 0.2) return "text-[clamp(1.15rem,2.6vw,1.8rem)] font-semibold text-[#4BA3DA]";
+    return "text-[clamp(1rem,2vw,1.35rem)] font-medium text-[#7A87A0]";
+  };
+
   return (
     <div className="space-y-4">
       <article className="rounded-2xl border border-[#E5E7EB] bg-white">
@@ -3263,8 +3098,9 @@ function ReportWordCloudForum() {
                 Word Cloud - Forum Diskusi
               </h3>
               <p className="mt-1 text-sm text-[#6B7280]">
-                Kata yang paling sering muncul dari {FORUM_POST_ITEMS.length}{" "}
-                postingan forum kelas ini
+                {isLoading 
+                  ? "Memuat data word cloud..." 
+                  : `Kata yang paling sering muncul dari total ${wordCloudData?.totalWords || 0} kata postingan forum kelas ini`}
               </p>
             </div>
           </div>
@@ -3273,11 +3109,17 @@ function ReportWordCloudForum() {
         <div className="p-4 md:p-6">
           <div className="relative overflow-hidden rounded-2xl bg-[#E5ECF7] px-4 py-8 md:px-10 md:py-12">
             <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-3 gap-y-4 text-center md:gap-x-4 md:gap-y-5">
-              {FORUM_WORD_CLOUD_ITEMS.map((item) => (
-                <span key={item.label} className={item.className}>
-                  {item.label}
-                </span>
-              ))}
+              {isLoading ? (
+                <span className="text-sm text-[#6B7280]">Loading...</span>
+              ) : items.length > 0 ? (
+                items.map((item) => (
+                  <span key={item.word} className={getWordCloudClassName(item.weight)}>
+                    {item.word}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-[#6B7280]">Belum ada data word cloud</span>
+              )}
             </div>
           </div>
         </div>
@@ -3286,33 +3128,50 @@ function ReportWordCloudForum() {
       <article className="rounded-2xl border border-[#E5E7EB] bg-white">
         <div className="border-b border-[#E5E7EB] px-4 py-3.5 md:px-6">
           <h3 className="text-2xl font-bold text-[#1F2937]">
-            Postingan Forum ({FORUM_POST_ITEMS.length})
+            Postingan Forum ({discussionsData?.pagination.totalItems ?? 0})
           </h3>
         </div>
 
         <div className="divide-y divide-[#E5E7EB]">
-          {FORUM_POST_ITEMS.map((post) => (
-            <article key={post.id} className="px-4 py-3.5 md:px-6">
-              <div className="flex items-start gap-3">
-                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1F2375] text-xs font-bold text-white">
-                  {post.authorName.charAt(0).toUpperCase()}
-                </span>
+          {isLoadingDiscussions ? (
+            <div className="p-4 text-center text-sm text-[#6B7280]">
+              Memuat postingan forum...
+            </div>
+          ) : discussions.length > 0 ? (
+            discussions.map((post) => {
+              const authorName = post.author?.student?.fullName || post.author?.teacher?.fullName || post.author?.fullName || "User";
+              const authorInitial = authorName.charAt(0).toUpperCase();
+              
+              return (
+                <article key={post.id} className="px-4 py-3.5 md:px-6">
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1F2375] text-xs font-bold text-white">
+                      {authorInitial}
+                    </span>
 
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-baseline gap-1.5">
-                    <p className="text-base font-semibold text-[#1F2937]">
-                      {post.authorName}
-                    </p>
-                    <p className="text-sm text-[#94A3B8]">{post.dateLabel}</p>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-baseline gap-1.5">
+                        <p className="text-base font-semibold text-[#1F2937]">
+                          {authorName}
+                        </p>
+                        <p className="text-sm text-[#94A3B8]">
+                          {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(post.createdAt))}
+                        </p>
+                      </div>
+
+                      <p className="mt-0.5 text-sm text-[#475569]">
+                        {post.content}
+                      </p>
+                    </div>
                   </div>
-
-                  <p className="mt-0.5 text-sm text-[#475569]">
-                    {post.content}
-                  </p>
-                </div>
-              </div>
-            </article>
-          ))}
+                </article>
+              );
+            })
+          ) : (
+            <div className="p-4 text-center text-sm text-[#6B7280]">
+              Belum ada postingan forum
+            </div>
+          )}
         </div>
       </article>
     </div>
@@ -3575,7 +3434,7 @@ export function BaseLaporanSection({
           />
         </>
       ) : (
-        <ReportWordCloudForum />
+        <ReportWordCloudForum classId={classId} />
       )}
     </section>
   );
