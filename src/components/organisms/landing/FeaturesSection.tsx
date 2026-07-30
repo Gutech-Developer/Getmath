@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { useI18n } from "@/providers/I18nProvider";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
 export default function FeaturesSection() {
+  const { t } = useI18n();
   const featuresRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -18,42 +20,42 @@ export default function FeaturesSection() {
       name: "Matematika",
       sub: "Aljabar Linier",
       desc: "Bab 3: Matriks & Determinan • 2m lalu",
-      badge: "Selesai",
+      badge: t("features.mockup.badgeCompleted"),
       type: "success",
     },
     {
       name: "Fisika",
       sub: "Kinematika",
       desc: "E-LKPD 2: Gerak Parabola • 10m lalu",
-      badge: "Sedang Belajar",
+      badge: t("features.mockup.badgeStudying"),
       type: "info",
     },
     {
       name: "Kimia",
       sub: "Reaksi Redoks",
       desc: "Bab 5: Reaksi Oksidasi • 1j lalu",
-      badge: "Tugas Baru",
+      badge: t("features.mockup.badgeNewTask"),
       type: "warning",
     },
     {
       name: "Matematika",
       sub: "Trigonometri",
       desc: "Video Pemantik: Identitas Trigonometri • 1d lalu",
-      badge: "Selesai",
+      badge: t("features.mockup.badgeCompleted"),
       type: "success",
     },
     {
       name: "Biologi",
       sub: "Struktur Sel",
       desc: "Kuis Diagnostik: Organel Sel • 2d lalu",
-      badge: "Sedang Belajar",
+      badge: t("features.mockup.badgeStudying"),
       type: "info",
     },
     {
       name: "Fisika",
       sub: "Termodinamika",
       desc: "Kuis Diagnostik: Siklus Carnot • 3d lalu",
-      badge: "Remedial",
+      badge: t("features.mockup.badgeRemedial"),
       type: "error",
     },
   ];
@@ -139,12 +141,12 @@ export default function FeaturesSection() {
           <div className="lg:col-span-5 flex flex-col gap-6">
             <div className="features-title-animate">
               <span className="text-sm font-semibold text-[#1F2375] uppercase tracking-wider font-inter">
-                Fitur Utama
+                {t("features.badge")}
               </span>
               <h2 className="mt-3 font-dm-sans text-4xl font-normal tracking-[-0.03em] text-lottie-midnight sm:text-[48px] leading-[1.12]">
-                Alur Belajar{" "}
+                {t("features.titlePrefix")}
                 <span className="relative inline-block px-1">
-                  Pintar
+                  {t("features.titleHighlight")}
                   {/* Teal hand-drawn wavy highlight line under the word */}
                   <svg
                     className="absolute left-0 bottom-[-4px] w-full h-[8px] pointer-events-none z-0"
@@ -162,13 +164,11 @@ export default function FeaturesSection() {
                       strokeLinecap="round"
                     />
                   </svg>
-                </span>{" "}
-                GetSmart
+                </span>
+                {t("features.titleSuffix")}
               </h2>
               <p className="mt-4 font-inter text-base leading-relaxed text-lottie-zinc-500">
-                Dirancang khusus untuk menciptakan pengalaman belajar yang
-                dipersonalisasi bagi siswa, dibantu dengan sistem AI canggih
-                untuk memetakan emosi dan pemahaman.
+                {t("features.subtitle")}
               </p>
             </div>
 
@@ -193,10 +193,9 @@ export default function FeaturesSection() {
                 </div>
                 <div className="text-sm font-inter leading-relaxed text-lottie-zinc-500">
                   <span className="font-bold text-lottie-midnight text-base block mb-0.5">
-                    Modul & E-LKPD Interaktif.
+                    {t("features.item1Title")}
                   </span>
-                  Baca flipbook interaktif lengkap dengan video pemantik sebelum
-                  langsung mengerjakan Lembar Kerja interaktif di akhir materi.
+                  {t("features.item1Desc")}
                 </div>
               </div>
 
@@ -219,10 +218,9 @@ export default function FeaturesSection() {
                 </div>
                 <div className="text-sm font-inter leading-relaxed text-lottie-zinc-500">
                   <span className="font-bold text-lottie-midnight text-base block mb-0.5">
-                    Tes Diagnostik Emosi AI.
+                    {t("features.item2Title")}
                   </span>
-                  Analisis pemahaman materi secara otomatis dengan mendeteksi
-                  emosi dan tingkat fokus siswa selama proses evaluasi berjalan.
+                  {t("features.item2Desc")}
                 </div>
               </div>
 
@@ -245,11 +243,9 @@ export default function FeaturesSection() {
                 </div>
                 <div className="text-sm font-inter leading-relaxed text-lottie-zinc-500">
                   <span className="font-bold text-lottie-midnight text-base block mb-0.5">
-                    LAD Dashboard Real-time.
+                    {t("features.item3Title")}
                   </span>
-                  Siswa, guru, dan orang tua dapat memantau data perkembangan
-                  belajar lengkap dengan pola emosi, tingkat ketuntasan kuis,
-                  dan durasi belajar.
+                  {t("features.item3Desc")}
                 </div>
               </div>
             </div>
@@ -274,7 +270,7 @@ export default function FeaturesSection() {
                   {/* Navigation list */}
                   <div className="flex flex-col gap-1">
                     <div className="text-[9px] font-bold text-[#1F2375]/50 uppercase tracking-widest px-2 mb-1.5 font-inter">
-                      Navigasi
+                      {t("features.mockup.navHeader")}
                     </div>
                     <button className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-[#1F2375] text-white text-[11px] font-semibold text-left shadow-[rgba(31,35,117,0.15)_0px_4px_12px_0px] transition-all">
                       <svg
@@ -290,7 +286,7 @@ export default function FeaturesSection() {
                           d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
                         />
                       </svg>
-                      Kelas Saya
+                      {t("features.mockup.navMyClasses")}
                     </button>
                     <button className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-lottie-zinc-600 hover:text-[#1F2375] hover:bg-white/60 text-[11px] font-semibold text-left transition-all">
                       <svg
@@ -306,7 +302,7 @@ export default function FeaturesSection() {
                           d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                         />
                       </svg>
-                      Materi & Tugas
+                      {t("features.mockup.navMaterials")}
                     </button>
                     <button className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-lottie-zinc-600 hover:text-[#1F2375] hover:bg-white/60 text-[11px] font-semibold text-left transition-all">
                       <svg
@@ -322,7 +318,7 @@ export default function FeaturesSection() {
                           d="M13 10V3L4 14h7v7l9-11h-7z"
                         />
                       </svg>
-                      Aktivitas
+                      {t("features.mockup.navActivities")}
                     </button>
                     <button className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-lottie-zinc-600 hover:text-[#1F2375] hover:bg-white/60 text-[11px] font-semibold text-left transition-all">
                       <svg
@@ -338,14 +334,14 @@ export default function FeaturesSection() {
                           d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                         />
                       </svg>
-                      Rapor Belajar
+                      {t("features.mockup.navReport")}
                     </button>
                   </div>
 
                   {/* Kelompok Belajar */}
                   <div className="flex flex-col gap-1">
                     <div className="text-[9px] font-bold text-[#1F2375]/50 uppercase tracking-widest px-2 mb-1.5 font-inter">
-                      Grup Belajar
+                      {t("features.mockup.groupHeader")}
                     </div>
                     <button className="flex items-center gap-2 px-2 py-1 text-[11px] text-lottie-zinc-600 hover:text-[#1F2375] transition-all text-left">
                       <span className="w-1.5 h-1.5 rounded bg-indigo-500" />
@@ -377,7 +373,7 @@ export default function FeaturesSection() {
                       </span>
                     </div>
                     <p className="text-[8px] text-lottie-zinc-500 truncate mt-0.5 leading-none">
-                      Siswa Premium
+                      {t("features.mockup.studentRole")}
                     </p>
                   </div>
                 </div>
@@ -405,7 +401,7 @@ export default function FeaturesSection() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Cari kelas / topik materi..."
+                      placeholder={t("features.mockup.searchPlaceholder")}
                       className="w-full pl-8 pr-6 py-1 text-[11px] text-lottie-midnight placeholder-lottie-zinc-400 bg-white/50 rounded-md border border-white/60 focus:outline-none focus:border-[#1F2375]/50 transition-colors"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-mono text-lottie-zinc-400 bg-white/60 px-1 rounded pointer-events-none">
@@ -413,7 +409,7 @@ export default function FeaturesSection() {
                     </span>
                   </div>
                   <div className="text-[10px] text-[#1F2375]/70 font-semibold flex items-center gap-1 cursor-pointer hover:text-[#1F2375] transition-colors">
-                    Dokumen
+                    {t("features.mockup.documents")}
                     <svg
                       className="w-2.5 h-2.5"
                       fill="none"
@@ -433,10 +429,10 @@ export default function FeaturesSection() {
                 {/* Sub Header */}
                 <div className="flex items-center justify-between px-4 py-2 border-b border-white/40 bg-white/15">
                   <div className="text-[9px] font-bold text-[#1F2375]/60 tracking-wider font-inter">
-                    MATERI & TUGAS AKTIF
+                    {t("features.mockup.activeHeader")}
                   </div>
                   <div className="text-[9px] text-lottie-zinc-500 flex items-center gap-1 hover:text-[#1F2375] cursor-pointer transition-colors">
-                    Urutkan
+                    {t("features.mockup.sort")}
                     <svg
                       className="w-2.5 h-2.5"
                       fill="none"
@@ -522,7 +518,7 @@ export default function FeaturesSection() {
                         />
                       </svg>
                       <span className="text-[10px] font-inter">
-                        Pelajaran tidak ditemukan
+                        {t("features.mockup.notFound")}
                       </span>
                     </div>
                   )}

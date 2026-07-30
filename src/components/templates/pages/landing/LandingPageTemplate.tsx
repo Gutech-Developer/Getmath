@@ -1,8 +1,12 @@
 import HeroSection from "@/components/organisms/landing/HeroSection";
-import AboutSection from "@/components/organisms/landing/AboutSection";
 import FeaturesSection from "@/components/organisms/landing/FeaturesSection";
+import EmotionAiSection from "@/components/organisms/landing/EmotionAiSection";
+import DiagnosticTestSection from "@/components/organisms/landing/DiagnosticTestSection";
+import RemedialVideoSection from "@/components/organisms/landing/RemedialVideoSection";
+import EWorksheetSection from "@/components/organisms/landing/EWorksheetSection";
 import RolesSection from "@/components/organisms/landing/RolesSection";
 import HowItWorksSection from "@/components/organisms/landing/HowItWorksSection";
+import AboutSection from "@/components/organisms/landing/AboutSection";
 import CtaSection from "@/components/organisms/landing/CtaSection";
 import LandingLayout from "@/components/templates/layouts/LandingLayout";
 
@@ -12,6 +16,10 @@ export default function LandingPageTemplate() {
       <HeroSection />
       <AboutSection />
       <FeaturesSection />
+      <EmotionAiSection />
+      <DiagnosticTestSection />
+      <RemedialVideoSection />
+      <EWorksheetSection />
       <RolesSection />
       <HowItWorksSection />
       <CtaSection />
