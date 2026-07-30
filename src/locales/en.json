@@ -165,10 +165,10 @@
     "q1Desc": "An initial assessment designed to analyze student understanding of foundational Science, Math, and Logic concepts before starting new learning paths.",
     "q1Output": "Weakness mapping and personalized Learning Path recommendations.",
     "q2Title": "How Does Video-Assisted Remedial Work?",
-    "q2Desc": "Students don't just watch videos passively; videos pause at conceptual crisis points to ask interactive questions.",
-    "q2Ai": "If AI detects frustration or boredom, the system offers verbal/textual encouragement and simplifies concepts.",
-    "q3Title": "How to Use Interactive E-Worksheets?",
-    "q3Desc": "Students complete simulation-based and drag-and-drop exercises. Every calculation step is analyzed to detect where misconceptions occur."
+    "q2Desc": "Students who haven't passed the diagnostic test receive interactive discussion videos per incorrect question, accompanied by real-time AI emotion detection, before taking a new variant remedial quiz.",
+    "q2Ai": "If AI detects frustration or boredom, the system offers verbal/textual encouragement and simplifies concept explanations.",
+    "q3Title": "How to Use Learning Modules & E-Worksheets?",
+    "q3Desc": "Students learn through PDF Flipbooks, watch YouTube starter videos, and complete E-Worksheets (Google Forms) with progress automatically tracked at every step in the system."
   },
   "remedialSection": {
     "titlePrefix": "How Does ",
@@ -196,7 +196,7 @@
     "titlePrefix": "How Do ",
     "titleHighlight": "Learning Modules",
     "titleSuffix": " Work?",
-    "description": "Each learning topic consists of three integrated core components: PDF flipbook material, YouTube starter videos, and Google Forms E-Worksheets. Student progress is automatically tracked at every step.",
+    "description": "Each learning topic consists of three integrated core components: PDF flipbook material, YouTube starter videos, and interactive E-Worksheets. Student progress is automatically tracked at every step.",
     "trackingBoxTitle": "Automatic Progress Tracking:",
     "trackingBoxDesc": "The system records every material read, video watched, and E-Worksheet completed. Teachers and parents can monitor all progress via the LAD Dashboard.",
     "componentsTitle": "3 Material Components",

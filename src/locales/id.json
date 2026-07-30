@@ -165,10 +165,10 @@
     "q1Desc": "Evaluasi awal yang dirancang untuk menganalisis tingkat pemahaman siswa terhadap konsep dasar Sains, Matematika, dan Logika sebelum memulai pembelajaran baru.",
     "q1Output": "Peta kelemahan dan rekomendasi jalur belajar (Learning Path) yang dipersonalisasi.",
     "q2Title": "Bagaimana Cara Kerja Remedial Berbantuan Video Interaktif?",
-    "q2Desc": "Siswa tidak hanya menonton video konvensional; video akan berhenti di titik-titik krisis konsep untuk mengajukan pertanyaan interaktif.",
+    "q2Desc": "Siswa yang belum tuntas tes diagnostik mendapatkan video pembahasan interaktif per nomor soal yang salah, didampingi deteksi emosi AI secara real-time, sebelum mengerjakan soal remedial varian baru.",
     "q2Ai": "Jika AI mendeteksi rasa frustrasi atau bosan, sistem memberikan dorongan motivasi verbal/teks dan menyederhanakan penjelasan konsep.",
-    "q3Title": "Bagaimana Menggunakan Lembar Kerja Interaktif (E-Worksheet)?",
-    "q3Desc": "Siswa mengerjakan latihan berbasis simulasi dan drag-and-drop. Setiap langkah perhitungan dianalisis untuk mendeteksi di mana miskonsepsi terjadi."
+    "q3Title": "Bagaimana Menggunakan Modul Belajar & E-LKPD?",
+    "q3Desc": "Siswa mempelajari materi melalui PDF Flipbook, menonton video pemantik YouTube, dan mengisi E-LKPD (Google Forms) yang seluruh progresnya tercatat otomatis di sistem."
   },
   "remedialSection": {
     "titlePrefix": "Bagaimana Cara Kerja ",
@@ -196,7 +196,7 @@
     "titlePrefix": "Bagaimana ",
     "titleHighlight": "Modul Belajar",
     "titleSuffix": " Bekerja?",
-    "description": "Setiap materi pelajaran terdiri dari tiga komponen utama yang saling terintegrasi: Materi PDF flipbook, Video Pemantik dari YouTube, dan E-LKPD (Lembar Kerja) dari Google Forms. Progres siswa dilacak otomatis di setiap langkah.",
+    "description": "Setiap materi pelajaran terdiri dari tiga komponen utama yang saling terintegrasi: Materi PDF flipbook, Video Pemantik dari YouTube, dan E-LKPD (Lembar Kerja). Progres siswa dilacak otomatis di setiap langkah.",
     "trackingBoxTitle": "Tracking Progres Otomatis:",
     "trackingBoxDesc": "Sistem mencatat setiap materi yang dibaca, video yang ditonton, dan E-LKPD yang dikerjakan. Guru dan orang tua dapat memantau seluruh progres melalui LAD Dashboard.",
     "componentsTitle": "3 Komponen Materi",
