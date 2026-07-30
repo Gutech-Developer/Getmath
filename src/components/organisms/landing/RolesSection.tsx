@@ -15,44 +15,34 @@ export default function RolesSection() {
   const { t } = useI18n();
   const rolesRef = useRef<HTMLDivElement>(null);
 
-  useGSAP(() => {
-    if (!rolesRef.current) return;
+  useGSAP(
+    () => {
+      gsap.from(".roles-title-animate", {
+        scrollTrigger: {
+          trigger: ".roles-title-animate",
+          start: "top 85%",
+        },
+        y: 30,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power2.out",
+      });
 
-    gsap.from(".roles-title-animate", {
-      scrollTrigger: {
-        trigger: rolesRef.current,
-        start: "top 85%",
-        toggleActions: "play none none none",
-      },
-      y: 30,
-      opacity: 0,
-      duration: 0.8,
-    });
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: rolesRef.current,
-        start: "top 85%",
-        toggleActions: "play none none none",
-      }
-    });
-
-    tl.from(".roles-card-animate", {
-      y: 40,
-      opacity: 0,
-      duration: 0.6,
-      stagger: 0.12,
-      ease: "power2.out",
-    });
-
-    tl.from(".roles-laptop-mockup", {
-      y: 60,
-      opacity: 0,
-      duration: 0.6,
-      stagger: 0.12,
-      ease: "power2.out",
-    }, "-=0.3");
-  }, { scope: rolesRef });
+      gsap.from(".roles-card-animate", {
+        scrollTrigger: {
+          trigger: ".roles-card-animate",
+          start: "top 85%",
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.15,
+        ease: "power2.out",
+        clearProps: "opacity,transform",
+      });
+    },
+    { scope: rolesRef }
+  );
 
   return (
     <section
