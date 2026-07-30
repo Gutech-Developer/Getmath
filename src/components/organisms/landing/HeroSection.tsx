@@ -29,12 +29,8 @@ export default function HeroSection() {
       0,
     ) ?? 0;
 
-  const realCourseCount =
-    publicSchoolsData?.schools?.reduce(
-      (acc, curr) => acc + (curr.courseCount || 0),
-      0,
-    ) ?? 0;
-
+  const realSchoolCount =
+    publicSchoolsData?.pagination.totalItems ?? 0;
   useEffect(() => {
     if (realStudentCount > 0) {
       setStudentsCount(realStudentCount);
@@ -346,9 +342,9 @@ export default function HeroSection() {
                 </div>
                 <div className="rounded-xl border border-[#f5ebcb] bg-[#fff8e5]/60 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] backdrop-blur-sm hover:scale-[1.03] transition-all duration-300">
                   <div className="text-[9px] font-semibold text-amber-800 uppercase tracking-wider font-inter">
-                    {t("hero.mockup.courseCount")}
+                    {t("hero.mockup.registeredSchoolCount")}
                   </div>
-                  {realCourseCount}
+                  {realSchoolCount}
                 </div>
               </div>
 

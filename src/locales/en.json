@@ -26,7 +26,7 @@
     "mockup": {
       "activeStudents": "Active Students",
       "teacherCount": "Teacher",
-      "courseCount": "Subject",
+      "registeredSchoolCount": "Registered School",
       "learningDuration": "Average Number of Study Hours",
       "statusGood": "Learning Status: Excellent",
       "focusMax": "Focus Mode: Maximum",
@@ -63,6 +63,8 @@
     "item2Desc": "Automatically analyze topic comprehension by detecting student emotions and focus levels during the evaluation process.",
     "item3Title": "Real-time LAD Dashboard.",
     "item3Desc": "Students, teachers, and parents can monitor learning progress data complete with emotion patterns, quiz completion rates, and learning durations.",
+    "item4Title": "Video Remedial & AI Emotion Feedback.",
+    "item4Desc": "Interactive question-by-question discussion videos paired with real-time 7-emotion detection and AI motivational feedback during tests.",
     "mockup": {
       "navHeader": "Navigation",
       "navMyClasses": "My Classes",
@@ -233,12 +235,46 @@
   "roles": {
     "title": "Real-time Transparency for Teachers and Parents",
     "subtitle": "Every student activity, diagnostic test completion, remedial outcome, and emotional learning trend is instantly reported to Teacher & Parent Dashboards.",
+    "studentBadge": "Student",
+    "teacherBadge": "Teacher",
+    "parentBadge": "Parent",
+    "register": "Register",
+    "studentTitle": "Student Learning Experience",
+    "studentDesc": "Enjoyable self-paced learning with automated remedial recommendations, interactive E-Worksheets, and affective AI encouragement.",
     "teacherTitle": "Teacher Dashboard (LAD Analytics)",
     "teacherDesc": "Monitor class diagnostic & remedial mastery distribution, collective emotion trends, and export standardized analytics reports.",
     "parentTitle": "Parent App & Instant Notifications",
     "parentDesc": "Receive learning progress updates, test mastery reports, and character growth insights directly on your mobile device.",
-    "studentTitle": "Student Learning Experience",
-    "studentDesc": "Enjoyable self-paced learning with automated remedial recommendations, interactive E-Worksheets, and affective AI encouragement."
+    "mockupStudent": {
+      "name": "Alya Nabila",
+      "status": "Student • Active",
+      "f1Title": "E-LKPD & Modules",
+      "f1Desc": "Interactive material access",
+      "f2Title": "AI Emotion Quiz",
+      "f2Desc": "Adaptive evaluation & focus",
+      "f3Title": "Remedial Video",
+      "f3Desc": "Question discussion solution"
+    },
+    "mockupTeacher": {
+      "name": "Budi, M.Pd.",
+      "role": "Teacher / Educator",
+      "f1Title": "Class LAD Analytics",
+      "f1Desc": "Class mastery distribution",
+      "f2Title": "Emotion Monitor",
+      "f2Desc": "Collective emotion patterns",
+      "f3Title": "Download Summary",
+      "f3Desc": "Export PDF/Excel report"
+    },
+    "mockupParent": {
+      "name": "Mrs. Rina",
+      "child": "Child: Alya Nabila",
+      "f1Title": "Real-time Progress Monitor",
+      "f1Desc": "Test scores & mastery",
+      "f2Title": "Child Emotion Trend",
+      "f2Desc": "Learning emotion detection",
+      "f3Title": "Instant Notifications",
+      "f3Desc": "Remedial completion info"
+    }
   },
   "about": {
     "badge": "About Us",
@@ -281,5 +317,35 @@
     "terms": "Terms of Service",
     "contact": "Contact Us",
     "copyright": "GetSmart by PRP-PMRI USK. All rights reserved."
+  },
+  "howItWorks": {
+    "badge": "How It Works",
+    "titlePrefix": "All Convenience in ",
+    "titleHighlight": "One Ecosystem",
+    "subtitle": "From reading integrated modules to AI emotion analysis and real-time reports, discover a seamless and effective learning path.",
+    "card1Title": "Integrated Learning Workflow",
+    "card1Desc": "Students read PDF Flipbooks, watch YouTube starter videos, complete E-Worksheets, and evaluate comprehension via Adaptive Diagnostic Tests.",
+    "flowStep1": "1. PDF Material Flipbook",
+    "flowStep1Status": "Completed Read",
+    "flowStep2": "2. YouTube Starter Video",
+    "flowStep2Status": "Watched",
+    "flowStep3": "3. E-Worksheet (Google Forms)",
+    "flowStep3Status": "Submitted",
+    "flowStep4": "4. AI Diagnostic Test",
+    "flowStep4Status": "Remedial Unlocked",
+    "card2ATitle": "Results Analysis & Mastery Gain",
+    "card2ADesc": "AI actively recommends video discussions and remedial quizzes to elevate average student cognitive scores.",
+    "scoreGain": "+28%",
+    "scoreGainLabel": "Score Increase",
+    "card2BTitle": "Security & Real-Time Sync",
+    "card2BDesc": "Student learning data is encrypted and synced directly to teacher dashboards and accessible in real-time by parents.",
+    "card3Title": "AI Analysis & Recommendations",
+    "card3Desc": "GetSmart AI maps emotions and focus to deliver diagnostic summaries and next-step learning path recommendations.",
+    "codeTab": "AIRecommendation.json",
+    "codeStudent": "Alya Nabila",
+    "codeFocus": "94%",
+    "codeEmotion": "Happy",
+    "codeRemedial": "true",
+    "codeTopic": "Matrix Algebra"
   }
 }
