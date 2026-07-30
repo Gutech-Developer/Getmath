@@ -248,6 +248,36 @@ export default function FeaturesSection() {
                   {t("features.item3Desc")}
                 </div>
               </div>
+
+              {/* Feature Item 4 */}
+              <div className="flex gap-4 items-start features-item-animate">
+                <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-[#e0e7ff] border border-indigo-150 text-[#1F2375] shadow-[rgba(31,35,117,0.06)_0px_4px_12px_0px]">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div className="text-sm font-inter leading-relaxed text-lottie-zinc-500">
+                  <span className="font-bold text-lottie-midnight text-base block mb-0.5">
+                    {t("features.item4Title")}
+                  </span>
+                  {t("features.item4Desc")}
+                </div>
+              </div>
             </div>
           </div>
 

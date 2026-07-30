@@ -27,7 +27,7 @@
       "activeStudents": "Siswa Aktif",
       "teacherCount": "Guru",
       "learningDuration": "Jumlah Rata Rata Jam Belajar",
-      "courseCount": "Mata Pelajaran",
+      "registeredSchoolCount": "Sekolah Terdaftar",
       "statusGood": "Status Belajar: Sangat Baik",
       "focusMax": "Mode Fokus: Maksimal",
       "emotionLabel": "Emosi",
@@ -63,6 +63,8 @@
     "item2Desc": "Analisis pemahaman materi secara otomatis dengan mendeteksi emosi dan tingkat fokus siswa selama proses evaluasi berjalan.",
     "item3Title": "LAD Dashboard Real-time.",
     "item3Desc": "Siswa, guru, dan orang tua dapat memantau data perkembangan belajar lengkap dengan pola emosi, tingkat ketuntasan kuis, dan durasi belajar.",
+    "item4Title": "Remedial Video & Feedback Emosi AI.",
+    "item4Desc": "Video pembahasan interaktif per nomor soal salah yang dilengkapi pendeteksi 7 emosi real-time dan umpan balik motivasi AI saat pengerjaan tes.",
     "mockup": {
       "navHeader": "Navigasi",
       "navMyClasses": "Kelas Saya",
@@ -233,12 +235,46 @@
   "roles": {
     "title": "Transparansi Hasil untuk Guru dan Orang Tua",
     "subtitle": "Setiap aktivitas siswa, ketuntasan tes diagnostik, hasil remedial, serta tren emosi belajar dilaporkan seketika ke dalam Dashboard Guru & Orang Tua.",
+    "studentBadge": "Siswa",
+    "teacherBadge": "Guru",
+    "parentBadge": "Orang Tua",
+    "register": "Daftar",
+    "studentTitle": "Pengalaman Belajar Siswa",
+    "studentDesc": "Belajar mandiri yang menyenangkan dengan rekomendasi remedial otomatis, E-Worksheet interaktif, dan motivasi afektif dari AI.",
     "teacherTitle": "Dashboard Guru (LAD Analytics)",
     "teacherDesc": "Pantau sebaran ketuntasan diagnostik & remedial kelas, tren emosi kolektif, serta unduh rekap analitik pembelajaran dalam format laporan standar.",
     "parentTitle": "Aplikasi & Notifikasi Orang Tua",
     "parentDesc": "Terima pembaruan progres belajar, laporan ketuntasan tes, dan perkembangan karakter anak secara real-time langsung melalui perangkat Anda.",
-    "studentTitle": "Pengalaman Belajar Siswa",
-    "studentDesc": "Belajar mandiri yang menyenangkan dengan rekomendasi remedial otomatis, E-Worksheet interaktif, dan motivasi afektif dari AI."
+    "mockupStudent": {
+      "name": "Alya Nabila",
+      "status": "Siswa • Aktif",
+      "f1Title": "E-LKPD & Modul",
+      "f1Desc": "Akses materi interaktif",
+      "f2Title": "Kuis Emosi AI",
+      "f2Desc": "Evaluasi adaptif & fokus",
+      "f3Title": "Video Remedial",
+      "f3Desc": "Solusi pembahasan soal"
+    },
+    "mockupTeacher": {
+      "name": "Budi, M.Pd.",
+      "role": "Guru / Pengajar",
+      "f1Title": "LAD Analytics Kelas",
+      "f1Desc": "Sebaran ketuntasan kelas",
+      "f2Title": "Monitor Emosi",
+      "f2Desc": "Pola emosi kolektif",
+      "f3Title": "Download Rekap",
+      "f3Desc": "Export laporan PDF/Excel"
+    },
+    "mockupParent": {
+      "name": "Ibu Rina",
+      "child": "Anak: Alya Nabila",
+      "f1Title": "Pantau Progress Real-time",
+      "f1Desc": "Skor tes & ketuntasan",
+      "f2Title": "Tren Emosi Anak",
+      "f2Desc": "Deteksi emosi belajar",
+      "f3Title": "Notifikasi Instan",
+      "f3Desc": "Info ketuntasan remedial"
+    }
   },
   "about": {
     "badge": "Tentang Kami",
@@ -281,5 +317,35 @@
     "terms": "Syarat Layanan",
     "contact": "Hubungi Kami",
     "copyright": "GetSmart by PRP-PMRI USK. Hak cipta dilindungi undang-undang."
+  },
+  "howItWorks": {
+    "badge": "Cara Kerja",
+    "titlePrefix": "Segala Kemudahan dalam ",
+    "titleHighlight": "Satu Genggaman",
+    "subtitle": "Dari membaca modul terintegrasi hingga analisis emosi AI dan laporan real-time, temukan alur belajar yang ringkas dan efektif.",
+    "card1Title": "Alur Belajar Terintegrasi",
+    "card1Desc": "Siswa mempelajari materi PDF Flipbook, menyimak Video Pemantik, mengerjakan E-LKPD, dan langsung mengevaluasi pemahaman via Tes Diagnostik.",
+    "flowStep1": "1. PDF Flipbook Materi",
+    "flowStep1Status": "Tuntas Terbaca",
+    "flowStep2": "2. Video Pemantik YouTube",
+    "flowStep2Status": "Tuntas Ditonton",
+    "flowStep3": "3. E-LKPD (Google Forms)",
+    "flowStep3Status": "Telah Dikirim",
+    "flowStep4": "4. Tes Diagnostik AI",
+    "flowStep4Status": "Jalur Remedial Terbuka",
+    "card2ATitle": "Analisis Hasil & Kenaikan",
+    "card2ADesc": "AI secara aktif merekomendasikan video pemantik dan kuis remedial untuk meningkatkan skor kognitif rata-rata siswa.",
+    "scoreGain": "+28%",
+    "scoreGainLabel": "Kenaikan Skor",
+    "card2BTitle": "Keamanan & Koneksi Real-Time",
+    "card2BDesc": "Data hasil belajar anak terhubung secara terenkripsi langsung ke dashboard guru dan dapat diakses real-time oleh orang tua.",
+    "card3Title": "Analisis & Rekomendasi AI",
+    "card3Desc": "Sistem AI GetSmart memetakan emosi dan fokus untuk memberikan kesimpulan diagnostik serta rekomendasi topik materi selanjutnya.",
+    "codeTab": "RekomendasiAI.json",
+    "codeStudent": "Alya Nabila",
+    "codeFocus": "94%",
+    "codeEmotion": "Bahagia",
+    "codeRemedial": "true",
+    "codeTopic": "Aljabar Matriks"
   }
 }
