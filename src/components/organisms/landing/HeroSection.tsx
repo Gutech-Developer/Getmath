@@ -4,10 +4,39 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { useI18n } from "@/providers/I18nProvider";
+import { usePublicSchools } from "@/services/hooks/useGsSchool";
 
 export default function HeroSection() {
+  const { t } = useI18n();
   const [isMounted, setIsMounted] = useState(false);
   const [studentsCount, setStudentsCount] = useState(1248);
+
+  const { data: publicSchoolsData } = usePublicSchools({
+    page: 1,
+    limit: 10,
+    search: "",
+  });
+  const realStudentCount =
+    publicSchoolsData?.schools?.reduce(
+      (acc, curr) => acc + (curr.studentCount || 0),
+      0,
+    ) ?? 0;
+
+  const realTeacherCount =
+    publicSchoolsData?.schools?.reduce(
+      (acc, curr) => acc + (curr.teacherCount || 0),
+      0,
+    ) ?? 0;
+
+  const realSchoolCount =
+    publicSchoolsData?.pagination.totalItems ?? 0;
+  useEffect(() => {
+    if (realStudentCount > 0) {
+      setStudentsCount(realStudentCount);
+    }
+  }, [realStudentCount]);
+
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [dashboardMode, setDashboardMode] = useState<
     "normal" | "happy" | "focus"
@@ -107,7 +136,7 @@ export default function HeroSection() {
       case "happy":
         return {
           heights: [60, 80, 70, 95, 85],
-          label: "Status Belajar: Sangat Baik",
+          label: t("hero.mockup.statusGood"),
           tooltipPrefix: "Skor: ",
           tooltipSuffix: "%",
           colorClass: "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]",
@@ -115,7 +144,7 @@ export default function HeroSection() {
       case "focus":
         return {
           heights: [95, 90, 98, 92, 95],
-          label: "Mode Fokus: Maksimal",
+          label: t("hero.mockup.focusMax"),
           tooltipPrefix: "Fokus: ",
           tooltipSuffix: "%",
           colorClass: "bg-[#1F2375] shadow-[0_0_12px_rgba(31,35,117,0.4)]",
@@ -124,7 +153,7 @@ export default function HeroSection() {
       default:
         return {
           heights: [40, 65, 50, 90, 75],
-          label: "Durasi Belajar",
+          label: t("hero.mockup.learningDuration"),
           tooltipPrefix: "Waktu: ",
           tooltipSuffix: " mnt",
           colorClass: "bg-[#1F2375]/85 hover:bg-[#1F2375]",
@@ -185,15 +214,15 @@ export default function HeroSection() {
           {/* Announcement/Badge */}
           <div className="inline-flex items-center gap-2 rounded-full hero-text-animate">
             <span className="text-xs font-semibold text-lottie-teal font-inter">
-              Platform E-Learning Adaptif
+              {t("hero.badge")}
             </span>
           </div>
 
           {/* Headline in DM Sans */}
           <h1 className="font-dm-sans text-5xl font-normal leading-[1.08] tracking-[-0.04em] text-lottie-midnight lg:text-[4rem] relative hero-text-animate">
-            Belajar Lebih{" "}
+            {t("hero.headlinePart1")}
             <span className="relative inline-block px-2">
-              Cerdas
+              {t("hero.headlineHighlight")}
               {/* Hand-drawn yellow highlight circle loop SVG */}
               <svg
                 className="absolute -inset-x-5 -inset-y-3 w-[calc(100%+40px)] h-[calc(100%+20px)] pointer-events-none z-[-4]"
@@ -212,10 +241,10 @@ export default function HeroSection() {
                   strokeLinejoin="round"
                 />
               </svg>
-            </span>{" "}
-            untuk Semua{" "}
+            </span>
+            {t("hero.headlinePart2")}
             <span className="text-[#1F2375] relative inline-block px-1">
-              Mata Pelajaran
+              {t("hero.headlineUnderline")}
               {/* Hand-drawn double underline SVG in purple */}
               <svg
                 className="absolute left-0 bottom-[-6px] w-full h-[12px] pointer-events-none z-0"
@@ -247,9 +276,10 @@ export default function HeroSection() {
 
           {/* Body Copy */}
           <p className="font-inter text-base md:text-lg leading-relaxed text-lottie-zinc-500 max-w-[480px] hero-text-animate">
-            GetSmart menyediakan pengalaman belajar yang dipersonalisasi — dari
-            modul interaktif, remedial per soal, hingga analitik belajar yang
-            komprehensif untuk Matematika, Sains, Sosial, dan lainnya.
+            {t("hero.subheadline")}
+          </p>
+          <p className="font-inter text-sm md:text-sm leading-relaxed text-lottie-zinc-500 max-w-[480px] hero-text-animate">
+            {t("hero.tkaHookText")}
           </p>
 
           {/* Call to Actions */}
@@ -258,7 +288,7 @@ export default function HeroSection() {
               href="/login"
               className="inline-flex h-12 items-center justify-center rounded-2xl bg-lottie-teal px-6 text-sm font-medium text-white transition-all hover:bg-lottie-teal/90 hover:shadow-[rgba(31,35,117,0.3)_0px_8px_16px_0px] active:scale-[0.98] shadow-[rgba(31,35,117,0.2)_0px_4px_12px_0px]"
             >
-              Mulai Belajar Gratis
+              {t("hero.ctaPrimary")}
               <svg
                 className="ml-2 h-4 w-4"
                 fill="none"
@@ -298,7 +328,7 @@ export default function HeroSection() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl border border-white/60 bg-white/50 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] hover:scale-[1.03] transition-all duration-300">
                   <div className="text-[9px] font-semibold text-lottie-zinc-500 uppercase tracking-wider font-inter">
-                    Siswa Aktif
+                    {t("hero.mockup.activeStudents")}
                   </div>
                   <div className="text-xs md:text-sm font-bold text-[#1F2375] font-inter mt-0.5 tabular-nums transition-all duration-300">
                     {studentsCount}
@@ -306,23 +336,15 @@ export default function HeroSection() {
                 </div>
                 <div className="rounded-xl border border-white/60 bg-white/50 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] hover:scale-[1.03] transition-all duration-300">
                   <div className="text-[9px] font-semibold text-lottie-zinc-500 uppercase tracking-wider font-inter">
-                    Rerata Skor
+                    {t("hero.mockup.teacherCount")}
                   </div>
-                  <div className="text-xs md:text-sm font-bold text-[#818cf8] font-inter mt-0.5">
-                    {dashboardMode === "happy"
-                      ? "92.4%"
-                      : dashboardMode === "focus"
-                        ? "96.5%"
-                        : "88.5%"}
-                  </div>
+                  {realTeacherCount}
                 </div>
                 <div className="rounded-xl border border-[#f5ebcb] bg-[#fff8e5]/60 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] backdrop-blur-sm hover:scale-[1.03] transition-all duration-300">
                   <div className="text-[9px] font-semibold text-amber-800 uppercase tracking-wider font-inter">
-                    Selesai
+                    {t("hero.mockup.registeredSchoolCount")}
                   </div>
-                  <div className="text-xs md:text-sm font-bold text-[#f59e0b] font-inter mt-0.5">
-                    {dashboardMode === "focus" ? "48/50" : "42/50"}
-                  </div>
+                  {realSchoolCount}
                 </div>
               </div>
 
@@ -412,7 +434,9 @@ export default function HeroSection() {
                       😊
                     </div>
                     <div className="text-[8px] font-bold text-[#1F2375]/70 uppercase tracking-wider font-inter">
-                      {dashboardMode === "happy" ? "Aktif" : "Emosi"}
+                      {dashboardMode === "happy"
+                        ? t("hero.mockup.emotionActive")
+                        : t("hero.mockup.emotionLabel")}
                     </div>
                   </button>
 
@@ -438,7 +462,7 @@ export default function HeroSection() {
                       🎯
                     </div>
                     <div className="text-[8px] font-bold text-[#1F2375]/70 uppercase tracking-wider font-inter">
-                      {dashboardMode === "focus" ? "Fokus" : "Fokus"}
+                      {t("hero.mockup.focusLabel")}
                     </div>
                   </button>
                 </div>

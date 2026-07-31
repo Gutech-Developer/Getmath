@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { I18nProvider } from "@/providers/I18nProvider";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
 
@@ -15,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="id">
       <body
         className={`font-inter antialiased bg-grey-lightest overflow-x-hidden overflow-y-auto thin-scrollbar`}
       >
@@ -30,7 +31,9 @@ export default function RootLayout({
           speed={200}
           zIndex={99999}
         />
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <I18nProvider>{children}</I18nProvider>
+        </QueryProvider>
         <Toaster
           position="top-right"
           richColors

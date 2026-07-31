@@ -4,13 +4,38 @@ import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { useI18n } from "@/providers/I18nProvider";
+import { usePublicSchools } from "@/services/hooks/useGsSchool";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
 export default function AboutSection() {
+  const { t } = useI18n();
   const [isMounted, setIsMounted] = useState(false);
+
+  // Fetch real school data from API endpoint: /schools/public?page=1&limit=10&search=
+  const { data: publicSchoolsData, isLoading: isSchoolsLoading } =
+    usePublicSchools({ page: 1, limit: 10, search: "" });
+
+  const schools = publicSchoolsData?.schools ?? [];
+  const pagination = publicSchoolsData?.pagination;
+
+  // Sum up real statistics counts from response data
+  const realSchoolCount = pagination?.totalItems ?? schools.length ?? 0;
+  const realStudentCount = schools.reduce(
+    (acc, curr) => acc + (curr.studentCount || 0),
+    0,
+  );
+  const realTeacherCount = schools.reduce(
+    (acc, curr) => acc + (curr.teacherCount || 0),
+    0,
+  );
+  const realCourseCount = schools.reduce(
+    (acc, curr) => acc + (curr.courseCount || 0),
+    0,
+  );
 
   // Visi dashboard mockup state
   const [studentsCount, setStudentsCount] = useState(1248);
@@ -19,6 +44,13 @@ export default function AboutSection() {
     "normal",
   );
   const aboutRef = useRef<HTMLDivElement>(null);
+
+  // Update studentsCount when real API data arrives
+  useEffect(() => {
+    if (realStudentCount > 0) {
+      setStudentsCount(realStudentCount);
+    }
+  }, [realStudentCount]);
 
   // Misi dashboard mockup state
   const [modules, setModules] = useState([
@@ -48,57 +80,58 @@ export default function AboutSection() {
 
   useEffect(() => {
     setIsMounted(true);
-    // Increment student count slightly to simulate live activity
     const interval = setInterval(() => {
       setStudentsCount((prev) => prev + Math.floor(Math.random() * 2) + 1);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  useGSAP(() => {
-    // Fade in title/desc
-    gsap.from(".about-title-animate", {
-      scrollTrigger: {
-        trigger: ".about-title-animate",
-        start: "top 85%",
-      },
-      y: 30,
-      opacity: 0,
-      duration: 0.8,
-      stagger: 0.15,
-      onComplete: () => {
-        // Draw the highlighter when visible
-        gsap.to(".about-brush-1", {
-          strokeDashoffset: 0,
-          duration: 1,
-          ease: "power1.inOut",
-        });
-      }
-    });
+  useGSAP(
+    () => {
+      // Fade in title/desc
+      gsap.from(".about-title-animate", {
+        scrollTrigger: {
+          trigger: ".about-title-animate",
+          start: "top 85%",
+        },
+        y: 30,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.15,
+        onComplete: () => {
+          gsap.to(".about-brush-1", {
+            strokeDashoffset: 0,
+            duration: 1,
+            ease: "power1.inOut",
+          });
+        },
+      });
 
-    // Slide in cards
-    gsap.from(".about-card-left", {
-      scrollTrigger: {
-        trigger: ".about-card-left",
-        start: "top 80%",
-      },
-      x: -50,
-      opacity: 0,
-      duration: 1,
-      ease: "power2.out",
-    });
+      // Slide in cards
+      gsap.from(".about-card-left", {
+        scrollTrigger: {
+          trigger: ".about-card-left",
+          start: "top 80%",
+        },
+        x: -50,
+        opacity: 0,
+        duration: 1,
+        ease: "power2.out",
+      });
 
-    gsap.from(".about-card-right", {
-      scrollTrigger: {
-        trigger: ".about-card-right",
-        start: "top 80%",
-      },
-      x: 50,
-      opacity: 0,
-      duration: 1,
-      ease: "power2.out",
-    });
-  }, { scope: aboutRef });
+      gsap.from(".about-card-right", {
+        scrollTrigger: {
+          trigger: ".about-card-right",
+          start: "top 80%",
+        },
+        x: 50,
+        opacity: 0,
+        duration: 1,
+        ease: "power2.out",
+      });
+    },
+    { scope: aboutRef },
+  );
 
   const toggleModule = (id: number) => {
     setModules((prev) =>
@@ -109,15 +142,9 @@ export default function AboutSection() {
   };
 
   const completedCount = modules.filter((m) => m.completed).length;
-  const completionPercent = Math.round((completedCount / modules.length) * 100);
-  const averageScore =
-    completedCount > 0
-      ? Math.round(
-          modules
-            .filter((m) => m.completed)
-            .reduce((acc, m) => acc + m.score, 0) / completedCount,
-        )
-      : 0;
+  const completionPercent = Math.round(
+    (completedCount / modules.length) * 100,
+  );
 
   // Visi graph config
   const getVisiGraphData = () => {
@@ -125,7 +152,7 @@ export default function AboutSection() {
       case "happy":
         return {
           heights: [60, 80, 70, 95, 85],
-          label: "Status Belajar: Sangat Baik",
+          label: t("hero.mockup.statusGood"),
           tooltipPrefix: "Skor: ",
           tooltipSuffix: "%",
           colorClass: "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]",
@@ -133,7 +160,7 @@ export default function AboutSection() {
       case "focus":
         return {
           heights: [95, 90, 98, 92, 95],
-          label: "Mode Fokus: Maksimal",
+          label: t("hero.mockup.focusMax"),
           tooltipPrefix: "Fokus: ",
           tooltipSuffix: "%",
           colorClass: "bg-[#1F2375] shadow-[0_0_12px_rgba(31,35,117,0.4)]",
@@ -142,7 +169,7 @@ export default function AboutSection() {
       default:
         return {
           heights: [40, 65, 50, 90, 75],
-          label: "Durasi Belajar",
+          label: t("hero.mockup.learningDuration"),
           tooltipPrefix: "Waktu: ",
           tooltipSuffix: " mnt",
           colorClass: "bg-[#1F2375]/85 hover:bg-[#1F2375]",
@@ -159,16 +186,16 @@ export default function AboutSection() {
       id="tentang"
       className="bg-[#ededed] py-20 md:py-28 relative overflow-hidden z-0 math-grid-bg"
     >
-      {/* Tiny decorative elements */}
+      {/* Decorative dark backdrop container */}
       <div className="absolute w-full min-h-[600px] rounded-4xl bg-[#252525] max-w-7xl top-14 left-1/2 -translate-x-1/2 "></div>
 
       <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
         <div className="mb-16 text-center">
-          <span className="inline-flex items-center rounded-full  px-3 py-1 text-base font-semibold text-white font-inter uppercase tracking-wide about-title-animate">
-            Tentang Kami
+          <span className="inline-flex items-center rounded-full px-3 py-1 text-base font-semibold text-white font-inter uppercase tracking-wide about-title-animate">
+            {t("about.badge")}
           </span>
           <h2 className="mt-4 font-dm-sans text-4xl font-normal tracking-[-0.03em] text-white sm:text-[48px] leading-[1.12] about-title-animate">
-            Apa itu{" "}
+            {t("about.title").split("GetSmart?")[0]}
             <span className="relative inline-block px-2">
               GetSmart?
               {/* Pink hand-drawn circular highlighter SVG */}
@@ -192,23 +219,18 @@ export default function AboutSection() {
             </span>
           </h2>
           <p className="mx-auto mt-4 max-w-2xl font-inter text-base text-white/80 about-title-animate">
-            GetSmart adalah platform E-Learning yang menggabungkan teknologi AI
-            untuk menciptakan pengalaman belajar yang adaptif and personal bagi
-            setiap siswa di seluruh Indonesia.
+            {t("about.description")}
           </p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-2">
-          {/* Visi (Cream Paper Highlight Card - Glassmorphic) */}
+          {/* Visi Card */}
           <div className="rounded-[24px] border border-white/60 bg-white/40 backdrop-blur-md p-8 md:p-10 transition-all hover:scale-[1.01] shadow-[rgba(31,35,117,0.02)_0px_8px_24px_0px] flex flex-col items-center gap-5 about-card-left">
-            <h3 className=" font-dm-sans text-2xl font-bold tracking-tight text-white">
-              Visi
+            <h3 className="font-dm-sans text-2xl font-bold tracking-tight text-white">
+              {t("about.visiTitle")}
             </h3>
             <p className="font-inter text-sm md:text-base leading-relaxed text-white">
-              Menyediakan modul belajar interaktif, tes diagnostik berbasis
-              emosi, dan analitik belajar komprehensif (LAD Dashboard) yang
-              membantu siswa, guru, dan orang tua berkolaborasi mencapai hasil
-              belajar terbaik.
+              {t("about.visiDesc")}
             </p>
             <div className="relative z-10 w-full overflow-hidden rounded-3xl border border-black/15 bg-[#ededed] backdrop-blur-md shadow-[rgba(31,35,117,0.06)_0px_24px_48px_0px] transition-all duration-300 hover:shadow-[rgba(31,35,117,0.1)_0px_32px_64px_0px] select-none">
               <div className="flex items-center gap-1.5 border-b border-white/40 bg-white/40 px-4 py-3">
@@ -222,34 +244,30 @@ export default function AboutSection() {
 
               {/* Dashboard Contents Mock */}
               <div className="aspect-[4/3] w-full bg-white/40 p-5 flex flex-col gap-4">
-                {/* Top Row: Mini Cards */}
+                {/* Top Row: Mini Cards with Real API Stats */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-xl border border-white/60 bg-white/50 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] hover:scale-[1.03] transition-all duration-300">
                     <div className="text-[9px] font-semibold text-lottie-zinc-500 uppercase tracking-wider font-inter">
-                      Siswa Aktif
+                      {t("about.stats.students")}
                     </div>
                     <div className="text-xs font-bold text-[#1F2375] font-inter mt-0.5 tabular-nums">
-                      {studentsCount}
+                      {isSchoolsLoading ? "..." : realStudentCount}
                     </div>
                   </div>
                   <div className="rounded-xl border border-white/60 bg-white/50 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] hover:scale-[1.03] transition-all duration-300">
                     <div className="text-[9px] font-semibold text-lottie-zinc-500 uppercase tracking-wider font-inter">
-                      Skor Rata-rata
+                      {t("about.stats.teachers")}
                     </div>
-                    <div className="text-xs font-bold text-[#818cf8] font-inter mt-0.5">
-                      {visiMode === "happy"
-                        ? "92.4%"
-                        : visiMode === "focus"
-                          ? "96.5%"
-                          : "88.5%"}
+                    <div className="text-xs font-bold text-[#818cf8] font-inter mt-0.5 tabular-nums">
+                      {isSchoolsLoading ? "..." : realTeacherCount}
                     </div>
                   </div>
                   <div className="rounded-xl border border-[#f5ebcb] bg-[#fff8e5]/60 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] backdrop-blur-sm hover:scale-[1.03] transition-all duration-300">
                     <div className="text-[9px] font-semibold text-amber-800 uppercase tracking-wider font-inter">
-                      Selesai
+                      {t("about.stats.schools")}
                     </div>
-                    <div className="text-xs font-bold text-[#f59e0b] font-inter mt-0.5">
-                      {visiMode === "focus" ? "48/50" : "42/50"}
+                    <div className="text-xs font-bold text-[#f59e0b] font-inter mt-0.5 tabular-nums">
+                      {isSchoolsLoading ? "..." : realSchoolCount}
                     </div>
                   </div>
                 </div>
@@ -332,9 +350,13 @@ export default function AboutSection() {
                             ? "bg-emerald-200 animate-bounce"
                             : "bg-lottie-mint-wash"
                         }`}
-                      ></div>
+                      >
+                        😊
+                      </div>
                       <div className="text-[8px] font-bold text-[#1F2375]/70 uppercase tracking-wider font-inter">
-                        {visiMode === "happy" ? "Aktif" : "Emosi"}
+                        {visiMode === "happy"
+                          ? t("hero.mockup.emotionActive")
+                          : t("hero.mockup.emotionLabel")}
                       </div>
                     </button>
 
@@ -356,9 +378,11 @@ export default function AboutSection() {
                             ? "bg-indigo-200 animate-pulse"
                             : "bg-lottie-cream/80"
                         }`}
-                      ></div>
+                      >
+                        🎯
+                      </div>
                       <div className="text-[8px] font-bold text-[#1F2375]/70 uppercase tracking-wider font-inter">
-                        {visiMode === "focus" ? "Fokus" : "Fokus"}
+                        {t("hero.mockup.focusLabel")}
                       </div>
                     </button>
                   </div>
@@ -367,7 +391,7 @@ export default function AboutSection() {
             </div>
           </div>
 
-          {/* Misi (White Card - Glassmorphic) */}
+          {/* Misi Card */}
           <div className="rounded-[24px] border border-white/60 bg-white/40 backdrop-blur-md p-8 md:p-10 transition-all hover:scale-[1.01] shadow-[rgba(31,35,117,0.02)_0px_8px_24px_0px] flex flex-col items-center gap-5 about-card-right">
             <div className="relative z-10 w-full overflow-hidden rounded-3xl border border-white/50 bg-white/60 backdrop-blur-md shadow-[rgba(31,35,117,0.06)_0px_24px_48px_0px] transition-all duration-300 hover:shadow-[rgba(31,35,117,0.1)_0px_32px_64px_0px] select-none">
               <div className="flex items-center gap-1.5 border-b border-white/40 bg-white/40 px-4 py-3">
@@ -381,30 +405,30 @@ export default function AboutSection() {
 
               {/* Dashboard Contents Mock */}
               <div className="aspect-[4/3] w-full bg-white/40 p-5 flex flex-col gap-4">
-                {/* Top Row: Mini Cards */}
+                {/* Top Row: Mini Cards with Real API Stats */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-xl border border-white/60 bg-white/50 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] hover:scale-[1.03] transition-all duration-300">
                     <div className="text-[9px] font-semibold text-lottie-zinc-500 uppercase tracking-wider font-inter">
-                      Modul Selesai
+                      {t("about.stats.courses")}
                     </div>
-                    <div className="text-xs font-bold text-[#1F2375] font-inter mt-0.5">
-                      {completedCount} / {modules.length}
+                    <div className="text-xs font-bold text-[#1F2375] font-inter mt-0.5 tabular-nums">
+                      {isSchoolsLoading ? "..." : realCourseCount}
                     </div>
                   </div>
                   <div className="rounded-xl border border-white/60 bg-white/50 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] hover:scale-[1.03] transition-all duration-300">
                     <div className="text-[9px] font-semibold text-lottie-zinc-500 uppercase tracking-wider font-inter">
-                      Kemajuan
+                      {t("hero.mockup.teacherCount")}
                     </div>
                     <div className="text-xs font-bold text-[#818cf8] font-inter mt-0.5">
-                      {completionPercent}%
+                      {realTeacherCount}
                     </div>
                   </div>
                   <div className="rounded-xl border border-[#f5ebcb] bg-[#fff8e5]/60 p-2.5 shadow-[rgba(31,35,117,0.01)_0px_2px_4px_0px] backdrop-blur-sm hover:scale-[1.03] transition-all duration-300">
                     <div className="text-[9px] font-semibold text-amber-800 uppercase tracking-wider font-inter">
-                      Peringkat
+                      {t("about.stats.schools")}
                     </div>
-                    <div className="text-xs font-bold text-[#f59e0b] font-inter mt-0.5">
-                      #1
+                    <div className="text-xs font-bold text-[#f59e0b] font-inter mt-0.5 tabular-nums">
+                      {isSchoolsLoading ? "..." : realSchoolCount}
                     </div>
                   </div>
                 </div>
@@ -518,14 +542,11 @@ export default function AboutSection() {
                 </div>
               </div>
             </div>
-            <h3 className=" font-dm-sans text-2xl font-bold tracking-tight text-lottie-midnight">
-              Misi
+            <h3 className="font-dm-sans text-2xl font-bold tracking-tight text-lottie-midnight">
+              {t("about.misiTitle")}
             </h3>
             <p className="font-inter text-sm md:text-base leading-relaxed text-lottie-zinc-500">
-              Menyediakan modul belajar interaktif, tes diagnostik berbasis
-              emosi, dan analitik belajar komprehensif (LAD Dashboard) yang
-              membantu siswa, guru, dan orang tua berkolaborasi mencapai hasil
-              belajar terbaik.
+              {t("about.misiDesc")}
             </p>
           </div>
         </div>
