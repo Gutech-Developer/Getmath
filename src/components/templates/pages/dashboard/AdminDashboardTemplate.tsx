@@ -23,9 +23,11 @@ export default function AdminDashboardTemplate() {
   const { data: teacherData } = useAllUsers({ limit: 1, role: "teacher" });
   const { data: parentData } = useAllUsers({ limit: 1, role: "parent" });
 
-  const totalStudents = studentData?.pagination?.totalItems ?? 0;
-  const totalTeachers = teacherData?.pagination?.totalItems ?? 0;
-  const totalParents = parentData?.pagination?.totalItems ?? 0;
+  const totalStudents = userStats?.totalStudents ?? studentData?.pagination?.totalItems ?? 0;
+  const totalTeachers = userStats?.totalTeachers ?? teacherData?.pagination?.totalItems ?? 0;
+  const totalParents = userStats?.totalParents ?? parentData?.pagination?.totalItems ?? 0;
+  const activeUsers = userStats?.activeUsers ?? userStats?.data?.activeAccounts ?? 0;
+  const inactiveUsers = userStats?.inactiveUsers ?? userStats?.data?.inactiveAccounts ?? 0;
 
   const chartLines: AdminChartLine[] = [
     {
@@ -82,13 +84,13 @@ export default function AdminDashboardTemplate() {
     {
       icon: <DashboardIcon className="h-5 w-5" variant="filled" />,
       iconColor: "bg-lottie-teal/5 text-lottie-teal",
-      value: userStats?.data?.activeAccounts ?? 0,
+      value: activeUsers,
       label: "Akun Aktif",
     },
     {
       icon: <ClipboardIcon className="h-5 w-5" />,
       iconColor: "bg-red-50 text-red-600",
-      value: userStats?.data?.inactiveAccounts ?? 0,
+      value: inactiveUsers,
       label: "Akun Nonaktif",
     },
   ];
