@@ -29,7 +29,12 @@ interface IForumSectionProps {
   courseId: string;
   slug: string;
   role: "teacher" | "admin";
-  materials?: Array<{ id: string; subject?: { testName?: string; [key: string]: any }; diagnosticTest?: { testName?: string; [key: string]: any }; [key: string]: any }>;
+  materials?: Array<{
+    id: string;
+    subject?: { testName?: string; [key: string]: any };
+    diagnosticTest?: { testName?: string; [key: string]: any };
+    [key: string]: any;
+  }>;
 }
 
 interface ILocalDiscussion {
@@ -54,11 +59,13 @@ export default function ForumSection({
   const [isPosting, setIsPosting] = useState(false);
   const [sortBy, setSortBy] = useState<"latest" | "top">("latest");
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>("all");
-  const [selectedCreateModuleId, setSelectedCreateModuleId] = useState<string>("umum");
+  const [selectedCreateModuleId, setSelectedCreateModuleId] =
+    useState<string>("umum");
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const { data: currentUser } = useGsCurrentUser();
-  const isElevated = currentUser?.role === "TEACHER" || currentUser?.role === "ADMIN";
+  const isElevated =
+    currentUser?.role === "TEACHER" || currentUser?.role === "ADMIN";
   const router = useRouter();
 
   const { data: modulesData } = useGsModulesByCourse(courseId);
@@ -74,9 +81,10 @@ export default function ForumSection({
       page: 1,
       limit: 30,
       sortBy,
-      courseModuleId: selectedMaterialId !== "all" ? selectedMaterialId : undefined,
+      courseModuleId:
+        selectedMaterialId !== "all" ? selectedMaterialId : undefined,
     },
-    { enabled: !!courseId }
+    { enabled: !!courseId },
   );
 
   const createDiscussion = useCreateDiscussion(courseId);
@@ -84,23 +92,38 @@ export default function ForumSection({
   const deleteDiscussion = useDeleteDiscussion(courseId);
 
   // ── Map discussions ────────────────────────────────────────────────────
-  const [localLikes, setLocalLikes] = useState<Record<string, { isLiked: boolean; count: number }>>({});
+  const [localLikes, setLocalLikes] = useState<
+    Record<string, { isLiked: boolean; count: number }>
+  >({});
 
   const discussions = useMemo<IForumDiscussion[]>(() => {
     if (!discussionsData?.discussions) return [];
     return discussionsData.discussions.map((d: GsForumDiscussion) => {
-      const matchedModule = (modulesData || []).find((m) => m.id === d.courseModuleId);
-      const materialName = matchedModule 
-        ? (matchedModule.subject?.subjectName ?? matchedModule.diagnosticTest?.testName) 
+      const matchedModule = (modulesData || []).find(
+        (m) => m.id === d.courseModuleId,
+      );
+      const materialName = matchedModule
+        ? (matchedModule.subject?.subjectName ??
+          matchedModule.diagnosticTest?.testName)
         : undefined;
 
-      const isCurrentUser = d.authorUserId === currentUser?.id || d.author?.id === currentUser?.id;
-      const authorRole = (isCurrentUser && currentUser?.role === "ADMIN") 
-        ? "admin" 
-        : (d.author?.role ? d.author.role.toLowerCase() : (d.author?.teacher ? "teacher" : "student"));
-      const authorName = (isCurrentUser && currentUser?.fullName) 
-        ? currentUser.fullName 
-        : d.author?.teacher?.fullName ?? d.author?.student?.fullName ?? d.author?.fullName ?? (authorRole === "admin" ? "Admin" : "Pengguna");
+      const isCurrentUser =
+        d.authorUserId === currentUser?.id || d.author?.id === currentUser?.id;
+      const authorRole =
+        isCurrentUser && currentUser?.role === "ADMIN"
+          ? "admin"
+          : d.author?.role
+            ? d.author.role.toLowerCase()
+            : d.author?.teacher
+              ? "teacher"
+              : "student";
+      const authorName =
+        isCurrentUser && currentUser?.fullName
+          ? currentUser.fullName
+          : (d.author?.teacher?.fullName ??
+            d.author?.student?.fullName ??
+            d.author?.fullName ??
+            (authorRole === "admin" ? "Admin" : "Pengguna"));
 
       return {
         id: d.id,
@@ -125,15 +148,16 @@ export default function ForumSection({
     });
   }, [discussionsData, localLikes, currentUser, modulesData]);
 
-
-
   const materialOptions = useMemo(() => {
     const list = (modulesData || []).filter((m) => m.type === "SUBJECT");
     return [
       { value: "all", label: "Semua Materi" },
       ...list.map((m, index) => ({
         value: m.id || (m as any).courseModuleId,
-        label: (m as any).subjectName ?? m.subject?.subjectName ?? `Materi ${m.order ?? index + 1}`,
+        label:
+          (m as any).subjectName ??
+          m.subject?.subjectName ??
+          `Materi ${m.order ?? index + 1}`,
       })),
     ];
   }, [modulesData]);
@@ -144,7 +168,10 @@ export default function ForumSection({
       { value: "umum", label: "Umum (Tanpa Materi)" },
       ...list.map((m, index) => ({
         value: m.id || (m as any).courseModuleId,
-        label: (m as any).subjectName ?? m.subject?.subjectName ?? `Materi ${m.order ?? index + 1}`,
+        label:
+          (m as any).subjectName ??
+          m.subject?.subjectName ??
+          `Materi ${m.order ?? index + 1}`,
       })),
     ];
   }, [modulesData]);
@@ -154,9 +181,12 @@ export default function ForumSection({
     if (!newPostContent.trim()) return;
     setIsPosting(true);
     try {
-      await createDiscussion.mutateAsync({ 
+      await createDiscussion.mutateAsync({
         content: newPostContent,
-        courseModuleId: selectedCreateModuleId !== "umum" ? selectedCreateModuleId : undefined
+        courseModuleId:
+          selectedCreateModuleId !== "umum"
+            ? selectedCreateModuleId
+            : undefined,
       });
       setNewPostContent("");
       setSelectedCreateModuleId("umum");
@@ -187,7 +217,9 @@ export default function ForumSection({
     };
 
     const nextIsLiked = !currentLocal.isLiked;
-    const nextCount = nextIsLiked ? currentLocal.count + 1 : currentLocal.count - 1;
+    const nextCount = nextIsLiked
+      ? currentLocal.count + 1
+      : currentLocal.count - 1;
 
     setLocalLikes((prev) => ({
       ...prev,
@@ -203,10 +235,11 @@ export default function ForumSection({
   };
 
   const handleDiscussionClick = (discussionId: string) => {
-    const baseRoute = role === "teacher" 
-      ? `/teacher/dashboard/class-list/${slug}/discussion`
-      : `/admin/dashboard/learning-analytics/${slug}/discussion`;
-    
+    const baseRoute =
+      role === "teacher"
+        ? `/teacher/dashboard/class-list/${slug}/discussion`
+        : `/admin/dashboard/class-list/${slug}/discussion`;
+
     router.push(`${baseRoute}/${discussionId}`);
   };
 
@@ -252,27 +285,27 @@ export default function ForumSection({
     <div className="space-y-4">
       {/* ── Filters ──────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm xl:flex-row xl:items-center xl:justify-between">
-         <div className="flex flex-wrap items-center gap-2">
-            <ForumFilterChip 
-              label="Terbaru" 
-              isActive={sortBy === "latest"} 
-              onClick={() => setSortBy("latest")} 
-            />
-            <ForumFilterChip 
-              label="Terpopuler" 
-              isActive={sortBy === "top"} 
-              onClick={() => setSortBy("top")} 
-            />
-         </div>
-         
-         <div className="w-full xl:w-64">
-            <ForumSelectField
-              value={selectedMaterialId}
-              onChange={setSelectedMaterialId}
-              options={materialOptions}
-              className="bg-[#F8FAFC]"
-            />
-         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <ForumFilterChip
+            label="Terbaru"
+            isActive={sortBy === "latest"}
+            onClick={() => setSortBy("latest")}
+          />
+          <ForumFilterChip
+            label="Terpopuler"
+            isActive={sortBy === "top"}
+            onClick={() => setSortBy("top")}
+          />
+        </div>
+
+        <div className="w-full xl:w-64">
+          <ForumSelectField
+            value={selectedMaterialId}
+            onChange={setSelectedMaterialId}
+            options={materialOptions}
+            className="bg-[#F8FAFC]"
+          />
+        </div>
       </div>
 
       {/* ── Create post ──────────────────────────────────────────────── */}
@@ -295,7 +328,7 @@ export default function ForumSection({
             rows={3}
             className="w-full resize-none rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1F2937] placeholder:text-[#94A3B8] outline-none focus:border-[#1F2375] focus:ring-1 focus:ring-[#1F2375]/20 transition"
           />
-          
+
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="w-full sm:w-64">
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
@@ -308,7 +341,7 @@ export default function ForumSection({
                 className="h-10 bg-[#F8FAFC]"
               />
             </div>
-            
+
             <button
               type="button"
               onClick={handleCreatePost}
@@ -332,8 +365,12 @@ export default function ForumSection({
       ) : (
         <div className="space-y-4">
           {discussions.map((discussion) => (
-            <div key={discussion.id} onClick={() => handleDiscussionClick(discussion.id)} className="cursor-pointer">
-               <ForumDiscussionCard
+            <div
+              key={discussion.id}
+              onClick={() => handleDiscussionClick(discussion.id)}
+              className="cursor-pointer"
+            >
+              <ForumDiscussionCard
                 discussion={discussion}
                 slug={slug}
                 onLike={(id) => handleLike(id)}
@@ -357,7 +394,8 @@ export default function ForumSection({
       >
         <div className="space-y-4">
           <p className="text-sm text-[#475569]">
-            Apakah Anda yakin ingin menghapus diskusi ini? Tindakan ini tidak dapat dibatalkan.
+            Apakah Anda yakin ingin menghapus diskusi ini? Tindakan ini tidak
+            dapat dibatalkan.
           </p>
           <div className="flex justify-end gap-3">
             <button

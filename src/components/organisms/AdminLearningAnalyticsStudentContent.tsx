@@ -54,7 +54,7 @@ export default function AdminLearningAnalyticsStudentContent({
       </header>
 
       <Link
-        href={`/admin/dashboard/learning-analytics/${slug}`}
+        href={`/admin/dashboard/class-list/${slug}`}
         className="inline-flex items-center text-sm font-semibold text-lottie-teal hover:text-lottie-teal/80"
       >
         ← Kembali ke Daftar Siswa

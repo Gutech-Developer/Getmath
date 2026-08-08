@@ -4,6 +4,7 @@ export interface IAdminClassListItem {
   id: string;
   name: string;
   teacherName: string;
+  schoolName?: string;
   createdAt: string;
   studentCount: number;
   testCount: number;

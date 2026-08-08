@@ -56,11 +56,12 @@ const ELKPD_AVATAR_ACCENTS = [
 
 function buildClassHref(role: AnalyticsRole, slug: string): string {
   if (role === "admin") {
-    return `/admin/dashboard/learning-analytics/${slug}`;
+    return `/admin/dashboard/class-list/${slug}`;
   }
 
   return `/teacher/dashboard/class-list/${slug}`;
-} function GradeForm({
+}
+function GradeForm({
   student,
   elkpdId,
   onClose,
@@ -94,7 +95,9 @@ function buildClassHref(role: AnalyticsRole, slug: string): string {
       },
       {
         onSuccess: () => {
-          showToast.success(`Nilai untuk ${student.fullname} berhasil disimpan`);
+          showToast.success(
+            `Nilai untuk ${student.fullname} berhasil disimpan`,
+          );
           onClose();
         },
         onError: (err) => {
