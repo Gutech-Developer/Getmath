@@ -14,6 +14,7 @@ import {
   BaseMateriSection,
   BaseNilaiTestSection,
   BaseSiswaSection,
+  BaseLogSection,
   LearningAnalyticsClassHeaderCard,
   LearningAnalyticsViewSwitcher,
   TeacherOverviewSection,
@@ -78,7 +79,7 @@ const TEACHER_VIEW_ITEMS: ITeacherSidebarItem[] = [
     label: "Nilai Test",
     icon: ClipboardIcon,
   },
-  
+
   {
     type: "Laporan",
     label: "Laporan",
@@ -93,6 +94,11 @@ const TEACHER_VIEW_ITEMS: ITeacherSidebarItem[] = [
     type: "Info Kelas",
     label: "Info Kelas",
     icon: InfoCircleIcon,
+  },
+  {
+    type: "Log",
+    label: "Log",
+    icon: ClipboardIcon,
   },
 ];
 
@@ -306,6 +312,7 @@ export default function TeacherLearningAnalyticsClassContent({
         materials={materials}
       />
     ),
+    Log: <BaseLogSection courseId={classDetail.id ?? classDetail.slug} />,
   };
 
   return (

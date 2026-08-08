@@ -127,12 +127,6 @@ const adminDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
     icon: NotificationIcon,
   },
   {
-    key: "learning analytics",
-    label: "Learning Analytics",
-    href: "/admin/dashboard/learning-analytics",
-    icon: TrendUpIcon,
-  },
-  {
     key: "class list",
     label: "Manajemen Kelas",
     href: "/admin/dashboard/class-list",
@@ -239,11 +233,10 @@ export function resolveDashboardSidebarRouteKey(
       return "notifications";
     }
 
-    if (normalizedPathname.includes("/dashboard/learning-analytics")) {
-      return "learning analytics";
-    }
-
-    if (normalizedPathname.includes("/dashboard/class-list")) {
+    if (
+      normalizedPathname.includes("/dashboard/class-list") ||
+      normalizedPathname.includes("/dashboard/learning-analytics")
+    ) {
       return "class list";
     }
 

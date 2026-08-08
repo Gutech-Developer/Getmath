@@ -17,7 +17,7 @@ export default async function AdminDashboardLearningAnalyticsClassStudent({
       slug={slug}
       studentId={studentId}
       studentName={studentName}
-      backHref={`/admin/dashboard/learning-analytics/${slug}`}
+      backHref={`/admin/dashboard/class-list/${slug}`}
     />
   );
 }

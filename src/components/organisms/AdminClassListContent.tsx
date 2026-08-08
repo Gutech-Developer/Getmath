@@ -306,7 +306,9 @@ export default function AdminClassListContent({
         return (
           classItem.name.toLowerCase().includes(normalizedQuery) ||
           classItem.teacherName.toLowerCase().includes(normalizedQuery) ||
-          classItem.code.toLowerCase().includes(normalizedQuery)
+          classItem.code.toLowerCase().includes(normalizedQuery) ||
+          (classItem.schoolName &&
+            classItem.schoolName.toLowerCase().includes(normalizedQuery))
         );
       });
     }
@@ -381,7 +383,7 @@ export default function AdminClassListContent({
             type="text"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Cari nama kelas, guru, atau kode..."
+            placeholder="Cari nama kelas, guru, sekolah, atau kode..."
             className="h-12 min-w-[240px] flex-1 rounded-2xl border border-[#E5E7EB] bg-white px-4 text-sm text-[#334155] outline-none transition placeholder:text-[#9CA3AF] focus:border-lottie-teal focus:ring-2 focus:ring-lottie-mint-glow/50"
           />
         </div>
@@ -389,13 +391,20 @@ export default function AdminClassListContent({
         {filteredClasses.length > 0 ? (
           <ul className="space-y-4">
             {filteredClasses.map((classItem) => (
-              <li
-                key={classItem.id}
-                className="getmath-card overflow-hidden"
-              >
+              <li key={classItem.id} className="getmath-card overflow-hidden">
                 <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-3 bg-lottie-teal/5">
-                  <div className="text-sm font-medium text-[#475569]">
-                    Guru: <span className="font-bold text-[#0F172A]">{classItem.teacherName}</span>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-[#475569]">
+                    <span>
+                      Guru:{" "}
+                      <span className="font-bold text-[#0F172A]">
+                        {classItem.teacherName}
+                      </span>
+                    </span>
+                    {classItem.schoolName && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                        {classItem.schoolName}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -408,7 +417,7 @@ export default function AdminClassListContent({
                         "flex items-center gap-1.5 p-1.5 px-3 border rounded-lg transition text-xs font-semibold cursor-pointer",
                         classItem.status === "Aktif"
                           ? "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100",
                       )}
                     >
                       {classItem.status === "Aktif" ? "Arsipkan" : "Aktifkan"}
@@ -428,7 +437,11 @@ export default function AdminClassListContent({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm("Apakah Anda yakin ingin menghapus kelas ini? Tindakan ini tidak dapat dibatalkan.")) {
+                        if (
+                          window.confirm(
+                            "Apakah Anda yakin ingin menghapus kelas ini? Tindakan ini tidak dapat dibatalkan.",
+                          )
+                        ) {
                           onDeleteClass(classItem.id);
                         }
                       }}

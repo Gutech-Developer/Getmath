@@ -6,7 +6,6 @@ import { resolveSidebarVariant, sidebarVariant } from "./sidebarVariant";
 
 const explicitTopbarTitleMap: Record<string, string> = {
   "/admin/dashboard": "Dashboard Admin",
-  "/admin/dashboard/learning-analytics": "Learning Analytics",
   "/admin/dashboard/class-list": "Daftar Kelas",
   "/admin/dashboard/manage-material": "Kelola Materi",
   "/admin/dashboard/manage-diagnostics": "Kelola Tes Diagnostik",
@@ -112,21 +111,41 @@ export function resolveTopbarTitle({
   }
 
   // Dynamic Remedial/Diagnostic paths
-  if (/\/(?:teacher|admin)\/dashboard\/manage-remedial\/[^/]+$/i.test(normalizedPathname)) {
+  if (
+    /\/(?:teacher|admin)\/dashboard\/manage-remedial\/[^/]+$/i.test(
+      normalizedPathname,
+    )
+  ) {
     return "Detail Tes Remedial";
   }
-  if (/\/(?:teacher|admin)\/dashboard\/manage-remedial\/[^/]+\/edit$/i.test(normalizedPathname)) {
+  if (
+    /\/(?:teacher|admin)\/dashboard\/manage-remedial\/[^/]+\/edit$/i.test(
+      normalizedPathname,
+    )
+  ) {
     return "Edit Tes Remedial";
   }
-  if (/\/(?:teacher|admin)\/dashboard\/manage-diagnostics\/[^/]+$/i.test(normalizedPathname)) {
+  if (
+    /\/(?:teacher|admin)\/dashboard\/manage-diagnostics\/[^/]+$/i.test(
+      normalizedPathname,
+    )
+  ) {
     return "Detail Tes Diagnostik";
   }
-  if (/\/(?:teacher|admin)\/dashboard\/manage-diagnostics\/[^/]+\/edit$/i.test(normalizedPathname)) {
+  if (
+    /\/(?:teacher|admin)\/dashboard\/manage-diagnostics\/[^/]+\/edit$/i.test(
+      normalizedPathname,
+    )
+  ) {
     return "Edit Tes Diagnostik";
   }
 
   // Forum pages
-  if (/\/(?:teacher|admin)\/dashboard\/.*\/discussion\/[^/]+$/i.test(normalizedPathname)) {
+  if (
+    /\/(?:teacher|admin)\/dashboard\/.*\/discussion\/[^/]+$/i.test(
+      normalizedPathname,
+    )
+  ) {
     return "Detail Diskusi";
   }
   if (/\/(?:teacher|admin)\/dashboard\/.*\/forum$/i.test(normalizedPathname)) {
@@ -144,22 +163,39 @@ export function resolveTopbarTitle({
   }
 
   // Learning Analytics / Class List Student Detail pages
-  if (/\/(?:teacher|admin)\/dashboard\/(?:learning-analytics|class-list)\/([^/]+)\/[^/]+$/i.test(normalizedPathname)) {
-    const match = normalizedPathname.match(/\/(?:teacher|admin)\/dashboard\/(?:learning-analytics|class-list)\/([^/]+)\/[^/]+$/i);
+  if (
+    /\/(?:teacher|admin)\/dashboard\/(?:learning-analytics|class-list)\/([^/]+)\/[^/]+$/i.test(
+      normalizedPathname,
+    )
+  ) {
+    const match = normalizedPathname.match(
+      /\/(?:teacher|admin)\/dashboard\/(?:learning-analytics|class-list)\/([^/]+)\/[^/]+$/i,
+    );
     const rawSlug = pickSlug(slugParam) ?? match?.[1];
     const studentName = searchParams?.get("studentName");
     if (rawSlug) {
       const classTitle = stripTrailingClassCode(humanizeSegment(rawSlug));
-      return studentName ? `${classTitle} - ${studentName}` : `${classTitle} - Detail Siswa`;
+      return studentName
+        ? `${classTitle} - ${studentName}`
+        : `${classTitle} - Detail Siswa`;
     }
     return studentName ?? "Detail Siswa";
   }
 
   // Admin / Teacher Manage Users detail pages
-  if (/\/(?:teacher|admin)\/dashboard\/manage-users\/(student|teacher)\/[^/]+$/i.test(normalizedPathname)) {
-    const match = normalizedPathname.match(/\/(?:teacher|admin)\/dashboard\/manage-users\/(student|teacher)\/[^/]+$/i);
+  if (
+    /\/(?:teacher|admin)\/dashboard\/manage-users\/(student|teacher)\/[^/]+$/i.test(
+      normalizedPathname,
+    )
+  ) {
+    const match = normalizedPathname.match(
+      /\/(?:teacher|admin)\/dashboard\/manage-users\/(student|teacher)\/[^/]+$/i,
+    );
     const roleSegment = match?.[1]?.toLowerCase();
-    const fullName = searchParams?.get("fullName") || searchParams?.get("userName") || searchParams?.get("studentName");
+    const fullName =
+      searchParams?.get("fullName") ||
+      searchParams?.get("userName") ||
+      searchParams?.get("studentName");
     if (fullName) {
       return fullName;
     }

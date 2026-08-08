@@ -54,6 +54,8 @@ export type WelcomeBannerProps =
   | TeacherBannerProps
   | ParentBannerProps;
 
+// ── Main Component ────────────────────────────────────────────────────────────
+
 export const WelcomeBanner: React.FC<WelcomeBannerProps> = (props) => {
   const { name, role = "student" } = props;
 
