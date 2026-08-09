@@ -113,12 +113,6 @@ interface ITeacherOverviewSectionProps {
   materials: ILearningAnalyticsMaterialItem[];
 }
 
-interface IRecentActivityItem {
-  id: string;
-  text: string;
-  timeLabel: string;
-}
-
 interface ILearningAnalyticsViewSwitcherProps {
   activeType: ClassAnalyticsViewType;
   onChange: (nextType: ClassAnalyticsViewType) => void;
@@ -193,7 +187,6 @@ const VIEW_ITEMS: Array<{
   { type: "Laporan", icon: TrendUpIcon },
   { type: "Forum", icon: ChatIcon },
   { type: "Info Kelas", icon: InfoCircleIcon },
-  { type: "Log", icon: DocumentIcon },
 ];
 
 const REPORT_MODES = ["Analisis Nilai & Emosi", "Word Cloud Forum"] as const;
@@ -3377,41 +3370,6 @@ export function TeacherOverviewSection({
 
   const moduleCount = Math.max(materials.length + 1, 4);
 
-  const recentActivities = useMemo<IRecentActivityItem[]>(() => {
-    const firstStudent = classDetail.students[0];
-    const secondStudent = classDetail.students[1];
-    const thirdStudent = classDetail.students[2];
-    const fourthStudent = classDetail.students[3];
-
-    return [
-      {
-        id: "activity-1",
-        text: `${firstStudent?.fullname ?? "Siswa"} menyelesaikan Tes Diagnostik 2 dengan nilai ${firstStudent?.score ?? classDetail.averageScore}`,
-        timeLabel: "5 menit lalu",
-      },
-      {
-        id: "activity-2",
-        text: `${secondStudent?.fullname ?? "Siswa"} bertanya di Forum Diskusi ${classDetail.classCode ?? classDetail.className}`,
-        timeLabel: "12 menit lalu",
-      },
-      {
-        id: "activity-3",
-        text: `${thirdStudent?.fullname ?? "Siswa"} bergabung ke kelas ${classDetail.className}`,
-        timeLabel: "1 jam lalu",
-      },
-      {
-        id: "activity-4",
-        text: `${fourthStudent?.fullname ?? "Siswa"} memerlukan video remedial di soal no. 4`,
-        timeLabel: "3 jam lalu",
-      },
-    ];
-  }, [
-    classDetail.averageScore,
-    classDetail.classCode,
-    classDetail.className,
-    classDetail.students,
-  ]);
-
   return (
     <section className="space-y-4">
       <article className="overflow-hidden rounded-2xl bg-linear-to-r from-[#1F2375] to-[#1F2375]/90 px-4 py-4 text-white shadow-[0_16px_32px_rgba(31,35,117,0.1)] md:px-5 md:py-5">
@@ -3470,25 +3428,210 @@ export function TeacherOverviewSection({
         </article>
       </div>
 
-      <article className="rounded-2xl border border-[#E5E7EB] bg-white p-4 md:p-5">
-        <h3 className="text-sm font-semibold text-[#111827]">
-          Aktivitas Terkini
-        </h3>
-        <div className="mt-3 space-y-2.5">
-          {recentActivities.map((activity) => (
-            <div key={activity.id} className="flex items-start gap-2.5">
-              <span className="mt-1 inline-flex h-4 w-4 shrink-0 rounded-full border border-[#D1D5DB] bg-[#F3F4F6]" />
-              <div>
-                <p className="text-sm text-[#334155]">{activity.text}</p>
-                <p className="mt-0.5 text-xs text-[#9CA3AF]">
-                  {activity.timeLabel}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </article>
+      <CompactLogSection courseId={classDetail.id ?? classDetail.slug} />
     </section>
+  );
+}
+
+function CompactLogSection({ courseId }: { courseId: string }) {
+  const [page, setPage] = useState(1);
+  const limit = 5;
+  const { data, isLoading } = useActivityLogs(courseId, undefined, page, limit);
+
+  const exportMutation = useExportActivityLogs();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = useCallback(
+    async (format: "excel" | "csv") => {
+      setIsExporting(true);
+      try {
+        const { base64, contentType, filename } =
+          await exportMutation.mutateAsync({
+            courseId,
+            format,
+          });
+
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        showToast.success(
+          `Log aktivitas berhasil diunduh (${format.toUpperCase()})`,
+        );
+      } catch {
+        showToast.error("Gagal mengunduh log aktivitas.");
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [courseId, exportMutation],
+  );
+
+  function getActivityIcon(action: string) {
+    const act = action.toLowerCase();
+    if (act.includes("video"))
+      return <VideoIcon className="h-4 w-4 text-[#64748B]" />;
+    if (
+      act.includes("diagnostik") ||
+      act.includes("remedial") ||
+      act.includes("test")
+    )
+      return <ClipboardIcon className="h-4 w-4 text-[#D97706]" />;
+    if (act.includes("forum") || act.includes("diskusi"))
+      return <AlertIcon className="h-4 w-4 text-[#4B5563]" />;
+    return <NotebookIcon className="h-4 w-4 text-[#4B5563]" />;
+  }
+
+  return (
+    <article className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+        <h2 className="text-sm font-semibold text-[#111827]">
+          Aktivitas Terkini
+        </h2>
+        <button
+          onClick={() => handleExport("csv")}
+          disabled={isExporting}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-blue-400/30 bg-blue-500/15 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isExporting ? (
+            <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-200 border-t-transparent" />
+          ) : (
+            <DownloadIcon className="h-3.5 w-3.5" />
+          )}
+          {isExporting ? "Mengunduh..." : "Ekspor CSV"}
+        </button>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-[#E5E7EB]">
+        <table className="w-full border-collapse text-sm">
+          <thead className="bg-[#F8FAFC]">
+            <tr>
+              <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Waktu
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Siswa
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Aksi
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-[#64748B]">
+                Materi
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#E5E7EB] bg-white">
+            {isLoading ? (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-4 py-6 text-center text-sm text-[#64748B]"
+                >
+                  Memuat aktivitas...
+                </td>
+              </tr>
+            ) : !data || data.logs.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-4 py-6 text-center text-sm text-[#64748B]"
+                >
+                  Belum ada aktivitas.
+                </td>
+              </tr>
+            ) : (
+              data.logs.map((log) => (
+                <tr
+                  key={log.id}
+                  className="hover:bg-[#F8FAFC]/50 transition-colors"
+                >
+                  <td className="px-4 py-2.5 whitespace-nowrap text-xs text-[#64748B]">
+                    {new Date(log.createdAt).toLocaleString("id-ID", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white border border-[#E5E7EB]">
+                        {getActivityIcon(log.action)}
+                      </span>
+                      <div>
+                        <p className="text-xs font-semibold text-[#1E293B]">
+                          {log.studentName || log.studentId}
+                        </p>
+                        {log.nis && (
+                          <p className="text-[11px] text-[#94A3B8]">
+                            NIS: {log.nis}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-xs font-medium text-[#1F2375]">
+                    {log.action}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-[#64748B]">
+                    {log.moduleName || "-"}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {data && data.pagination && data.pagination.totalPages > 1 && (
+        <div className="mt-4 flex justify-center">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="rounded-lg p-1 text-[#64748B] hover:bg-[#F1F5F9] disabled:opacity-50 disabled:hover:bg-transparent"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                <path
+                  fillRule="evenodd"
+                  d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            <span className="text-xs font-medium text-[#64748B] px-2">
+              {page} / {data.pagination.totalPages}
+            </span>
+            <button
+              onClick={() =>
+                setPage((p) => Math.min(data.pagination.totalPages, p + 1))
+              }
+              disabled={page === data.pagination.totalPages}
+              className="rounded-lg p-1 text-[#64748B] hover:bg-[#F1F5F9] disabled:opacity-50 disabled:hover:bg-transparent"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+    </article>
   );
 }
 

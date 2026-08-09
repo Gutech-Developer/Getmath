@@ -6,8 +6,7 @@ export type ClassAnalyticsViewType =
   | "Nilai Test"
   | "Laporan"
   | "Forum"
-  | "Info Kelas"
-  | "Log";
+  | "Info Kelas";
 
 export type LearningAnalyticsStudentStatus = "Lulus" | "Remedial";
 
