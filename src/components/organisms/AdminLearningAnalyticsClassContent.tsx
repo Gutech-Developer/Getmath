@@ -8,7 +8,6 @@ import {
   BaseLaporanSection,
   BaseMateriSection,
   BaseSiswaSection,
-  BaseLogSection,
   LearningAnalyticsClassHeaderCard,
   LearningAnalyticsViewSwitcher,
   TeacherOverviewSection,
@@ -174,7 +173,6 @@ export default function AdminLearningAnalyticsClassContent({
         "Laporan",
         "Forum",
         "Info Kelas",
-        "Log",
       ].includes(viewQuery)
     ) {
       setActiveViewType(viewQuery as ClassAnalyticsViewType);
@@ -308,7 +306,6 @@ export default function AdminLearningAnalyticsClassContent({
         materials={materials}
       />
     ),
-    Log: <BaseLogSection courseId={classDetail.id ?? classDetail.slug} />,
   };
 
   return (
