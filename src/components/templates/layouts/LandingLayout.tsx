@@ -2,8 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ReactNode } from "react";
+import { MouseEvent, ReactNode } from "react";
+import gsap from "gsap";
+import { ScrollToPlugin } from "gsap/ScrollToPlugin";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useI18n } from "@/providers/I18nProvider";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollToPlugin, ScrollTrigger);
+}
+
+// Height of the sticky header (h-16 = 64px) plus breathing room
+const HEADER_OFFSET = 72;
 
 interface LandingLayoutProps {
   children: ReactNode;
@@ -11,6 +21,37 @@ interface LandingLayoutProps {
 
 export default function LandingLayout({ children }: LandingLayoutProps) {
   const { locale, setLocale, t } = useI18n();
+
+  const handleAnchorClick = (
+    e: MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) => {
+    const id = href.startsWith("#") ? href.slice(1) : href;
+    const target = document.getElementById(id);
+    if (!target) return;
+
+    e.preventDefault();
+    gsap.killTweensOf(window);
+
+    // Smoothly scroll to the section, offset by the sticky header
+    gsap.to(window, {
+      duration: 1.1,
+      ease: "power3.inOut",
+      scrollTo: { y: target, offsetY: HEADER_OFFSET, autoKill: true },
+      onComplete: () => {
+        // Replay the section's load animation so it shows on every click
+        ScrollTrigger.getAll().forEach((st) => {
+          if (st.trigger && target.contains(st.trigger) && st.animation) {
+            st.animation.restart();
+          }
+        });
+        ScrollTrigger.refresh();
+      },
+    });
+
+    // Keep the URL hash in sync without triggering a native jump
+    window.history.replaceState(null, "", href);
+  };
 
   return (
     <div className="min-h-screen bg-lottie-pearl font-inter text-lottie-midnight antialiased selection:bg-lottie-mint-wash selection:text-lottie-midnight">
@@ -32,42 +73,49 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
           <nav className="hidden items-center gap-5 lg:gap-7 md:flex">
             <Link
               href="#tentang"
+              onClick={(e) => handleAnchorClick(e, "#tentang")}
               className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
             >
               {t("nav.about")}
             </Link>
             <Link
               href="#fitur"
+              onClick={(e) => handleAnchorClick(e, "#fitur")}
               className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
             >
               {t("nav.features")}
             </Link>
             <Link
               href="#ai-emotion"
+              onClick={(e) => handleAnchorClick(e, "#ai-emotion")}
               className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
             >
               {t("nav.aiTech")}
             </Link>
             <Link
               href="#tes-diagnostik"
+              onClick={(e) => handleAnchorClick(e, "#tes-diagnostik")}
               className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
             >
               {t("nav.diagnostic")}
             </Link>
             <Link
               href="#remedial"
+              onClick={(e) => handleAnchorClick(e, "#remedial")}
               className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
             >
               {t("nav.remedial")}
             </Link>
             <Link
               href="#peran"
+              onClick={(e) => handleAnchorClick(e, "#peran")}
               className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
             >
               {t("nav.roles")}
             </Link>
             <Link
               href="#cara-kerja"
+              onClick={(e) => handleAnchorClick(e, "#cara-kerja")}
               className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
             >
               {t("nav.howItWorks")}
@@ -92,7 +140,6 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 }`}
                 title="Bahasa Indonesia"
               >
-             
                 <span>ID</span>
               </button>
               <button
@@ -105,7 +152,6 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 }`}
                 title="English"
               >
-               
                 <span>EN</span>
               </button>
             </div>
@@ -163,6 +209,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <li>
                   <Link
                     href="#fitur"
+                    onClick={(e) => handleAnchorClick(e, "#fitur")}
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.productFeatures")}
@@ -171,6 +218,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <li>
                   <Link
                     href="#e-worksheet"
+                    onClick={(e) => handleAnchorClick(e, "#e-worksheet")}
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.productModules")}
@@ -179,6 +227,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <li>
                   <Link
                     href="#tes-diagnostik"
+                    onClick={(e) => handleAnchorClick(e, "#tes-diagnostik")}
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.productDiagnostic")}
@@ -187,6 +236,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <li>
                   <Link
                     href="#peran"
+                    onClick={(e) => handleAnchorClick(e, "#peran")}
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.productLAD")}
@@ -195,6 +245,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <li>
                   <Link
                     href="#ai-emotion"
+                    onClick={(e) => handleAnchorClick(e, "#ai-emotion")}
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.productAiChatbot")}
@@ -211,6 +262,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <li>
                   <Link
                     href="#peran"
+                    onClick={(e) => handleAnchorClick(e, "#peran")}
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.forStudents")}
@@ -219,6 +271,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <li>
                   <Link
                     href="#peran"
+                    onClick={(e) => handleAnchorClick(e, "#peran")}
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.forTeachers")}
@@ -227,6 +280,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <li>
                   <Link
                     href="#peran"
+                    onClick={(e) => handleAnchorClick(e, "#peran")}
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.forParents")}
@@ -259,6 +313,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                 <li>
                   <Link
                     href="#tentang"
+                    onClick={(e) => handleAnchorClick(e, "#tentang")}
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.aboutUs")}
