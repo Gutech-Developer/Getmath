@@ -72,6 +72,7 @@ export default function AdminClassListTemplate() {
         id: course.id,
         name: course.courseName,
         teacherName: course.teacher?.fullName ?? "Belum ditentukan",
+        schoolName: course.schoolName ?? "Tanpa Sekolah",
         createdAt: formatDate(course.createdAt),
         studentCount: course.enrolledCount ?? 0,
         testCount: course.diagnosticTestCount ?? 0,
@@ -128,10 +129,14 @@ export default function AdminClassListTemplate() {
                 { courseId: classId, teacherId: payload.teacherId },
                 {
                   onSuccess: () =>
-                    showToast.success("Perubahan kelas dan guru berhasil disimpan"),
+                    showToast.success(
+                      "Perubahan kelas dan guru berhasil disimpan",
+                    ),
                   onError: (error) =>
-                    showToast.error(error.message ?? "Gagal menugaskan kelas ke guru"),
-                }
+                    showToast.error(
+                      error.message ?? "Gagal menugaskan kelas ke guru",
+                    ),
+                },
               );
             } else {
               showToast.success("Perubahan kelas berhasil disimpan");
@@ -194,7 +199,7 @@ export default function AdminClassListTemplate() {
       const slug = course.slug || toSlug(course.courseName);
       const targetHref = isTeacherDashboard
         ? `/teacher/dashboard/class-list/${slug}`
-        : `/admin/dashboard/learning-analytics/${slug}`;
+        : `/admin/dashboard/class-list/${slug}`;
 
       router.push(targetHref);
     },

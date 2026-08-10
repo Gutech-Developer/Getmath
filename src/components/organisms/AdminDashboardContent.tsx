@@ -81,19 +81,57 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
             >
               <defs>
                 {chartLines.map((line) => (
-                  <linearGradient key={line.label} id={`color${line.label.replace(/\s/g, "")}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={line.color} stopOpacity={0.2} />
+                  <linearGradient
+                    key={line.label}
+                    id={`color${line.label.replace(/\s/g, "")}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={line.color}
+                      stopOpacity={0.2}
+                    />
                     <stop offset="95%" stopColor={line.color} stopOpacity={0} />
                   </linearGradient>
                 ))}
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 12 }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94A3B8", fontSize: 12 }} dx={-10} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#F1F5F9"
+              />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#94A3B8", fontSize: 12 }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#94A3B8", fontSize: 12 }}
+                dx={-10}
+              />
               <Tooltip
-                contentStyle={{ borderRadius: "16px", border: "1px solid rgba(31, 35, 117, 0.16)", backdropFilter: "blur(12px)", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05)", backgroundColor: "rgba(255, 255, 255, 0.9)", padding: "12px" }}
+                contentStyle={{
+                  borderRadius: "16px",
+                  border: "1px solid rgba(31, 35, 117, 0.16)",
+                  backdropFilter: "blur(12px)",
+                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05)",
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                  padding: "12px",
+                }}
                 itemStyle={{ color: "#334155", fontSize: "13px" }}
-                labelStyle={{ color: "#1E293B", fontWeight: "bold", fontSize: "14px", marginBottom: "4px" }}
+                labelStyle={{
+                  color: "#1E293B",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  marginBottom: "4px",
+                }}
               />
               {chartLines.map((line) => (
                 <Area
@@ -116,40 +154,50 @@ export const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
       <div className="getmath-card p-5 md:p-6 flex flex-col gap-4">
         <SectionHeader title="Aksi Cepat" />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Link href="/admin/dashboard/manage-users/student" className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200">
+          <Link
+            href="/admin/dashboard/manage-users/student"
+            className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200"
+          >
             <div className="bg-lottie-teal/10 text-lottie-teal p-2 rounded-lg">
               <UsersIcon className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold text-[#0F172A]">Kelola Pengguna</span>
-              <span className="text-xs text-[#64748B]">Tambah siswa/guru baru</span>
+              <span className="font-semibold text-[#0F172A]">
+                Kelola Pengguna
+              </span>
+              <span className="text-xs text-[#64748B]">
+                Tambah siswa/guru baru
+              </span>
             </div>
           </Link>
-          <Link href="/admin/dashboard/class-list" className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200">
+          <Link
+            href="/admin/dashboard/class-list"
+            className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200"
+          >
             <div className="bg-lottie-teal/10 text-lottie-teal p-2 rounded-lg">
               <BookIcon className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
               <span className="font-semibold text-[#0F172A]">Daftar Kelas</span>
-              <span className="text-xs text-[#64748B]">Manajemen kelas & guru</span>
+              <span className="text-xs text-[#64748B]">
+                Manajemen kelas & guru
+              </span>
             </div>
           </Link>
-          <Link href="/admin/dashboard/learning-analytics" className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200">
-            <div className="bg-lottie-teal/10 text-lottie-teal p-2 rounded-lg">
-              <ActivityIcon className="w-5 h-5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-[#0F172A]">Analitik Belajar</span>
-              <span className="text-xs text-[#64748B]">Pantau progres siswa</span>
-            </div>
-          </Link>
-          <Link href="/admin/dashboard/manage-diagnostics" className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200">
+          <Link
+            href="/admin/dashboard/manage-diagnostics"
+            className="flex items-center gap-3 p-4 rounded-xl border border-lottie-teal/10 hover:border-lottie-teal/30 hover:bg-lottie-teal/5 transition duration-200"
+          >
             <div className="bg-lottie-teal/10 text-lottie-teal p-2 rounded-lg">
               <TrendUpIcon className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold text-[#0F172A]">Evaluasi & Tes</span>
-              <span className="text-xs text-[#64748B]">Kelola tes diagnostik</span>
+              <span className="font-semibold text-[#0F172A]">
+                Evaluasi & Tes
+              </span>
+              <span className="text-xs text-[#64748B]">
+                Kelola tes diagnostik
+              </span>
             </div>
           </Link>
           {/* <Link href="/admin/dashboard/announcements" className="flex items-center gap-3 p-4 rounded-xl border border-grey-stroke hover:border-[#ec4899] hover:bg-pink-50 transition-colors">

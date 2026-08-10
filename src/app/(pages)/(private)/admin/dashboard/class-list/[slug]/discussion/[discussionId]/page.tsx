@@ -13,7 +13,7 @@ export default async function AdminDiscussionDetailPage({
     <ClassForumDetailPageTemplate
       slug={slug}
       discussionId={discussionId}
-      backHref={`/admin/dashboard/learning-analytics/${slug}?view=Forum`}
+      backHref={`/admin/dashboard/class-list/${slug}?view=Forum`}
     />
   );
 }

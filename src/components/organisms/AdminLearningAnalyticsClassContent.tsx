@@ -165,7 +165,7 @@ export default function AdminLearningAnalyticsClassContent({
     if (
       viewQuery &&
       [
-        "Beranda",  
+        "Beranda",
         "Siswa",
         "Materi",
         "Nilai E-LKPD",
@@ -229,7 +229,7 @@ export default function AdminLearningAnalyticsClassContent({
 
   const testCount = useMemo(() => {
     return materials.filter(
-      (m) => m.type.includes("Tes") || m.type.includes("Test")
+      (m) => m.type.includes("Tes") || m.type.includes("Test"),
     ).length;
   }, [materials]);
 
@@ -247,9 +247,9 @@ export default function AdminLearningAnalyticsClassContent({
   const studentDetailHrefBuilder =
     buildStudentDetailHref ??
     ((studentId: string, studentName: string) =>
-      `/admin/dashboard/learning-analytics/${classDetail.slug}/${studentId}?studentName=${encodeURIComponent(studentName)}`);
+      `/admin/dashboard/class-list/${classDetail.slug}/${studentId}?studentName=${encodeURIComponent(studentName)}`);
   const elkpdScoreHrefBuilder = (elkpdId: string) =>
-    `/admin/dashboard/learning-analytics/${classDetail.slug}/elkpd/${elkpdId}`;
+    `/admin/dashboard/class-list/${classDetail.slug}/elkpd/${elkpdId}`;
   const handleKickStudent = (studentId: string) => {
     kickStudent({ courseId: classDetail.id ?? classDetail.slug, studentId });
   };
@@ -287,7 +287,7 @@ export default function AdminLearningAnalyticsClassContent({
         courseSlug={classDetail.slug}
       />
     ),
-    
+
     Laporan: (
       <BaseLaporanSection
         reportSummaryCards={reportSummaryCards}
