@@ -85,27 +85,9 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
             >
               {t("nav.features")}
             </Link>
-            <Link
-              href="#ai-emotion"
-              onClick={(e) => handleAnchorClick(e, "#ai-emotion")}
-              className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
-            >
-              {t("nav.aiTech")}
-            </Link>
-            <Link
-              href="#tes-diagnostik"
-              onClick={(e) => handleAnchorClick(e, "#tes-diagnostik")}
-              className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
-            >
-              {t("nav.diagnostic")}
-            </Link>
-            <Link
-              href="#remedial"
-              onClick={(e) => handleAnchorClick(e, "#remedial")}
-              className="text-sm font-medium text-lottie-midnight hover:text-lottie-teal transition-colors"
-            >
-              {t("nav.remedial")}
-            </Link>
+            
+           
+         
             <Link
               href="#peran"
               onClick={(e) => handleAnchorClick(e, "#peran")}
@@ -120,6 +102,7 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
             >
               {t("nav.howItWorks")}
             </Link>
+           
           </nav>
 
           {/* Right Actions */}
@@ -249,6 +232,15 @@ export default function LandingLayout({ children }: LandingLayoutProps) {
                     className="hover:text-lottie-teal transition-colors"
                   >
                     {t("footer.productAiChatbot")}
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#akun-uji-coba"
+                    onClick={(e) => handleAnchorClick(e, "#akun-uji-coba")}
+                    className="hover:text-lottie-teal transition-colors"
+                  >
+                    {t("nav.demoAccounts")}
                   </Link>
                 </li>
               </ul>
