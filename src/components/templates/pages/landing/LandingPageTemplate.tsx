@@ -6,6 +6,7 @@ import RemedialVideoSection from "@/components/organisms/landing/RemedialVideoSe
 import EWorksheetSection from "@/components/organisms/landing/EWorksheetSection";
 import RolesSection from "@/components/organisms/landing/RolesSection";
 import HowItWorksSection from "@/components/organisms/landing/HowItWorksSection";
+import DemoAccountSection from "@/components/organisms/landing/DemoAccountSection";
 import CtaSection from "@/components/organisms/landing/CtaSection";
 import LandingLayout from "@/components/templates/layouts/LandingLayout";
 
@@ -20,6 +21,7 @@ export default function LandingPageTemplate() {
       <EWorksheetSection />
       <RolesSection />
       <HowItWorksSection />
+      <DemoAccountSection />
       <CtaSection />
     </LandingLayout>
   );
