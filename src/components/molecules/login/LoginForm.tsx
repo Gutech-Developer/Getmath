@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { BodySmallMedium } from "@/components/atoms/Typography";
 import { SubmitButton } from "@/components/atoms/buttons/SubmitButton";
@@ -47,9 +48,23 @@ const registerOptions: Array<{
   ];
 
 const LoginFormContent: React.FC = () => {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isDemoPreload, setIsDemoPreload] = useState(false);
+
+  useEffect(() => {
+    const emailParam = searchParams.get("email");
+    const passwordParam = searchParams.get("password");
+    if (emailParam) {
+      setEmail(emailParam);
+      setIsDemoPreload(true);
+    }
+    if (passwordParam) {
+      setPassword(passwordParam);
+    }
+  }, [searchParams]);
 
   const login = useGsLogin();
   const googleLogin = useGsGoogleLogin();
@@ -106,6 +121,28 @@ const LoginFormContent: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full">
+      {isDemoPreload && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-indigo-200 bg-indigo-50/90 p-3 text-xs text-indigo-950 shadow-sm animate-fade-in">
+          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#1F2375] text-[10px] font-bold text-white">
+            ✓
+          </span>
+          <div className="flex-1">
+            <p className="font-bold text-[#1F2375]">Akun Uji Coba Dimuat</p>
+            <p className="text-slate-600 mt-0.5 leading-relaxed">
+              Kredensial akun uji coba telah diisi otomatis. Silakan klik tombol <strong>Masuk ke GetMath</strong> di bawah untuk langsung mencoba.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsDemoPreload(false)}
+            className="text-slate-400 hover:text-slate-600 p-0.5 transition cursor-pointer"
+            title="Tutup pemberitahuan"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => startGoogleLogin()}
@@ -274,7 +311,15 @@ interface LoginFormProps {
 const LoginForm: React.FC<LoginFormProps> = ({ clientId }) => {
   return (
     <GoogleOAuthProvider clientId={clientId}>
-      <LoginFormContent />
+      <Suspense
+        fallback={
+          <div className="py-8 text-center text-sm text-lottie-zinc-500">
+            Memuat formulir masuk...
+          </div>
+        }
+      >
+        <LoginFormContent />
+      </Suspense>
     </GoogleOAuthProvider>
   );
 };

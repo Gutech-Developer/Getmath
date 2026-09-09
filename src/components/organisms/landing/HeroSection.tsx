@@ -303,6 +303,16 @@ export default function HeroSection() {
                 />
               </svg>
             </Link>
+            <Link
+              href="#akun-uji-coba"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#1F2375]/20 bg-white/80 px-5 text-sm font-bold text-[#1F2375] backdrop-blur-sm transition-all hover:bg-white hover:border-[#1F2375]/40 hover:shadow-sm active:scale-[0.98]"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>{t("nav.demoAccounts")}</span>
+            </Link>
           </div>
         </div>
 
