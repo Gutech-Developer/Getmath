@@ -12,6 +12,7 @@ const explicitTopbarTitleMap: Record<string, string> = {
   "/admin/dashboard/manage-diagnostics/create": "Buat Tes Diagnostik",
   "/admin/dashboard/manage-remedial": "Kelola Tes Remedial",
   "/admin/dashboard/manage-remedial/create": "Buat Tes Remedial",
+  "/admin/dashboard/manage-tka": "Kelola TKA",
   "/admin/dashboard/notifikasi": "Notifikasi",
   "/admin/dashboard/profil": "Profil Admin",
   "/parent/dashboard": "Dashboard Orang Tua",
@@ -20,6 +21,7 @@ const explicitTopbarTitleMap: Record<string, string> = {
   "/parent/dashboard/profil": "Profil Orang Tua",
   "/profile": "Profil",
   "/student/dashboard": "Dashboard Siswa",
+  "/student/dashboard/tka": "TKA",
   "/student/dashboard/lad": "LAD Siswa",
   "/student/dashboard/notifikasi": "Notifikasi",
   "/student/dashboard/profil": "Profil Siswa",
@@ -28,6 +30,7 @@ const explicitTopbarTitleMap: Record<string, string> = {
   "/teacher/dashboard/manage-diagnostics/create": "Buat Tes Diagnostik",
   "/teacher/dashboard/manage-remedial": "Kelola Tes Remedial",
   "/teacher/dashboard/manage-remedial/create": "Buat Tes Remedial",
+  "/teacher/dashboard/manage-tka": "Kelola TKA",
   "/teacher/dashboard/manage-material": "Manage Material",
   "/teacher/dashboard/lad": "Teacher LAD",
   "/teacher/dashboard/notifikasi": "Notifikasi",
@@ -108,6 +111,38 @@ export function resolveTopbarTitle({
   const explicitTitle = explicitTopbarTitleMap[normalizedPathname];
   if (explicitTitle) {
     return explicitTitle;
+  }
+
+  if (/^\/(?:teacher|admin)\/dashboard\/manage-tka\/create$/i.test(normalizedPathname)) {
+    return "Buat TKA";
+  }
+  if (
+    /^\/(?:teacher|admin)\/dashboard\/manage-tka\/[^/]+\/analytics\/[^/]+$/i.test(
+      normalizedPathname,
+    )
+  ) {
+    return "Detail Hasil TKA";
+  }
+  if (
+    /^\/(?:teacher|admin)\/dashboard\/manage-tka\/[^/]+\/analytics$/i.test(
+      normalizedPathname,
+    )
+  ) {
+    return "Analitik TKA";
+  }
+  if (
+    /^\/(?:teacher|admin)\/dashboard\/manage-tka\/[^/]+\/edit$/i.test(
+      normalizedPathname,
+    )
+  ) {
+    return "Edit TKA";
+  }
+  if (
+    /^\/(?:teacher|admin)\/dashboard\/manage-tka\/[^/]+$/i.test(
+      normalizedPathname,
+    )
+  ) {
+    return "Detail TKA";
   }
 
   // Dynamic Remedial/Diagnostic paths

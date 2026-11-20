@@ -19,13 +19,32 @@ export interface GsApiResponse<T = unknown> {
  * tipe ini. Client wrapper (gsAction.ts) yang kemudian throw Error sendiri
  * dari sisi client, sehingga pesan asli backend tetap terbaca.
  */
+export interface GsApiFieldError {
+  field: string;
+  message: string;
+}
+
+export type GsApiErrors =
+  | GsApiFieldError[]
+  | Record<string, string[]>;
+
+export function getGsFieldErrors(
+  errors: GsApiErrors | undefined,
+): GsApiFieldError[] {
+  if (!errors) return [];
+  if (Array.isArray(errors)) return errors;
+  return Object.entries(errors).flatMap(([field, messages]) =>
+    messages.map((message) => ({ field, message })),
+  );
+}
+
 export type GsFetchResult<T> =
   | { ok: true; data: T }
   | {
       ok: false;
       message: string;
       status: number;
-      errors?: Record<string, string[]>;
+      errors?: GsApiErrors;
     };
 
 export interface GsTokenPairInternal {
@@ -38,7 +57,7 @@ export class GsApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
-    public readonly errors?: Record<string, string[]>,
+    public readonly errors?: GsApiErrors,
   ) {
     super(message);
     this.name = "GsApiError";
@@ -55,5 +74,8 @@ export class GsApiError extends Error {
   }
   get isValidationError() {
     return this.status === 422;
+  }
+  get isBadRequest() {
+    return this.status === 400;
   }
 }

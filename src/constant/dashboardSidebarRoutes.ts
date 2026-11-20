@@ -1,4 +1,5 @@
 import ActivityIcon from "@/components/atoms/icons/ActivityIcon";
+import ClipboardIcon from "@/components/atoms/icons/ClipboardIcon";
 import DashboardIcon from "@/components/atoms/icons/DashboardIcon";
 import DocumentIcon from "@/components/atoms/icons/DocumentIcon";
 import NotebookIcon from "@/components/atoms/icons/NotebookIcon";
@@ -12,9 +13,11 @@ export type DashboardSidebarRouteKey =
   | "dashboard"
   | "lad"
   | "profil"
+  | "tka"
   | "manage-material"
   | "manage-diagnostics"
   | "manage-remedial"
+  | "manage-tka"
   | "notifications"
   | "profile"
   | "learning analytics"
@@ -51,6 +54,12 @@ const studentDashboardSidebarRoutes: IDashboardSidebarRouteItem[] = [
     label: "Dashboard",
     href: "/student/dashboard",
     icon: DashboardIcon,
+  },
+  {
+    key: "tka",
+    label: "TKA",
+    href: "/student/dashboard/tka",
+    icon: ClipboardIcon,
   },
   {
     key: "notifications",
@@ -90,6 +99,12 @@ const teacherDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
     label: "Kelola Remedial",
     href: "/teacher/dashboard/manage-remedial",
     icon: DocumentIcon,
+  },
+  {
+    key: "manage-tka",
+    label: "Kelola TKA",
+    href: "/teacher/dashboard/manage-tka",
+    icon: ClipboardIcon,
   },
   {
     key: "class list",
@@ -165,6 +180,12 @@ const adminDashboardSidebarInitRoutes: IDashboardSidebarRouteItem[] = [
     label: "Kelola Remedial",
     href: "/admin/dashboard/manage-remedial",
     icon: DocumentIcon,
+  },
+  {
+    key: "manage-tka",
+    label: "Kelola TKA",
+    href: "/admin/dashboard/manage-tka",
+    icon: ClipboardIcon,
   },
 ];
 
@@ -252,6 +273,10 @@ export function resolveDashboardSidebarRouteKey(
       return "manage-remedial";
     }
 
+    if (normalizedPathname.includes("/dashboard/manage-tka")) {
+      return "manage-tka";
+    }
+
     if (normalizedPathname.includes("/dashboard/manage-users")) {
       return "manage-users";
     }
@@ -283,6 +308,10 @@ export function resolveDashboardSidebarRouteKey(
       return "manage-remedial";
     }
 
+    if (normalizedPathname.includes("/dashboard/manage-tka")) {
+      return "manage-tka";
+    }
+
     if (normalizedPathname.includes("/dashboard/notifikasi")) {
       return "notifications";
     }
@@ -292,6 +321,10 @@ export function resolveDashboardSidebarRouteKey(
     }
 
     return "dashboard";
+  }
+
+  if (normalizedPathname.includes("/dashboard/tka")) {
+    return "tka";
   }
 
   if (normalizedPathname.includes("/dashboard/notifikasi")) {

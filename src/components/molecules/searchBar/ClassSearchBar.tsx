@@ -9,6 +9,7 @@ interface ClassSearchBarProps {
   onChange: (value: string) => void;
   onJoinClass?: () => void;
   placeholder?: string;
+  joinLabel?: string;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ export const ClassSearchBar: React.FC<ClassSearchBarProps> = ({
   onChange,
   onJoinClass,
   placeholder = "Cari nama kelas atau guru...",
+  joinLabel = "Gabung Kelas",
   className,
 }) => {
   return (
@@ -37,7 +39,7 @@ export const ClassSearchBar: React.FC<ClassSearchBarProps> = ({
           className="flex items-center gap-2 px-5 py-3 bg-[#1F2375] text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors duration-200 whitespace-nowrap shrink-0"
         >
           <PlusIcon className="w-4 h-4" />
-          Gabung Kelas
+          {joinLabel}
         </button>
       )}
     </div>

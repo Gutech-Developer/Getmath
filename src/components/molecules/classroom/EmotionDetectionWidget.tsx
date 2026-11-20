@@ -2,25 +2,35 @@
 
 import { useState } from "react";
 import type { RefObject } from "react";
+import { cn } from "@/libs/utils";
 
 interface EmotionDetectionWidgetProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   emotionLabel?: string;
   isLive?: boolean;
+  keepMounted?: boolean;
+  embedded?: boolean;
 }
 
 export default function EmotionDetectionWidget({
   videoRef,
   emotionLabel = "Fokus",
   isLive = true,
+  keepMounted = false,
+  embedded = false,
 }: EmotionDetectionWidgetProps) {
   const [visible, setVisible] = useState(true);
 
-  if (!visible) return null;
+  if (!visible && !keepMounted) return null;
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-40 w-[220px] overflow-hidden rounded-2xl border border-[#1E3A5F] bg-[#0B1929] text-white shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+      className={cn(
+        embedded
+          ? "w-full overflow-hidden rounded-2xl border border-[#1E3A5F] bg-[#0B1929] text-white shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+          : "fixed bottom-6 right-6 z-40 w-[220px] overflow-hidden rounded-2xl border border-[#1E3A5F] bg-[#0B1929] text-white shadow-[0_12px_40px_rgba(0,0,0,0.45)]",
+        !visible && "hidden",
+      )}
       role="complementary"
       aria-label="Deteksi emosi langsung"
     >

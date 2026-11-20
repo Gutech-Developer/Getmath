@@ -25,6 +25,7 @@ import {
   gsPublicGet as _gsPublicGet,
   gsPublicPost as _gsPublicPost,
   gsRequest as _gsRequest,
+  gsTkaRequest as _gsTkaRequest,
   gsPublicRequest as _gsPublicRequest,
   gsUploadFile as _gsUploadFile,
   gsDeleteFile as _gsDeleteFile,
@@ -72,6 +73,24 @@ export async function gsRequest<T>(
   config?: GsRequestConfig,
 ): Promise<T> {
   return unwrap(await _gsRequest<T>(path, config));
+}
+
+export async function gsTkaRequest<T>(
+  path: string,
+  config: GsRequestConfig,
+): Promise<T> {
+  const userAgent =
+    typeof navigator !== "undefined" ? navigator.userAgent : undefined;
+
+  return unwrap(
+    await _gsTkaRequest<T>(path, {
+      ...config,
+      headers: {
+        ...(config.headers ?? {}),
+        ...(userAgent ? { "User-Agent": userAgent } : {}),
+      },
+    }),
+  );
 }
 
 export async function gsUploadFile(formData: FormData): Promise<{ url: string }> {

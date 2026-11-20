@@ -88,3 +88,75 @@ export function formatBirthDate(dateStr?: string | null): string {
     return dateStr;
   }
 }
+
+export function latexTextToTiptapHtml(text: string): string {
+  if (!text) return "";
+
+  if (
+    text.includes('data-type="inline-math"') ||
+    text.includes('data-type="block-math"')
+  ) {
+    return text;
+  }
+
+  let parsedText = text.replace(
+    /\$\$((?:[^$]|\$[^\n$])+)\$\$/g,
+    (_, latex) => {
+      const cleanLatex = latex.replace(/"/g, "&quot;");
+      return `<div data-type="block-math" data-latex="${cleanLatex}"></div>`;
+    },
+  );
+
+  parsedText = parsedText.replace(/\$([^$\n]+)\$/g, (_, latex) => {
+    const cleanLatex = latex.replace(/"/g, "&quot;");
+    return `<span data-type="inline-math" data-latex="${cleanLatex}"></span>`;
+  });
+
+  const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(text);
+  if (!hasHtmlTags) {
+    parsedText = parsedText
+      .split("\n")
+      .map((line) => `<p>${line || "<br>"}</p>`)
+      .join("");
+  }
+
+  return parsedText;
+}
+
+export function tiptapHtmlToLatexHtml(html: string): string {
+  if (!html) return "";
+  if (typeof window === "undefined") {
+    return html.replace(/<[^>]*>/g, "").trim();
+  }
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  function processNode(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as Element;
+      const dataType = element.getAttribute("data-type");
+      if (dataType === "inline-math") {
+        const latex = element.getAttribute("data-latex") ?? "";
+        return latex ? `$${latex}$` : "";
+      }
+      if (dataType === "block-math") {
+        const latex = element.getAttribute("data-latex") ?? "";
+        return latex ? `$$${latex}$$` : "";
+      }
+
+      const tag = element.tagName.toLowerCase();
+      const inner = Array.from(element.childNodes).map(processNode).join("");
+      const attributes = Array.from(element.attributes)
+        .map((attribute) => `${attribute.name}="${attribute.value}"`)
+        .join(" ");
+      return `<${tag}${attributes ? " " + attributes : ""}>${inner}</${tag}>`;
+    }
+    return "";
+  }
+
+  return Array.from(doc.body.childNodes)
+    .map(processNode)
+    .join("")
+    .replace(/\n+$/, "");
+}

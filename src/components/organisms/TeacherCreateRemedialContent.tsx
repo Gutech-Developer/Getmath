@@ -4,7 +4,11 @@ import dynamic from "next/dynamic";
 import ChevronLeftIcon from "@/components/atoms/icons/ChevronLeftIcon";
 import PlusIcon from "@/components/atoms/icons/PlusIcon";
 import TrashIcon from "@/components/atoms/icons/TrashIcon";
-import { cn } from "@/libs/utils";
+import {
+  cn,
+  latexTextToTiptapHtml,
+  tiptapHtmlToLatexHtml,
+} from "@/libs/utils";
 import { showToast } from "@/libs/toast";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -12,8 +16,7 @@ import {
   useGsCreateRemedialTest,
   useGsUpdateRemedialTest,
   useGsRemedialTestById,
-  useGsUploadFile,
-  useGsDeleteFile,
+  useRichTextUpload,
   useGsAssignRemedialTestToTeacher,
 } from "@/services";
 import SearchableInput from "@/components/atoms/SearchableInput";
@@ -77,69 +80,6 @@ function createEmptyQuestion(): IRemedialQuestionDraft {
       C: createEmptyVariant("C"),
     },
   };
-}
-
-function latexTextToTiptapHtml(text: string): string {
-  if (!text) return "";
-  
-  if (text.includes('data-type="inline-math"') || text.includes('data-type="block-math"')) {
-    return text;
-  }
-
-  // 1. Convert block math $$...$$ to <div data-type="block-math" data-latex="..."></div>
-  let parsedText = text.replace(/\$\$((?:[^$]|\$[^\n$])+)\$\$/g, (_, latex) => {
-    const cleanLatex = latex.replace(/"/g, "&quot;");
-    return `<div data-type="block-math" data-latex="${cleanLatex}"></div>`;
-  });
-  
-  // 2. Convert inline math $...$ to <span data-type="inline-math" data-latex="..."></span>
-  parsedText = parsedText.replace(/\$([^$\n]+)\$/g, (_, latex) => {
-    const cleanLatex = latex.replace(/"/g, "&quot;");
-    return `<span data-type="inline-math" data-latex="${cleanLatex}"></span>`;
-  });
-
-  // 3. Wrap plain text blocks in <p> tags if no HTML wrapper tags exist
-  const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(text);
-  if (!hasHtmlTags) {
-    parsedText = parsedText
-      .split("\n")
-      .map((line) => `<p>${line || "<br>"}</p>`)
-      .join("");
-  }
-  
-  return parsedText;
-}
-
-function tiptapHtmlToLatexHtml(html: string): string {
-  if (!html) return "";
-  if (typeof window === "undefined") return html.replace(/<[^>]*>/g, "").trim();
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  function processNode(node: Node): string {
-    if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as Element;
-      const dt = el.getAttribute("data-type");
-      if (dt === "inline-math") {
-        const l = el.getAttribute("data-latex") ?? "";
-        return l ? `$${l}$` : "";
-      }
-      if (dt === "block-math") {
-        const l = el.getAttribute("data-latex") ?? "";
-        return l ? `$$${l}$$` : "";
-      }
-      const tag = el.tagName.toLowerCase();
-      const inner = Array.from(el.childNodes).map(processNode).join("");
-      const attributes = Array.from(el.attributes)
-        .map((attr) => `${attr.name}="${attr.value}"`)
-        .join(" ");
-      return `<${tag}${attributes ? " " + attributes : ""}>${inner}</${tag}>`;
-    }
-    return "";
-  }
-  return Array.from(doc.body.childNodes)
-    .map(processNode)
-    .join("")
-    .replace(/\n+$/, "");
 }
 
 function getYouTubeEmbedUrl(url: string): string | null {
@@ -236,8 +176,12 @@ export default function TeacherCreateRemedialContent({
     useGsRemedialTestById(editId ?? "");
   const createMutation = useGsCreateRemedialTest();
   const updateMutation = useGsUpdateRemedialTest();
-  const uploadMutation = useGsUploadFile();
-  const deleteMutation = useGsDeleteFile();
+  const {
+    onImageUpload,
+    onImageDelete,
+    deleteImage,
+    isUploadingImage,
+  } = useRichTextUpload();
   const assignRemedialTestMutation = useGsAssignRemedialTestToTeacher();
 
   const [testTitle, setTestTitle] = useState("");
@@ -353,7 +297,7 @@ export default function TeacherCreateRemedialContent({
 
       urlsToDelete.forEach(async (url) => {
         try {
-          await deleteMutation.mutateAsync(url);
+          await deleteImage(url);
         } catch (e) { }
       });
     }
@@ -747,20 +691,9 @@ export default function TeacherCreateRemedialContent({
                           }))
                         }
                         placeholder="Masukkan teks soal…"
-                        isUploadingImage={uploadMutation.isPending}
-                        onImageUpload={async (file) => {
-                          const formData = new FormData();
-                          formData.append("file", file);
-                          const res =
-                            await uploadMutation.mutateAsync(formData);
-                          showToast.success("Gambar berhasil diunggah");
-                          return res.url;
-                        }}
-                        onImageDelete={async (url) => {
-                          try {
-                            await deleteMutation.mutateAsync(url);
-                          } catch { }
-                        }}
+                        isUploadingImage={isUploadingImage}
+                        onImageUpload={onImageUpload}
+                        onImageDelete={onImageDelete}
                       />
                     </div>
 
@@ -815,24 +748,9 @@ export default function TeacherCreateRemedialContent({
                                     }))
                                   }
                                   placeholder={`Jawaban ${key}…`}
-                                  isUploadingImage={uploadMutation.isPending}
-                                  onImageUpload={async (file) => {
-                                    const formData = new FormData();
-                                    formData.append("file", file);
-                                    const res =
-                                      await uploadMutation.mutateAsync(
-                                        formData,
-                                      );
-                                    showToast.success(
-                                      "Gambar berhasil diunggah",
-                                    );
-                                    return res.url;
-                                  }}
-                                  onImageDelete={async (url) => {
-                                    try {
-                                      await deleteMutation.mutateAsync(url);
-                                    } catch { }
-                                  }}
+                                  isUploadingImage={isUploadingImage}
+                                  onImageUpload={onImageUpload}
+                                  onImageDelete={onImageDelete}
                                 />
                               </div>
                             </div>
@@ -854,20 +772,9 @@ export default function TeacherCreateRemedialContent({
                                   }))
                                 }
                                 placeholder="Tuliskan pembahasan…"
-                                isUploadingImage={uploadMutation.isPending}
-                                onImageUpload={async (file) => {
-                                  const formData = new FormData();
-                                  formData.append("file", file);
-                                  const res =
-                                    await uploadMutation.mutateAsync(formData);
-                                  showToast.success("Gambar berhasil diunggah");
-                                  return res.url;
-                                }}
-                                onImageDelete={async (url) => {
-                                  try {
-                                    await deleteMutation.mutateAsync(url);
-                                  } catch { }
-                                }}
+                                isUploadingImage={isUploadingImage}
+                                onImageUpload={onImageUpload}
+                                onImageDelete={onImageDelete}
                               />
                             </div>
 
