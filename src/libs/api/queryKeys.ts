@@ -15,6 +15,12 @@
  * ```
  */
 
+import type {
+  ListStudentTKAsQuery,
+  ListTKATestsQuery,
+  TKAAnalyticsQuery,
+} from "@/types/tka";
+
 export const queryKeys = {
   // Auth
   auth: {
@@ -164,6 +170,28 @@ export const queryKeys = {
     details: () => [...queryKeys.gsRemedialTests.all, "detail"] as const,
     detail: (id: string) =>
       [...queryKeys.gsRemedialTests.details(), id] as const,
+  },
+
+  // TKA
+  gsTka: {
+    all: ["gs", "tka"] as const,
+    lists: () => [...queryKeys.gsTka.all, "list"] as const,
+    list: (params?: ListTKATestsQuery) =>
+      [...queryKeys.gsTka.lists(), params ?? {}] as const,
+    details: () => [...queryKeys.gsTka.all, "detail"] as const,
+    detail: (testId: string) =>
+      [...queryKeys.gsTka.details(), testId] as const,
+    analyticsRoot: (testId: string) =>
+      [...queryKeys.gsTka.all, "analytics", testId] as const,
+    analytics: (testId: string, params?: TKAAnalyticsQuery) =>
+      [...queryKeys.gsTka.analyticsRoot(testId), params ?? {}] as const,
+    attemptDetail: (testId: string, attemptId: string) =>
+      [...queryKeys.gsTka.analyticsRoot(testId), "attempt", attemptId] as const,
+    studentLists: () => [...queryKeys.gsTka.all, "student", "list"] as const,
+    studentList: (params?: ListStudentTKAsQuery) =>
+      [...queryKeys.gsTka.studentLists(), params ?? {}] as const,
+    studentResult: (testId: string) =>
+      [...queryKeys.gsTka.all, "student", "result", testId] as const,
   },
 
   // Subjects

@@ -18,7 +18,7 @@
  * 5. Jika refresh gagal → hapus semua token (session habis)
  */
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { gsLogger } from "@/utils/logger";
 
@@ -65,6 +65,7 @@ const COOKIE_TTL = {
 export type { GsApiResponse, GsFetchResult } from "./getsmart.types";
 import {
   GsApiError as GsApiErrorClass,
+  type GsApiErrors,
   type GsApiResponse,
   type GsFetchResult,
 } from "./getsmart.types";
@@ -421,7 +422,7 @@ async function coreFetch<T>(
 
     if (!retryRes.ok) {
       let message = `Request failed with status ${retryRes.status}`;
-      let errors: Record<string, string[]> | undefined;
+      let errors: GsApiErrors | undefined;
       try {
         const errJson = await retryRes.json();
         if (errJson?.message) message = errJson.message;
@@ -445,7 +446,7 @@ async function coreFetch<T>(
   // ── Error Handling ────────────────────────────────────────────────────────
   if (!res.ok) {
     let message = `Request failed with status ${res.status}`;
-    let errors: Record<string, string[]> | undefined;
+    let errors: GsApiErrors | undefined;
 
     try {
       const errJson = await res.json();
@@ -494,6 +495,22 @@ export async function gsRequest<T>(
 }
 
 // ─── Convenience Methods ──────────────────────────────────────────────────────
+
+export async function gsTkaRequest<T>(
+  path: string,
+  config: GsRequestConfig = {},
+): Promise<GsFetchResult<T>> {
+  const requestHeaders = await headers();
+  const userAgent = requestHeaders.get("user-agent") ?? undefined;
+
+  return gsRequest<T>(path, {
+    ...config,
+    headers: {
+      ...(config.headers ?? {}),
+      ...(userAgent ? { "User-Agent": userAgent } : {}),
+    },
+  });
+}
 
 /** GET terproteksi */
 export async function gsGet<T>(

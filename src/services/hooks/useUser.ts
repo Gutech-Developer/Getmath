@@ -10,11 +10,15 @@ import {
   UpdateUserInput,
 } from "@/types/user";
 
-export function useSearchUser(params?: GsPaginationParams & { search?: string; role?: string }) {
+export function useSearchUser(
+  params?: GsPaginationParams & { search?: string; role?: string },
+  options?: { enabled?: boolean },
+) {
   return useQuery<GsPaginatedUser, Error>({
     queryKey: queryKeys.userMangement.list(params as Record<string, unknown>),
     queryFn: () => gsGet<GsPaginatedUser>(`/users${buildQuery(params)}`),
     staleTime: 2 * 60 * 1000,
+    enabled: options?.enabled ?? true,
   });
 }
 

@@ -23,6 +23,9 @@ export interface GsPaginationParams {
   limit?: number;
   search?: string;
   role?: string;
+  schoolId?: string;
+  teacherId?: string;
+  status?: string;
 }
 
 // ── Shared nested types ───────────────────────────────────────────────────────

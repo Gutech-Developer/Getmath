@@ -10,6 +10,7 @@ export {
   gsPut,
   gsPatch,
   gsDel,
+  gsTkaRequest,
   gsPublicGet,
   gsPublicPost,
 } from "./gsAction";
@@ -25,8 +26,13 @@ export {
   type GsFetchResult,
 } from "./getsmart";
 
-// Error class — exported from non-"use server" file
-export { GsApiError } from "./getsmart.types";
+// Error class & field errors — exported from non-"use server" file
+export {
+  GsApiError,
+  getGsFieldErrors,
+  type GsApiErrors,
+  type GsApiFieldError,
+} from "./getsmart.types";
 
 // Query Keys
 export { queryKeys } from "./queryKeys";

@@ -30,3 +30,4 @@ export * from "./gs-health";
 export * from "./gs-notification";
 export * from "./gs-forum";
 export * from "./gs-remedial";
+export * from "./tka";

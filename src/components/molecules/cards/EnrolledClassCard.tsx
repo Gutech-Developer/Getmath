@@ -14,6 +14,7 @@ type ProgressVariant = "primary" | "success" | "warning" | "info";
 
 interface ClassCardProps {
   slug: string;
+  href?: string;
   title: string;
   teacher: string;
   institution: string;
@@ -31,6 +32,7 @@ interface ClassCardProps {
 
 export const EnrolledClassCard: React.FC<ClassCardProps> = ({
   slug,
+  href = `/student/dashboard/class/${slug}`,
   title,
   teacher,
   institution,
@@ -47,7 +49,7 @@ export const EnrolledClassCard: React.FC<ClassCardProps> = ({
 }) => {
   return (
     <Link
-      href={`/student/dashboard/class/${slug}`}
+      href={href}
       className={cn(
         "getmath-card p-5 flex flex-col gap-4 cursor-pointer group relative z-0",
         className,
